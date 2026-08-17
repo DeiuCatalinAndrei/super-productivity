@@ -9,8 +9,25 @@ import { Project as PluginProject } from '@super-productivity/plugin-api';
 
 export type RoundTimeOption = '5M' | 'QUARTER' | 'HALF' | 'HOUR' | null | undefined;
 
+/**
+ * Native hierarchy marker for the personal Goals workflow.
+ *
+ * These values live directly on the existing PROJECT entity, so they use the
+ * same persistence, operation log, backup/restore and cross-device sync path
+ * as every other project field. No plugin/localStorage side database is used.
+ */
+export type LifeProjectType = 'goal' | 'project';
+
 export interface ProjectBasicCfg {
   title: string;
+  /** Goal/subgoal/project hierarchy metadata, synchronized as PROJECT fields. */
+  lifeType?: LifeProjectType;
+  /** Parent goal/subgoal PROJECT id; null/undefined means a root goal. */
+  parentProjectId?: string | null;
+  /** Desired completion date (YYYY-MM-DD). */
+  goalTargetDay?: string | null;
+  /** Hard goal deadline (YYYY-MM-DD). */
+  goalDeadlineDay?: string | null;
   // TODO remove maybe
   isArchived?: boolean;
   // Completed projects are a celebrated finish; completing also sets isArchived
