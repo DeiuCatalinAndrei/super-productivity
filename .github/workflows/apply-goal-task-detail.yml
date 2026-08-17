@@ -1,0 +1,111 @@
+name: Apply Goal Task Detail
+
+on:
+  push:
+    branches:
+      - agent/native-goals-mobile-sync
+    paths:
+      - '.github/workflows/apply-goal-task-detail.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: agent/native-goals-mobile-sync
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+      - name: Patch native task detail panel
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          ts_path = Path('src/app/features/tasks/task-detail-panel/task-detail-panel.component.ts')
+          ts = ts_path.read_text()
+
+          old = "import { TaskContextMenuComponent } from '../task-context-menu/task-context-menu.component';\n"
+          new = old + "import { DialogSelectGoalProjectComponent } from '../../project/dialogs/select-goal-project/dialog-select-goal-project.component';\nimport { Project } from '../../project/project.model';\nimport { selectAllProjectsExceptInbox } from '../../project/store/project.selectors';\nimport { TaskProjectMoveService } from '../task-project-move.service';\n"
+          if old not in ts:
+              raise SystemExit('task detail import anchor not found')
+          ts = ts.replace(old, new, 1)
+
+          old = "  private _dateTimeFormatService = inject(DateTimeFormatService);\n"
+          new = old + "  private _taskProjectMoveService = inject(TaskProjectMoveService);\n"
+          if old not in ts:
+              raise SystemExit('task detail service anchor not found')
+          ts = ts.replace(old, new, 1)
+
+          old = "  private _taskDetailTargetPanel = toSignal(\n    this.taskService.taskDetailPanelTargetPanel$,\n    {\n      initialValue: null,\n    },\n  );\n"
+          new = old + "\n  private _projects = toSignal(this._store.select(selectAllProjectsExceptInbox), {\n    initialValue: [] as Project[],\n  });\n\n  readonly hasGoalProjects = computed(() =>\n    this._projects().some(\n      (project) => project.lifeType === 'project' && !project.isArchived,\n    ),\n  );\n\n  readonly goalProjectContext = computed(() => {\n    const projectId = this.task().projectId;\n    if (!projectId) return null;\n\n    const projects = this._projects();\n    const byId = new Map(projects.map((project) => [project.id, project]));\n    const project = byId.get(projectId);\n    if (!project || project.lifeType !== 'project') return null;\n\n    const titles = [project.title];\n    const visited = new Set<string>([project.id]);\n    let parentId = project.parentProjectId;\n    while (parentId && !visited.has(parentId)) {\n      visited.add(parentId);\n      const parent = byId.get(parentId);\n      if (!parent) break;\n      if (parent.lifeType === 'goal') titles.unshift(parent.title);\n      parentId = parent.parentProjectId;\n    }\n    return titles.join(' › ');\n  });\n"
+          if old not in ts:
+              raise SystemExit('task detail signal anchor not found')
+          ts = ts.replace(old, new, 1)
+
+          old = "  scheduleTask(): void {\n    this._matDialog.open(DialogScheduleTaskComponent, {\n      autoFocus: false,\n      restoreFocus: true,\n      data: { task: this.task() },\n    });\n  }\n"
+          new = old + "\n  openGoalProjectDialog(): void {\n    const task = this.task();\n    if (task.parentId) return;\n\n    this._matDialog\n      .open(DialogSelectGoalProjectComponent, {\n        autoFocus: false,\n        restoreFocus: true,\n        data: { currentProjectId: task.projectId },\n      })\n      .afterClosed()\n      .subscribe((projectId: string | undefined) => {\n        if (projectId && projectId !== task.projectId) {\n          void this._taskProjectMoveService.moveTaskToProject(task, projectId);\n        }\n      });\n  }\n"
+          if old not in ts:
+              raise SystemExit('task detail method anchor not found')
+          ts = ts.replace(old, new, 1)
+          ts_path.write_text(ts)
+
+          html_path = Path('src/app/features/tasks/task-detail-panel/task-detail-panel.component.html')
+          html = html_path.read_text()
+          anchor = "  @if (showTimeEstimate()) {\n"
+          block = """  @if (!task().parentId && hasGoalProjects()) {
+    <task-detail-item
+      (collapseParent)="collapseParent()"
+      (editActionTriggered)="openGoalProjectDialog()"
+      (keyPress)="onItemKeyPress($event)"
+      [inputIcon]="goalProjectContext() ? 'edit' : 'add'"
+      class="input-item"
+    >
+      <ng-container input-title>
+        <mat-icon>flag</mat-icon>
+        <span>Obiectiv / proiect</span>
+      </ng-container>
+      <ng-container input-value>
+        @if (goalProjectContext(); as goalPath) {
+          <span>{{ goalPath }}</span>
+        } @else {
+          <span>Nelegat de un obiectiv</span>
+        }
+      </ng-container>
+    </task-detail-item>
+  }
+"""
+          if anchor not in html:
+              raise SystemExit('task detail html anchor not found')
+          html = html.replace(anchor, block + anchor, 1)
+          html_path.write_text(html)
+          PY
+
+          npx --yes prettier@3.6.2 --write \
+            src/app/features/tasks/task-detail-panel/task-detail-panel.component.ts \
+            src/app/features/tasks/task-detail-panel/task-detail-panel.component.html \
+            src/app/features/tasks/task-project-move.service.ts \
+            src/app/features/project/dialogs/select-goal-project/dialog-select-goal-project.component.ts \
+            e2e/tests/sync/supersync-goals.spec.ts
+
+      - name: Commit native task detail integration
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No changes needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/app/features/tasks/task-detail-panel/task-detail-panel.component.ts \
+            src/app/features/tasks/task-detail-panel/task-detail-panel.component.html \
+            src/app/features/tasks/task-project-move.service.ts \
+            src/app/features/project/dialogs/select-goal-project/dialog-select-goal-project.component.ts \
+            e2e/tests/sync/supersync-goals.spec.ts
+          git commit -m "feat(goals): integrate goal project in native task details"
+          git push origin HEAD:agent/native-goals-mobile-sync
