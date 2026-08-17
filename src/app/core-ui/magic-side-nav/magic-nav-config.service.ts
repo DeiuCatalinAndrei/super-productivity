@@ -293,8 +293,8 @@ export class MagicNavConfigService {
             icon: 'feedback',
             href: 'https://github.com/super-productivity/super-productivity/discussions',
           },
-          // Donation links are disabled on native iOS and every macOS desktop
-          // build to keep App Store review behavior deterministic.
+          // Donation links are disabled on native iOS and every macOS desktop build
+          // to keep App Store review behavior deterministic.
           ...(!IS_DONATION_UI_RESTRICTED
             ? [
                 {
@@ -401,6 +401,14 @@ export class MagicNavConfigService {
 
   private _buildMainRoutesItems(): NavItem[] {
     const items: NavItem[] = [];
+
+    items.push({
+      type: 'route',
+      id: 'goals',
+      label: 'Obiective',
+      icon: 'flag',
+      route: '/goals',
+    });
 
     if (this.isPlannerEnabled()) {
       items.push({

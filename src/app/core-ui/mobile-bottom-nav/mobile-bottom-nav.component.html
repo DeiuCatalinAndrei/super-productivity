@@ -17,6 +17,16 @@
   <button
     mat-button
     class="nav-button"
+    routerLink="/goals"
+    routerLinkActive="active"
+    aria-label="Obiective"
+  >
+    <mat-icon>flag</mat-icon>
+  </button>
+
+  <button
+    mat-button
+    class="nav-button"
     routerLink="/planner"
     routerLinkActive="active"
     [attr.aria-label]="T.MH.PLANNER | translate"

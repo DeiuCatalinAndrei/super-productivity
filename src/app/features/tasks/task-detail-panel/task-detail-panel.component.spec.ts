@@ -19,6 +19,7 @@ import { MarkdownModule } from 'ngx-markdown';
 import { DEFAULT_TASK, TaskDetailTargetPanel, TaskWithSubTasks } from '../task.model';
 import { TaskDetailItemComponent } from './task-additional-info-item/task-detail-item.component';
 import { TaskContextMenuComponent } from '../task-context-menu/task-context-menu.component';
+import { TaskProjectMoveService } from '../task-project-move.service';
 
 const MOCK_TASK: TaskWithSubTasks = {
   ...(DEFAULT_TASK as TaskWithSubTasks),
@@ -111,6 +112,10 @@ describe('TaskDetailPanelComponent', () => {
         { provide: DateTimeFormatService, useValue: mockDateTimeFormatService },
         { provide: Store, useValue: mockStore },
         { provide: MentionConfigService, useValue: { mentionConfig$: EMPTY } },
+        {
+          provide: TaskProjectMoveService,
+          useValue: { moveTaskToProject: async () => false },
+        },
       ],
     })
       .overrideComponent(TaskContextMenuComponent, {
@@ -373,6 +378,10 @@ describe('TaskDetailPanelComponent stale-focus guard', () => {
         { provide: Store, useValue: { select: () => EMPTY, dispatch: () => undefined } },
         { provide: TranslateService, useValue: { instant: (k: string) => k } },
         { provide: MentionConfigService, useValue: { mentionConfig$: EMPTY } },
+        {
+          provide: TaskProjectMoveService,
+          useValue: { moveTaskToProject: async () => false },
+        },
       ],
     })
       // Drop the real template/child components — only the focus timing logic is under test.
@@ -489,6 +498,10 @@ describe('TaskDetailPanelComponent notes target does not auto-edit', () => {
         { provide: Store, useValue: { select: () => EMPTY, dispatch: () => undefined } },
         { provide: TranslateService, useValue: { instant: (k: string) => k } },
         { provide: MentionConfigService, useValue: { mentionConfig$: EMPTY } },
+        {
+          provide: TaskProjectMoveService,
+          useValue: { moveTaskToProject: async () => false },
+        },
       ],
     })
       .overrideComponent(TaskDetailPanelComponent, {
@@ -589,6 +602,10 @@ describe('TaskDetailPanelComponent add sub-task', () => {
         { provide: Store, useValue: { select: () => EMPTY, dispatch: () => undefined } },
         { provide: TranslateService, useValue: { instant: (k: string) => k } },
         { provide: MentionConfigService, useValue: { mentionConfig$: EMPTY } },
+        {
+          provide: TaskProjectMoveService,
+          useValue: { moveTaskToProject: async () => false },
+        },
       ],
     })
       .overrideComponent(TaskDetailPanelComponent, {

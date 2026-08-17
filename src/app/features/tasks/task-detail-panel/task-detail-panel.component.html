@@ -98,6 +98,27 @@
       </ng-container>
     </task-detail-item>
   }
+  @if (!task().parentId && hasGoalProjects()) {
+    <task-detail-item
+      (collapseParent)="collapseParent()"
+      (editActionTriggered)="openGoalProjectDialog()"
+      (keyPress)="onItemKeyPress($event)"
+      [inputIcon]="goalProjectContext() ? 'edit' : 'add'"
+      class="input-item"
+    >
+      <ng-container input-title>
+        <mat-icon>flag</mat-icon>
+        <span>Obiectiv / proiect</span>
+      </ng-container>
+      <ng-container input-value>
+        @if (goalProjectContext(); as goalPath) {
+          <span>{{ goalPath }}</span>
+        } @else {
+          <span>Nelegat de un obiectiv</span>
+        }
+      </ng-container>
+    </task-detail-item>
+  }
   @if (showTimeEstimate()) {
     <task-detail-item
       (collapseParent)="collapseParent()"

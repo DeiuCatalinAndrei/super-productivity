@@ -94,6 +94,10 @@ import {
 } from '../add-subtask-input/add-subtask-input.component';
 import { findNextTaskAfterSubtree } from '../../../util/find-adjacent-focusable';
 import { TaskContextMenuComponent } from '../task-context-menu/task-context-menu.component';
+import { DialogSelectGoalProjectComponent } from '../../project/dialogs/select-goal-project/dialog-select-goal-project.component';
+import { Project } from '../../project/project.model';
+import { selectAllProjectsExceptInbox } from '../../project/store/project.selectors';
+import { TaskProjectMoveService } from '../task-project-move.service';
 
 @Component({
   selector: 'task-detail-panel',
@@ -148,6 +152,7 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
   private _translateService = inject(TranslateService);
   private _destroyRef = inject(DestroyRef);
   private _dateTimeFormatService = inject(DateTimeFormatService);
+  private _taskProjectMoveService = inject(TaskProjectMoveService);
 
   // Exposed so the template can pass the reactive locale to the now-pure
   // `localeDate` pipe, preserving re-render on a locale change.
@@ -199,6 +204,38 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
       initialValue: null,
     },
   );
+
+  private _projects = toSignal(this._store.select(selectAllProjectsExceptInbox), {
+    initialValue: [] as Project[],
+  });
+
+  readonly hasGoalProjects = computed(() =>
+    this._projects().some(
+      (project) => project.lifeType === 'project' && !project.isArchived,
+    ),
+  );
+
+  readonly goalProjectContext = computed(() => {
+    const projectId = this.task().projectId;
+    if (!projectId) return null;
+
+    const projects = this._projects();
+    const byId = new Map(projects.map((project) => [project.id, project]));
+    const project = byId.get(projectId);
+    if (!project || project.lifeType !== 'project') return null;
+
+    const titles = [project.title];
+    const visited = new Set<string>([project.id]);
+    let parentId = project.parentProjectId;
+    while (parentId && !visited.has(parentId)) {
+      visited.add(parentId);
+      const parent = byId.get(parentId);
+      if (!parent) break;
+      if (parent.lifeType === 'goal') titles.unshift(parent.title);
+      parentId = parent.parentProjectId;
+    }
+    return titles.join(' › ');
+  });
 
   @HostListener('keydown', ['$event'])
   onKeydown(ev: KeyboardEvent): void {
@@ -639,6 +676,24 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
       restoreFocus: true,
       data: { task: this.task() },
     });
+  }
+
+  openGoalProjectDialog(): void {
+    const task = this.task();
+    if (task.parentId) return;
+
+    this._matDialog
+      .open(DialogSelectGoalProjectComponent, {
+        autoFocus: false,
+        restoreFocus: true,
+        data: { currentProjectId: task.projectId },
+      })
+      .afterClosed()
+      .subscribe((projectId: string | undefined) => {
+        if (projectId && projectId !== task.projectId) {
+          void this._taskProjectMoveService.moveTaskToProject(task, projectId);
+        }
+      });
   }
 
   openDeadlineDialog(): void {
