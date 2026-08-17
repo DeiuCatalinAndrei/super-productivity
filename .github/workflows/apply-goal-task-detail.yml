@@ -3,7 +3,7 @@ name: Apply Goal Task Detail
 on:
   push:
     branches:
-      - agent/native-goals-mobile-sync
+      - 'agent/native-goals-mobile-sync'
     paths:
       - '.github/workflows/apply-goal-task-detail.yml'
 
@@ -57,28 +57,29 @@ jobs:
           html_path = Path('src/app/features/tasks/task-detail-panel/task-detail-panel.component.html')
           html = html_path.read_text()
           anchor = "  @if (showTimeEstimate()) {\n"
-          block = """  @if (!task().parentId && hasGoalProjects()) {
-    <task-detail-item
-      (collapseParent)="collapseParent()"
-      (editActionTriggered)="openGoalProjectDialog()"
-      (keyPress)="onItemKeyPress($event)"
-      [inputIcon]="goalProjectContext() ? 'edit' : 'add'"
-      class="input-item"
-    >
-      <ng-container input-title>
-        <mat-icon>flag</mat-icon>
-        <span>Obiectiv / proiect</span>
-      </ng-container>
-      <ng-container input-value>
-        @if (goalProjectContext(); as goalPath) {
-          <span>{{ goalPath }}</span>
-        } @else {
-          <span>Nelegat de un obiectiv</span>
-        }
-      </ng-container>
-    </task-detail-item>
-  }
-"""
+          block = (
+              "  @if (!task().parentId && hasGoalProjects()) {\n"
+              "    <task-detail-item\n"
+              "      (collapseParent)=\"collapseParent()\"\n"
+              "      (editActionTriggered)=\"openGoalProjectDialog()\"\n"
+              "      (keyPress)=\"onItemKeyPress($event)\"\n"
+              "      [inputIcon]=\"goalProjectContext() ? 'edit' : 'add'\"\n"
+              "      class=\"input-item\"\n"
+              "    >\n"
+              "      <ng-container input-title>\n"
+              "        <mat-icon>flag</mat-icon>\n"
+              "        <span>Obiectiv / proiect</span>\n"
+              "      </ng-container>\n"
+              "      <ng-container input-value>\n"
+              "        @if (goalProjectContext(); as goalPath) {\n"
+              "          <span>{{ goalPath }}</span>\n"
+              "        } @else {\n"
+              "          <span>Nelegat de un obiectiv</span>\n"
+              "        }\n"
+              "      </ng-container>\n"
+              "    </task-detail-item>\n"
+              "  }\n"
+          )
           if anchor not in html:
               raise SystemExit('task detail html anchor not found')
           html = html.replace(anchor, block + anchor, 1)
