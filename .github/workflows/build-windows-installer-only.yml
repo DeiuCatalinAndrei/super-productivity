@@ -1,0 +1,34 @@
+name: Build Windows Installer Only
+
+on:
+  push:
+    branches:
+      - agent/native-goals-mobile-sync
+    paths:
+      - .github/workflows/build-windows-installer-only.yml
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+      - name: Setup Electron build environment
+        uses: ./.github/actions/setup-electron-build
+      - name: Install npm packages
+        shell: bash
+        run: npm install @nx/nx-win32-x64-msvc && npm i
+      - name: Build production frontend
+        run: npm run buildFrontend:prod:es6
+      - name: Build Electron main process
+        run: npm run electron:build
+      - name: Package Windows installer
+        run: npx electron-builder --win
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lifeos-native-windows
+          path: .tmp/app-builds/*.exe
