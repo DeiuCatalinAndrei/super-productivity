@@ -1,0 +1,66 @@
+name: Fix Task Detail Tests
+
+on:
+  push:
+    branches:
+      - agent/native-goals-mobile-sync
+    paths:
+      - '.github/workflows/fix-task-detail-tests.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: agent/native-goals-mobile-sync
+      - name: Mock the native task-project move service in TaskDetailPanel specs
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('src/app/features/tasks/task-detail-panel/task-detail-panel.component.spec.ts')
+          text = p.read_text()
+
+          import_anchor = "import { TaskContextMenuComponent } from '../task-context-menu/task-context-menu.component';\n"
+          import_line = "import { TaskProjectMoveService } from '../task-project-move.service';\n"
+          if import_line not in text:
+              if import_anchor not in text:
+                  raise SystemExit('Import anchor not found')
+              text = text.replace(import_anchor, import_anchor + import_line, 1)
+
+          provider_anchor = "        { provide: MentionConfigService, useValue: { mentionConfig$: EMPTY } },\n"
+          provider_line = "        { provide: TaskProjectMoveService, useValue: { moveTaskToProject: async () => false } },\n"
+          if provider_line not in text:
+              count = text.count(provider_anchor)
+              if count < 1:
+                  raise SystemExit('Provider anchor not found')
+              text = text.replace(provider_anchor, provider_anchor + provider_line)
+              print(f'Added TaskProjectMoveService mock to {count} TestBed provider blocks')
+
+          p.write_text(text)
+          PY
+
+      - name: Format the touched spec
+        run: npx --yes prettier@3.6.2 --write src/app/features/tasks/task-detail-panel/task-detail-panel.component.spec.ts
+
+      - name: Remove temporary helper workflows
+        shell: bash
+        run: |
+          git rm -f .github/workflows/fix-task-detail-tests.yml
+          if [ -f .github/workflows/format-goals.yml ]; then
+            git rm -f .github/workflows/format-goals.yml
+          fi
+
+      - name: Commit and push the test fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/features/tasks/task-detail-panel/task-detail-panel.component.spec.ts
+          git commit -m "test(goals): mock task project move service"
+          git push origin HEAD:agent/native-goals-mobile-sync
