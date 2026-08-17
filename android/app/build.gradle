@@ -44,6 +44,12 @@ android {
     // Configure the build types (Debug and Release)
     buildTypes {
         debug {
+            // Keep the test build installable next to the official app so the
+            // user's existing mobile data/signature are never touched.
+            applicationIdSuffix ".nativegoalsdebug"
+            versionNameSuffix "-native-goals-debug"
+            manifestPlaceholders.launcherName = "SP Goals Test"
+
             // Define each field in BuildConfig for the Debug build
             debugConfigFields.each { key, value ->
                 buildConfigField "String", key, value.toString()
