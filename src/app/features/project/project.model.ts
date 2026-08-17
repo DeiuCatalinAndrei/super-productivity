@@ -15,6 +15,7 @@ export type RoundTimeOption = '5M' | 'QUARTER' | 'HALF' | 'HOUR' | null | undefi
  * These values live directly on the existing PROJECT entity, so they use the
  * same persistence, operation log, backup/restore and cross-device sync path
  * as every other project field. No plugin/localStorage side database is used.
+ * All fields remain optional so existing synced snapshots stay backward-compatible.
  */
 export type LifeProjectType = 'goal' | 'project';
 
