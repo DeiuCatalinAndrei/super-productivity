@@ -1,0 +1,1 @@
+Native Goals CI trigger after automated test-fixture fix.
