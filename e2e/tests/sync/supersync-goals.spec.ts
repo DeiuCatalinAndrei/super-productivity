@@ -1,4 +1,4 @@
-import { type Page } from '@playwright/test';
+import { type Locator, type Page } from '@playwright/test';
 import { test, expect } from '../../fixtures/supersync.fixture';
 import {
   closeClient,
@@ -16,7 +16,7 @@ const savePrompt = async (page: Page, value: string): Promise<void> => {
   await dialog.waitFor({ state: 'hidden', timeout: 10_000 });
 };
 
-const goalCard = (page: Page, title: string) =>
+const goalCard = (page: Page, title: string): Locator =>
   page.locator('.goal-card').filter({ hasText: title }).first();
 
 const setGoalDate = async (
