@@ -14,7 +14,12 @@ import { firstValueFrom } from 'rxjs';
 import { DialogPromptComponent } from '../../ui/dialog-prompt/dialog-prompt.component';
 import { LifeProjectType, Project } from '../../features/project/project.model';
 import { DEFAULT_PROJECT } from '../../features/project/project.const';
-import { addProject, updateProject } from '../../features/project/store/project.actions';
+import {
+  addProject,
+  completeProject,
+  reopenProject,
+  updateProject,
+} from '../../features/project/store/project.actions';
 import { selectAllProjectsExceptInbox } from '../../features/project/store/project.selectors';
 import { TaskService } from '../../features/tasks/task.service';
 import { Task } from '../../features/tasks/task.model';
@@ -197,6 +202,26 @@ interface GoalNode {
                     <mat-icon>add_task</mat-icon>
                     Taskuri
                   </a>
+                }
+                @if (node.project.lifeType !== 'project') {
+                  @if (node.project.isDone) {
+                    <button
+                      mat-button
+                      (click)="reopen(node.project)"
+                    >
+                      <mat-icon>restart_alt</mat-icon>
+                      Redeschide
+                    </button>
+                  } @else {
+                    <button
+                      mat-flat-button
+                      color="primary"
+                      (click)="complete(node.project)"
+                    >
+                      <mat-icon>verified</mat-icon>
+                      Finalizează
+                    </button>
+                  }
                 }
                 <button
                   mat-button
@@ -514,6 +539,14 @@ export class GoalsPageComponent {
     ).then((title) => {
       if (title) this._create(title, type, parent.id);
     });
+  }
+
+  complete(project: Project): void {
+    this._store.dispatch(completeProject({ id: project.id, doneOn: Date.now() }));
+  }
+
+  reopen(project: Project): void {
+    this._store.dispatch(reopenProject({ id: project.id }));
   }
 
   rename(project: Project): void {

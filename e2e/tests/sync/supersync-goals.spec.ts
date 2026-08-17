@@ -96,6 +96,28 @@ test.describe('@supersync native Goals metadata', () => {
         goalCard(clientA.page, goalTitle).locator('input[type="date"]').nth(1),
       ).toHaveValue(updatedDeadline);
       await expect(goalCard(clientA.page, subgoalTitle)).toBeVisible();
+
+      await goalCard(clientA.page, goalTitle)
+        .getByRole('button', { name: /Finalizează/ })
+        .click();
+      await clientA.sync.syncAndWait();
+
+      await clientB.sync.syncAndWait();
+      await clientB.page.goto('/#/goals');
+      await clientB.page.waitForLoadState('networkidle');
+      await expect(goalCard(clientB.page, goalTitle)).toContainText('Finalizat');
+
+      await goalCard(clientB.page, goalTitle)
+        .getByRole('button', { name: /Redeschide/ })
+        .click();
+      await clientB.sync.syncAndWait();
+
+      await clientA.sync.syncAndWait();
+      await clientA.page.goto('/#/goals');
+      await clientA.page.waitForLoadState('networkidle');
+      await expect(
+        goalCard(clientA.page, goalTitle).getByRole('button', { name: /Finalizează/ }),
+      ).toBeVisible();
     } finally {
       if (clientA) await closeClient(clientA);
       if (clientB) await closeClient(clientB);
