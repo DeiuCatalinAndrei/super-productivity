@@ -1,11 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import {
-  MAT_DIALOG_DATA,
-  MatDialogModule,
-  MatDialogRef,
-} from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { Store } from '@ngrx/store';
 
@@ -138,9 +134,12 @@ export class DialogSelectGoalProjectComponent {
   private readonly _dialogRef = inject(MatDialogRef<DialogSelectGoalProjectComponent>);
   readonly data = inject<GoalProjectPickerData>(MAT_DIALOG_DATA);
 
-  private readonly _projects = toSignal(this._store.select(selectAllProjectsExceptInbox), {
-    initialValue: [] as Project[],
-  });
+  private readonly _projects = toSignal(
+    this._store.select(selectAllProjectsExceptInbox),
+    {
+      initialValue: [] as Project[],
+    },
+  );
 
   readonly options = computed<GoalProjectOption[]>(() => {
     const projects = this._projects();
@@ -152,7 +151,10 @@ export class DialogSelectGoalProjectComponent {
         project,
         path: this._buildGoalPath(project, byId),
       }))
-      .sort((a, b) => a.path.localeCompare(b.path) || a.project.title.localeCompare(b.project.title));
+      .sort(
+        (a, b) =>
+          a.path.localeCompare(b.path) || a.project.title.localeCompare(b.project.title),
+      );
   });
 
   select(projectId: string): void {
