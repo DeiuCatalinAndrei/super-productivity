@@ -47,11 +47,15 @@ interface GoalNode {
         <div>
           <h1>🎯 Obiective</h1>
           <p>
-            Obiectiv → subobiectiv → proiect → task → subtask. Datele sunt proiecte
-            native Super Productivity și se sincronizează împreună cu restul aplicației.
+            Obiectiv → subobiectiv → proiect → task → subtask. Datele sunt proiecte native
+            Super Productivity și se sincronizează împreună cu restul aplicației.
           </p>
         </div>
-        <button mat-flat-button color="primary" (click)="addRootGoal()">
+        <button
+          mat-flat-button
+          color="primary"
+          (click)="addRootGoal()"
+        >
           <mat-icon>add</mat-icon>
           Obiectiv nou
         </button>
@@ -62,8 +66,15 @@ interface GoalNode {
           <mat-card-content>
             <mat-icon>flag</mat-icon>
             <h2>Începe cu un obiectiv clar</h2>
-            <p>Exemplu: „Termin licența până la 15 iunie”. Apoi adaugi subobiective și proiecte.</p>
-            <button mat-flat-button color="primary" (click)="addRootGoal()">
+            <p>
+              Exemplu: „Termin licența până la 15 iunie”. Apoi adaugi subobiective și
+              proiecte.
+            </p>
+            <button
+              mat-flat-button
+              color="primary"
+              (click)="addRootGoal()"
+            >
               Creează primul obiectiv
             </button>
           </mat-card-content>
@@ -80,11 +91,18 @@ interface GoalNode {
             <mat-card-content>
               <div class="goal-topline">
                 <div class="goal-title-wrap">
-                  <mat-icon>{{ node.project.lifeType === 'project' ? 'folder' : 'flag' }}</mat-icon>
+                  <mat-icon>{{
+                    node.project.lifeType === 'project' ? 'folder' : 'flag'
+                  }}</mat-icon>
                   <div>
-                    <div class="kind">{{ kindLabel(node.project.lifeType, node.depth) }}</div>
+                    <div class="kind">
+                      {{ kindLabel(node.project.lifeType, node.depth) }}
+                    </div>
                     @if (node.project.lifeType === 'project') {
-                      <a class="title" [routerLink]="['/project', node.project.id, 'tasks']">
+                      <a
+                        class="title"
+                        [routerLink]="['/project', node.project.id, 'tasks']"
+                      >
                         {{ node.project.title }}
                       </a>
                     } @else {
@@ -95,15 +113,29 @@ interface GoalNode {
                 <div class="progress-number">{{ node.progress }}%</div>
               </div>
 
-              <mat-progress-bar mode="determinate" [value]="node.progress"></mat-progress-bar>
+              <mat-progress-bar
+                mode="determinate"
+                [value]="node.progress"
+              ></mat-progress-bar>
 
               <div class="stats">
-                <span><mat-icon>check_circle</mat-icon>{{ node.doneTasks }}/{{ node.totalTasks }} taskuri</span>
+                <span
+                  ><mat-icon>check_circle</mat-icon>{{ node.doneTasks }}/{{
+                    node.totalTasks
+                  }}
+                  taskuri</span
+                >
                 @if (node.remainingMs > 0) {
-                  <span><mat-icon>schedule</mat-icon>{{ formatDuration(node.remainingMs) }} rămase</span>
+                  <span
+                    ><mat-icon>schedule</mat-icon
+                    >{{ formatDuration(node.remainingMs) }} rămase</span
+                  >
                 }
                 @if (node.childCount) {
-                  <span><mat-icon>account_tree</mat-icon>{{ node.childCount }} elemente directe</span>
+                  <span
+                    ><mat-icon>account_tree</mat-icon>{{ node.childCount }} elemente
+                    directe</span
+                  >
                 }
                 @if (node.project.isDone) {
                   <span><mat-icon>verified</mat-icon>Finalizat</span>
@@ -116,7 +148,13 @@ interface GoalNode {
                   <input
                     type="date"
                     [value]="node.project.goalTargetDay || ''"
-                    (change)="setGoalDate(node.project.id, 'goalTargetDay', $any($event.target).value)"
+                    (change)="
+                      setGoalDate(
+                        node.project.id,
+                        'goalTargetDay',
+                        $any($event.target).value
+                      )
+                    "
                   />
                 </label>
                 <label>
@@ -124,28 +162,46 @@ interface GoalNode {
                   <input
                     type="date"
                     [value]="node.project.goalDeadlineDay || ''"
-                    (change)="setGoalDate(node.project.id, 'goalDeadlineDay', $any($event.target).value)"
+                    (change)="
+                      setGoalDate(
+                        node.project.id,
+                        'goalDeadlineDay',
+                        $any($event.target).value
+                      )
+                    "
                   />
                 </label>
               </div>
 
               <div class="actions">
                 @if (node.project.lifeType !== 'project') {
-                  <button mat-button (click)="addChild(node.project, 'goal')">
+                  <button
+                    mat-button
+                    (click)="addChild(node.project, 'goal')"
+                  >
                     <mat-icon>subdirectory_arrow_right</mat-icon>
                     Subobiectiv
                   </button>
-                  <button mat-button (click)="addChild(node.project, 'project')">
+                  <button
+                    mat-button
+                    (click)="addChild(node.project, 'project')"
+                  >
                     <mat-icon>create_new_folder</mat-icon>
                     Proiect
                   </button>
                 } @else {
-                  <a mat-button [routerLink]="['/project', node.project.id, 'tasks']">
+                  <a
+                    mat-button
+                    [routerLink]="['/project', node.project.id, 'tasks']"
+                  >
                     <mat-icon>add_task</mat-icon>
                     Taskuri
                   </a>
                 }
-                <button mat-button (click)="rename(node.project)">
+                <button
+                  mat-button
+                  (click)="rename(node.project)"
+                >
                   <mat-icon>edit</mat-icon>
                   Redenumește
                 </button>
@@ -317,9 +373,12 @@ export class GoalsPageComponent {
   private readonly _taskService = inject(TaskService);
   private readonly _dialog = inject(MatDialog);
 
-  private readonly _projects = toSignal(this._store.select(selectAllProjectsExceptInbox), {
-    initialValue: [] as Project[],
-  });
+  private readonly _projects = toSignal(
+    this._store.select(selectAllProjectsExceptInbox),
+    {
+      initialValue: [] as Project[],
+    },
+  );
   private readonly _tasks = toSignal(this._taskService.allTasks$, {
     initialValue: [] as Task[],
   });
@@ -369,7 +428,10 @@ export class GoalsPageComponent {
       for (const projectId of projectIds) {
         const project = projectById.get(projectId);
         if (!project || project.lifeType !== 'project') continue;
-        for (const id of [...(project.taskIds ?? []), ...(project.backlogTaskIds ?? [])]) {
+        for (const id of [
+          ...(project.taskIds ?? []),
+          ...(project.backlogTaskIds ?? []),
+        ]) {
           visitTask(id);
         }
       }
@@ -463,11 +525,7 @@ export class GoalsPageComponent {
     });
   }
 
-  setGoalDate(
-    id: string,
-    key: 'goalTargetDay' | 'goalDeadlineDay',
-    value: string,
-  ): void {
+  setGoalDate(id: string, key: 'goalTargetDay' | 'goalDeadlineDay', value: string): void {
     this._store.dispatch(
       updateProject({ project: { id, changes: { [key]: value || null } } }),
     );
