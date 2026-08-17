@@ -1,0 +1,208 @@
+name: Finalize Native Goals
+
+on:
+  push:
+    branches: [agent/native-goals-mobile-sync]
+    paths:
+      - .github/workflows/finalize-native-goals.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          ref: agent/native-goals-mobile-sync
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: 22
+
+      - name: Add native goal completion and sync coverage
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          page = Path('src/app/pages/goals-page/goals-page.component.ts')
+          s = page.read_text()
+
+          old_import = "import { addProject, updateProject } from '../../features/project/store/project.actions';"
+          new_import = """import {
+            addProject,
+            completeProject,
+            reopenProject,
+            updateProject,
+          } from '../../features/project/store/project.actions';"""
+          if old_import not in s:
+              raise SystemExit('project action import marker not found')
+          s = s.replace(old_import, new_import, 1)
+
+          action_marker = """                <button
+                  mat-button
+                  (click)=\"rename(node.project)\"
+                >
+                  <mat-icon>edit</mat-icon>
+                  Redenumește
+                </button>"""
+          completion_ui = """                @if (node.project.lifeType !== 'project') {
+                  @if (node.project.isDone) {
+                    <button
+                      mat-button
+                      (click)=\"reopen(node.project)\"
+                    >
+                      <mat-icon>restart_alt</mat-icon>
+                      Redeschide
+                    </button>
+                  } @else {
+                    <button
+                      mat-flat-button
+                      color=\"primary\"
+                      (click)=\"complete(node.project)\"
+                    >
+                      <mat-icon>verified</mat-icon>
+                      Finalizează
+                    </button>
+                  }
+                }
+""" + action_marker
+          if action_marker not in s:
+              raise SystemExit('goal actions marker not found')
+          s = s.replace(action_marker, completion_ui, 1)
+
+          method_marker = """  rename(project: Project): void {
+    void this._promptTitle('Nume', project.title).then((title) => {"""
+          methods = """  complete(project: Project): void {
+    this._store.dispatch(completeProject({ id: project.id, doneOn: Date.now() }));
+  }
+
+  reopen(project: Project): void {
+    this._store.dispatch(reopenProject({ id: project.id }));
+  }
+
+""" + method_marker
+          if method_marker not in s:
+              raise SystemExit('rename method marker not found')
+          s = s.replace(method_marker, methods, 1)
+          page.write_text(s)
+
+          e2e = Path('e2e/tests/sync/supersync-goals.spec.ts')
+          t = e2e.read_text()
+          end_marker = """      await expect(goalCard(clientA.page, subgoalTitle)).toBeVisible();
+    } finally {"""
+          completion_test = """      await expect(goalCard(clientA.page, subgoalTitle)).toBeVisible();
+
+      await goalCard(clientA.page, goalTitle)
+        .getByRole('button', { name: /Finalizează/ })
+        .click();
+      await clientA.sync.syncAndWait();
+
+      await clientB.sync.syncAndWait();
+      await clientB.page.goto('/#/goals');
+      await clientB.page.waitForLoadState('networkidle');
+      await expect(goalCard(clientB.page, goalTitle)).toContainText('Finalizat');
+
+      await goalCard(clientB.page, goalTitle)
+        .getByRole('button', { name: /Redeschide/ })
+        .click();
+      await clientB.sync.syncAndWait();
+
+      await clientA.sync.syncAndWait();
+      await clientA.page.goto('/#/goals');
+      await clientA.page.waitForLoadState('networkidle');
+      await expect(
+        goalCard(clientA.page, goalTitle).getByRole('button', { name: /Finalizează/ }),
+      ).toBeVisible();
+    } finally {"""
+          if end_marker not in t:
+              raise SystemExit('supersync end marker not found')
+          t = t.replace(end_marker, completion_test, 1)
+          e2e.write_text(t)
+          PY
+
+      - name: Install npm packages
+        run: npm i
+
+      - name: Format and lint touched files
+        run: |
+          npx prettier --write src/app/pages/goals-page/goals-page.component.ts e2e/tests/sync/supersync-goals.spec.ts
+          npx eslint src/app/pages/goals-page/goals-page.component.ts e2e/tests/sync/supersync-goals.spec.ts
+
+      - name: Remove helper workflow and push final source patch
+        shell: bash
+        run: |
+          rm .github/workflows/finalize-native-goals.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/pages/goals-page/goals-page.component.ts e2e/tests/sync/supersync-goals.spec.ts .github/workflows/finalize-native-goals.yml
+          git commit -m "feat(goals): finalize and reopen synced objectives"
+          git push origin HEAD:agent/native-goals-mobile-sync
+
+  android-apk:
+    if: github.actor != 'github-actions[bot]'
+    needs: patch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out finalized branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          ref: agent/native-goals-mobile-sync
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: 22
+      - name: Setup Java
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
+        with:
+          accept-android-sdk-licenses: true
+          packages: 'platform-tools platforms;android-36 build-tools;35.0.0'
+      - name: Install npm packages
+        run: npm i
+      - name: Build installable debug APK
+        run: npm run dist:android
+      - name: Upload Android APKs
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lifeos-native-android-debug
+          path: android/app/build/outputs/apk/**/*.apk
+
+  windows-exe:
+    if: github.actor != 'github-actions[bot]'
+    needs: patch
+    runs-on: windows-latest
+    steps:
+      - name: Check out finalized branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          ref: agent/native-goals-mobile-sync
+      - name: Setup Electron build environment
+        uses: ./.github/actions/setup-electron-build
+      - name: Install npm packages
+        shell: bash
+        run: npm install @nx/nx-win32-x64-msvc && npm i
+      - name: Build frontend and Electron
+        run: npm run buildAllElectron:noTests:prod
+      - name: Package Windows app
+        uses: johannesjo/action-electron-builder@9ea9e2d991c97668843d57337848e3e2b1ffab3d # v1
+        with:
+          build_script_name: empty
+          github_token: ${{ secrets.github_token }}
+          release: false
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lifeos-native-windows
+          path: .tmp/app-builds/*.exe
