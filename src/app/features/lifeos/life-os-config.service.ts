@@ -3,10 +3,10 @@ import { Store } from '@ngrx/store';
 import { take } from 'rxjs/operators';
 import { GlobalConfigService } from '../config/global-config.service';
 import { TasksConfig } from '../config/global-config.model';
-import { Project } from '../project/project.model';
+import { Project, ProjectCopy } from '../project/project.model';
 import { updateProject } from '../project/store/project.actions';
 import { selectAllProjects } from '../project/store/project.selectors';
-import { Task } from '../tasks/task.model';
+import { Task, TaskCopy } from '../tasks/task.model';
 import { TaskService } from '../tasks/task.service';
 import { DEFAULT_LIFE_OS_CONFIG } from './life-os.const';
 import { LifeOsConfig, LifeSmartView } from './life-os.model';
@@ -116,7 +116,10 @@ export class LifeOsConfigService {
     return true;
   }
 
-  private _cleanupRemovedReferences(previous: LifeOsConfig, next: LifeOsConfig): void {
+  private _cleanupRemovedReferences(
+    previous: LifeOsConfig,
+    next: LifeOsConfig,
+  ): void {
     const nextPriorityIds = new Set(next.priorityLevels.map((item) => item.id));
     const nextLocationIds = new Set(next.locations.map((item) => item.id));
     const nextRequirementIds = new Set(next.requirements.map((item) => item.id));
@@ -126,7 +129,9 @@ export class LifeOsConfigService {
         .filter((id) => !nextPriorityIds.has(id)),
     );
     const removedLocationIds = new Set(
-      previous.locations.map((item) => item.id).filter((id) => !nextLocationIds.has(id)),
+      previous.locations
+        .map((item) => item.id)
+        .filter((id) => !nextLocationIds.has(id)),
     );
     const removedRequirementIds = new Set(
       previous.requirements
@@ -164,7 +169,7 @@ export class LifeOsConfigService {
   ): void {
     this._taskService?.allTasks$.pipe(take(1)).subscribe((tasks) => {
       for (const task of tasks) {
-        const changes: Partial<Task> = {};
+        const changes: Partial<TaskCopy> = {};
         if (task.lifePriorityId && removedPriorityIds.has(task.lifePriorityId)) {
           changes.lifePriorityId = replacementPriorityId;
         }
@@ -193,7 +198,7 @@ export class LifeOsConfigService {
   ): void {
     this._store?.select(selectAllProjects).pipe(take(1)).subscribe((projects) => {
       for (const project of projects) {
-        const changes: Partial<Project> = {};
+        const changes: Partial<ProjectCopy> = {};
         if (
           project.lifeDefaultPriorityId &&
           removedPriorityIds.has(project.lifeDefaultPriorityId)
