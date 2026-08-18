@@ -1,3 +1,4 @@
+// Native LifeOS types are intentionally stored on existing synced Super Productivity entities.
 export interface LifePriorityLevel {
   id: string;
   label: string;
