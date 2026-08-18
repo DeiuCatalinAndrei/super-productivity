@@ -1,5 +1,6 @@
 name: LifeOS v2 Finalize
 
+# Triggered intentionally after the workflow existed on the branch.
 on:
   push:
     branches:
