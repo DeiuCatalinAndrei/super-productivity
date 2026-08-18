@@ -6,6 +6,7 @@ on:
       - agent/lifeos-v2-context-engine
     paths:
       - scripts/apply-lifeos-v2-core.py
+      - .github/workflows/apply-lifeos-v2-core.yml
 
 permissions:
   contents: write
