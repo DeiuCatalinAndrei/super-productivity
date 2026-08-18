@@ -23,12 +23,18 @@ export interface ProjectBasicCfg {
   title: string;
   /** Goal/subgoal/project hierarchy metadata, synchronized as PROJECT fields. */
   lifeType?: LifeProjectType;
-  /** Parent goal/subgoal PROJECT id; null/undefined means a root goal. */
+  /** Parent goal/subgoal/project PROJECT id; null/undefined means a root goal. */
   parentProjectId?: string | null;
   /** Desired completion date (YYYY-MM-DD). */
   goalTargetDay?: string | null;
   /** Hard goal deadline (YYYY-MM-DD). */
   goalDeadlineDay?: string | null;
+  /** Optional defaults inherited by newly-created native tasks. */
+  lifeDefaultPriorityId?: string | null;
+  lifeDefaultFocus?: number | null;
+  lifeDefaultEnergy?: number | null;
+  lifeDefaultLocationIds?: string[];
+  lifeDefaultRequirementIds?: string[];
   // TODO remove maybe
   isArchived?: boolean;
   // Completed projects are a celebrated finish; completing also sets isArchived
