@@ -8,7 +8,7 @@ def replace_once(path: str, old: str, new: str) -> None:
         raise SystemExit(f'Expected block not found in {path}: {old[:150]!r}')
     p.write_text(text.replace(old, new, 1))
 
-# Task Detail: expose the native LifeOS metadata editor and allow any Life node.
+# Remaining UI integration after routes/pages were applied directly.
 replace_once(
     'src/app/features/tasks/task-detail-panel/task-detail-panel.component.ts',
     "import { TaskProjectMoveService } from '../task-project-move.service';\n",
@@ -29,7 +29,6 @@ replace_once(
     "    if (!project || project.lifeType !== 'project') return null;\n",
     "    if (!project || !project.lifeType) return null;\n",
 )
-
 replace_once(
     'src/app/features/tasks/task-detail-panel/task-detail-panel.component.html',
     '<span>Obiectiv / proiect</span>',
@@ -46,24 +45,7 @@ replace_once(
     "  <life-task-meta [task]=\"task()\"></life-task-meta>\n  @if (showTimeEstimate()) {\n",
 )
 
-# Lazy routes for Today/Future/Settings.
-replace_once(
-    'src/app/app.routes.ts',
-    "  {\n    path: 'goals',\n",
-    "  {\n    path: 'life-today',\n    loadComponent: () =>\n      import('./routes/pages.routes').then((m) => m.LifeTodayPageComponent),\n    data: { page: 'life-today' },\n    canActivate: [FocusOverlayOpenGuard],\n  },\n  {\n    path: 'goals',\n",
-)
-replace_once(
-    'src/app/app.routes.ts',
-    "  {\n    path: 'habits',\n",
-    "  {\n    path: 'future',\n    loadComponent: () =>\n      import('./routes/pages.routes').then((m) => m.FuturePageComponent),\n    data: { page: 'future' },\n    canActivate: [FocusOverlayOpenGuard],\n  },\n  {\n    path: 'life-settings',\n    loadComponent: () =>\n      import('./routes/pages.routes').then((m) => m.LifeSettingsPageComponent),\n    data: { page: 'life-settings' },\n    canActivate: [FocusOverlayOpenGuard],\n  },\n  {\n    path: 'habits',\n",
-)
-replace_once(
-    'src/app/routes/pages.routes.ts',
-    "export { GoalsPageComponent } from '../pages/goals-page/goals-page.component';\n",
-    "export { GoalsPageComponent } from '../pages/goals-page/goals-page.component';\nexport { LifeTodayPageComponent } from '../pages/life-today-page/life-today-page.component';\nexport { FuturePageComponent } from '../pages/future-page/future-page.component';\nexport { LifeSettingsPageComponent } from '../pages/life-settings-page/life-settings-page.component';\n",
-)
-
-# Sidebar: Today now opens the multi-view dashboard; add Future and English labels.
+# Sidebar: Today opens the dashboard, Goals is English, Future is first-class.
 replace_once(
     'src/app/core-ui/magic-side-nav/magic-nav-config.service.ts',
     "        route: `/tag/${mainContext.id}/tasks`,\n",
@@ -85,7 +67,7 @@ replace_once(
     "      {\n        type: 'route',\n        id: 'life-settings',\n        label: 'LifeOS Settings',\n        icon: 'tune',\n        route: '/life-settings',\n      },\n      {\n        type: 'route',\n        id: 'settings',\n",
 )
 
-# Mobile bottom nav: English Goal label + Future shortcut.
+# Mobile bottom navigation.
 replace_once(
     'src/app/core-ui/mobile-bottom-nav/mobile-bottom-nav.component.html',
     '  aria-label="Obiective"\n',
@@ -97,11 +79,11 @@ replace_once(
     "  <mat-icon>flag</mat-icon>\n</button>\n\n<button\n  mat-button\n  class=\"nav-button\"\n  routerLink=\"/future\"\n  routerLinkActive=\"active\"\n  aria-label=\"Future\"\n>\n  <mat-icon>event_upcoming</mat-icon>\n</button>\n\n<button\n  mat-button\n  class=\"nav-button add-task-button\"",
 )
 
-# Make LifeOS configuration discoverable from the native Tasks settings tab.
+# Native Settings discoverability.
 replace_once(
     'src/app/pages/config-page/config-page.component.html',
     "            <h2 class=\"mat-h2 section-title\">\n              {{ 'PS.TABS.TASKS' | translate }}\n            </h2>\n",
     "            <h2 class=\"mat-h2 section-title\">\n              {{ 'PS.TABS.TASKS' | translate }}\n            </h2>\n            <div class=\"lifeos-settings-link\">\n              <a mat-flat-button routerLink=\"/life-settings\">\n                <mat-icon>tune</mat-icon>\n                LifeOS task intelligence, priorities and contexts\n              </a>\n            </div>\n",
 )
 
-print('LifeOS v2 UI integration patch applied.')
+print('LifeOS v2 remaining UI integration patch applied.')
