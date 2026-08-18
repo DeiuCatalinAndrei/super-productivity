@@ -1,5 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -21,17 +27,18 @@ import {
   updateProject,
 } from '../../features/project/store/project.actions';
 import { selectAllProjectsExceptInbox } from '../../features/project/store/project.selectors';
-import { TaskService } from '../../features/tasks/task.service';
 import { Task } from '../../features/tasks/task.model';
+import { TaskService } from '../../features/tasks/task.service';
+import { LifeOsConfigService } from '../../features/lifeos/life-os-config.service';
+import { LifeGoalViewMode } from '../../features/lifeos/life-os.model';
 
 interface GoalNode {
   project: Project;
   depth: number;
   progress: number;
-  doneTasks: number;
-  totalTasks: number;
-  remainingMs: number;
+  directTasks: Task[];
   childCount: number;
+  remainingMs: number;
 }
 
 @Component({
@@ -50,64 +57,78 @@ interface GoalNode {
     <main class="goals-page">
       <header class="page-head">
         <div>
-          <h1>🎯 Obiective</h1>
+          <h1>Goals</h1>
           <p>
-            Obiectiv → subobiectiv → proiect → task → subtask. Datele sunt proiecte native
-            Super Productivity și se sincronizează împreună cu restul aplicației.
+            Goal → Subgoal → Project → Subproject → Task → Subtask. Tasks can live
+            directly on any goal or project level and everything uses native Super
+            Productivity entities and sync.
           </p>
         </div>
-        <button
-          mat-flat-button
-          color="primary"
-          (click)="addRootGoal()"
-        >
-          <mat-icon>add</mat-icon>
-          Obiectiv nou
-        </button>
+        <div class="header-actions">
+          <a mat-button routerLink="/life-settings">
+            <mat-icon>tune</mat-icon>
+            Settings
+          </a>
+          <button mat-flat-button color="primary" (click)="addRootGoal()">
+            <mat-icon>add</mat-icon>
+            New Goal
+          </button>
+        </div>
       </header>
+
+      <nav class="view-switch" aria-label="Goals view">
+        @for (mode of viewModes; track mode.id) {
+          <button
+            mat-button
+            [class.active]="viewMode() === mode.id"
+            (click)="viewMode.set(mode.id)"
+          >
+            <mat-icon>{{ mode.icon }}</mat-icon>
+            {{ mode.label }}
+          </button>
+        }
+      </nav>
 
       @if (nodes().length === 0) {
         <mat-card class="empty-card">
           <mat-card-content>
             <mat-icon>flag</mat-icon>
-            <h2>Începe cu un obiectiv clar</h2>
-            <p>
-              Exemplu: „Termin licența până la 15 iunie”. Apoi adaugi subobiective și
-              proiecte.
-            </p>
-            <button
-              mat-flat-button
-              color="primary"
-              (click)="addRootGoal()"
-            >
-              Creează primul obiectiv
+            <h2>Start with one clear goal</h2>
+            <p>Create a goal, then add direct tasks, subgoals, projects or subprojects.</p>
+            <button mat-flat-button color="primary" (click)="addRootGoal()">
+              Create first goal
             </button>
           </mat-card-content>
         </mat-card>
       }
 
-      <section class="goal-tree">
+      <section class="goal-tree" [class.compact-view]="viewMode() === 'compact'">
         @for (node of nodes(); track node.project.id) {
           <mat-card
             class="goal-card"
             [class.is-project]="node.project.lifeType === 'project'"
+            [class.title-only]="viewMode() === 'tree' || viewMode() === 'compact'"
             [style.--goal-depth]="node.depth"
           >
             <mat-card-content>
               <div class="goal-topline">
-                <div class="goal-title-wrap">
+                <button
+                  class="collapse-btn"
+                  mat-icon-button
+                  [attr.aria-label]="isCollapsed(node.project.id) ? 'Expand' : 'Collapse'"
+                  (click)="toggleCollapsed(node.project.id)"
+                >
                   <mat-icon>{{
-                    node.project.lifeType === 'project' ? 'folder' : 'flag'
+                    isCollapsed(node.project.id) ? 'chevron_right' : 'expand_more'
                   }}</mat-icon>
-                  <div>
-                    <div class="kind">
-                      {{ kindLabel(node.project.lifeType, node.depth) }}
-                    </div>
+                </button>
+
+                <div class="goal-title-wrap">
+                  <mat-icon>{{ node.project.lifeType === 'project' ? 'folder' : 'flag' }}</mat-icon>
+                  <div class="title-copy">
+                    <div class="kind">{{ kindLabel(node.project, node.depth) }}</div>
                     @if (node.project.lifeType === 'project') {
-                      <a
-                        class="title"
-                        [routerLink]="['/project', node.project.id, 'tasks']"
-                      >
+                      <a class="title" [routerLink]="['/project', node.project.id, 'tasks']">
                         {{ node.project.title }}
                       </a>
                     } @else {
@@ -115,122 +136,186 @@ interface GoalNode {
                     }
                   </div>
                 </div>
+
                 <div class="progress-number">{{ node.progress }}%</div>
               </div>
 
-              <mat-progress-bar
-                mode="determinate"
-                [value]="node.progress"
-              ></mat-progress-bar>
+              @if (viewMode() !== 'compact' && viewMode() !== 'tree') {
+                <mat-progress-bar mode="determinate" [value]="node.progress"></mat-progress-bar>
+              }
 
-              <div class="stats">
-                <span
-                  ><mat-icon>check_circle</mat-icon>{{ node.doneTasks }}/{{
-                    node.totalTasks
-                  }}
-                  taskuri</span
-                >
-                @if (node.remainingMs > 0) {
-                  <span
-                    ><mat-icon>schedule</mat-icon
-                    >{{ formatDuration(node.remainingMs) }} rămase</span
-                  >
-                }
-                @if (node.childCount) {
-                  <span
-                    ><mat-icon>account_tree</mat-icon>{{ node.childCount }} elemente
-                    directe</span
-                  >
-                }
-                @if (node.project.isDone) {
-                  <span><mat-icon>verified</mat-icon>Finalizat</span>
-                }
-              </div>
-
-              <div class="dates">
-                <label>
-                  <span>🎯 Dată țintă</span>
-                  <input
-                    type="date"
-                    [value]="node.project.goalTargetDay || ''"
-                    (change)="
-                      setGoalDate(
-                        node.project.id,
-                        'goalTargetDay',
-                        $any($event.target).value
-                      )
-                    "
-                  />
-                </label>
-                <label>
-                  <span>🏁 Deadline final</span>
-                  <input
-                    type="date"
-                    [value]="node.project.goalDeadlineDay || ''"
-                    (change)="
-                      setGoalDate(
-                        node.project.id,
-                        'goalDeadlineDay',
-                        $any($event.target).value
-                      )
-                    "
-                  />
-                </label>
-              </div>
-
-              <div class="actions">
-                @if (node.project.lifeType !== 'project') {
-                  <button
-                    mat-button
-                    (click)="addChild(node.project, 'goal')"
-                  >
-                    <mat-icon>subdirectory_arrow_right</mat-icon>
-                    Subobiectiv
-                  </button>
-                  <button
-                    mat-button
-                    (click)="addChild(node.project, 'project')"
-                  >
-                    <mat-icon>create_new_folder</mat-icon>
-                    Proiect
-                  </button>
-                } @else {
-                  <a
-                    mat-button
-                    [routerLink]="['/project', node.project.id, 'tasks']"
-                  >
-                    <mat-icon>add_task</mat-icon>
-                    Taskuri
-                  </a>
-                }
-                @if (node.project.lifeType !== 'project') {
+              @if (!isCollapsed(node.project.id) && viewMode() === 'full') {
+                <div class="stats">
+                  <span><mat-icon>task_alt</mat-icon>{{ node.directTasks.length }} direct tasks</span>
+                  <span><mat-icon>account_tree</mat-icon>{{ node.childCount }} direct children</span>
+                  @if (node.remainingMs > 0) {
+                    <span><mat-icon>schedule</mat-icon>{{ formatDuration(node.remainingMs) }} remaining</span>
+                  }
                   @if (node.project.isDone) {
-                    <button
-                      mat-button
-                      (click)="reopen(node.project)"
-                    >
-                      <mat-icon>restart_alt</mat-icon>
-                      Redeschide
+                    <span><mat-icon>verified</mat-icon>Completed</span>
+                  }
+                </div>
+
+                <div class="dates">
+                  <label>
+                    <span>Due date</span>
+                    <input
+                      type="date"
+                      [value]="node.project.goalTargetDay || ''"
+                      (change)="setGoalDate(node.project.id, 'goalTargetDay', $any($event.target).value)"
+                    />
+                  </label>
+                  <label>
+                    <span>Deadline</span>
+                    <input
+                      type="date"
+                      [value]="node.project.goalDeadlineDay || ''"
+                      (change)="setGoalDate(node.project.id, 'goalDeadlineDay', $any($event.target).value)"
+                    />
+                  </label>
+                </div>
+
+                <details class="defaults">
+                  <summary>Defaults for new tasks</summary>
+                  <div class="defaults-grid">
+                    <label>
+                      <span>Priority</span>
+                      <select
+                        [value]="node.project.lifeDefaultPriorityId || ''"
+                        (change)="setProjectDefault(node.project.id, 'lifeDefaultPriorityId', $any($event.target).value || null)"
+                      >
+                        <option value="">Use global default</option>
+                        @for (level of lifeConfig().priorityLevels; track level.id) {
+                          <option [value]="level.id">{{ level.label }}</option>
+                        }
+                      </select>
+                    </label>
+                    <label>
+                      <span>Focus</span>
+                      <select
+                        [value]="node.project.lifeDefaultFocus || ''"
+                        (change)="setProjectNumberDefault(node.project.id, 'lifeDefaultFocus', $any($event.target).value)"
+                      >
+                        <option value="">Not set</option>
+                        @for (level of scale; track level) {
+                          <option [value]="level">{{ level }} / 5</option>
+                        }
+                      </select>
+                    </label>
+                    <label>
+                      <span>Energy</span>
+                      <select
+                        [value]="node.project.lifeDefaultEnergy || ''"
+                        (change)="setProjectNumberDefault(node.project.id, 'lifeDefaultEnergy', $any($event.target).value)"
+                      >
+                        <option value="">Not set</option>
+                        @for (level of scale; track level) {
+                          <option [value]="level">{{ level }} / 5</option>
+                        }
+                      </select>
+                    </label>
+                    <label>
+                      <span>Location</span>
+                      <select multiple (change)="setProjectMultiDefault(node.project.id, 'lifeDefaultLocationIds', $event)">
+                        @for (option of lifeConfig().locations; track option.id) {
+                          <option
+                            [value]="option.id"
+                            [selected]="(node.project.lifeDefaultLocationIds || []).includes(option.id)"
+                          >{{ option.label }}</option>
+                        }
+                      </select>
+                    </label>
+                    <label>
+                      <span>Requires</span>
+                      <select multiple (change)="setProjectMultiDefault(node.project.id, 'lifeDefaultRequirementIds', $event)">
+                        @for (option of lifeConfig().requirements; track option.id) {
+                          <option
+                            [value]="option.id"
+                            [selected]="(node.project.lifeDefaultRequirementIds || []).includes(option.id)"
+                          >{{ option.label }}</option>
+                        }
+                      </select>
+                    </label>
+                  </div>
+                </details>
+
+                <section class="direct-tasks">
+                  <div class="section-head">
+                    <strong>Tasks</strong>
+                    <button mat-button (click)="addTask(node.project)">
+                      <mat-icon>add_task</mat-icon>
+                      Add Task
                     </button>
-                  } @else {
-                    <button
-                      mat-flat-button
-                      color="primary"
-                      (click)="complete(node.project)"
-                    >
-                      <mat-icon>verified</mat-icon>
-                      Finalizează
+                  </div>
+                  @if (!node.directTasks.length) {
+                    <div class="task-empty">No direct tasks at this level.</div>
+                  }
+                  @for (task of node.directTasks; track task.id) {
+                    <button class="task-row" (click)="openTask(task.id)">
+                      <mat-icon>{{ task.isDone ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                      <span class="task-title" [class.done]="task.isDone">{{ task.title }}</span>
+                      @if (priorityLabel(task.lifePriorityId); as priority) {
+                        <span class="chip">{{ priority }}</span>
+                      }
+                      @if (task.lifeFocus) { <span class="chip">F{{ task.lifeFocus }}</span> }
+                      @if (task.lifeEnergy) { <span class="chip">E{{ task.lifeEnergy }}</span> }
+                      @if (task.lifeDueDay) { <span class="chip">Due {{ task.lifeDueDay }}</span> }
+                      @if (task.lifeIsNextAction) { <span class="chip next">Next</span> }
                     </button>
                   }
+                </section>
+
+                <div class="actions">
+                  @if (node.project.lifeType === 'goal') {
+                    <button mat-button (click)="addChild(node.project, 'goal')">
+                      <mat-icon>subdirectory_arrow_right</mat-icon>
+                      Add Subgoal
+                    </button>
+                    <button mat-button (click)="addChild(node.project, 'project')">
+                      <mat-icon>create_new_folder</mat-icon>
+                      Add Project
+                    </button>
+                  } @else {
+                    <button mat-button (click)="addChild(node.project, 'project')">
+                      <mat-icon>create_new_folder</mat-icon>
+                      Add Subproject
+                    </button>
+                  }
+
+                  <button mat-button (click)="addTask(node.project)">
+                    <mat-icon>add_task</mat-icon>
+                    Add Task
+                  </button>
+
+                  @if (node.project.isDone) {
+                    <button mat-button (click)="reopen(node.project)">
+                      <mat-icon>restart_alt</mat-icon>
+                      Reopen
+                    </button>
+                  } @else {
+                    <button mat-flat-button color="primary" (click)="complete(node.project)">
+                      <mat-icon>verified</mat-icon>
+                      Complete
+                    </button>
+                  }
+
+                  <button mat-button (click)="rename(node.project)">
+                    <mat-icon>edit</mat-icon>
+                    Rename
+                  </button>
+                </div>
+              } @else if (!isCollapsed(node.project.id) && viewMode() === 'tree') {
+                @if (node.directTasks.length) {
+                  <div class="tree-tasks">
+                    @for (task of node.directTasks; track task.id) {
+                      <button (click)="openTask(task.id)">
+                        <mat-icon>{{ task.isDone ? 'check' : 'check_box_outline_blank' }}</mat-icon>
+                        {{ task.title }}
+                      </button>
+                    }
+                  </div>
                 }
-                <button
-                  mat-button
-                  (click)="rename(node.project)"
-                >
-                  <mat-icon>edit</mat-icon>
-                  Redenumește
-                </button>
-              </div>
+              }
             </mat-card-content>
           </mat-card>
         }
@@ -239,155 +324,64 @@ interface GoalNode {
   `,
   styles: [
     `
-      :host {
-        display: block;
-        width: 100%;
-      }
-      .goals-page {
-        max-width: 980px;
-        margin: 0 auto;
-        padding: 16px;
-        box-sizing: border-box;
-      }
-      .page-head {
-        display: flex;
-        gap: 16px;
-        align-items: flex-start;
-        justify-content: space-between;
-        margin-bottom: 18px;
-      }
-      .page-head h1 {
-        margin: 0 0 6px;
-        font-size: 1.7rem;
-      }
-      .page-head p {
-        margin: 0;
-        opacity: 0.72;
-        max-width: 680px;
-      }
-      .goal-tree {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-      .goal-card {
-        overflow: hidden;
-        margin-left: calc(var(--goal-depth) * 18px);
-      }
-      .goal-card.is-project {
-        border-inline-start: 3px solid currentColor;
-      }
-      .goal-topline {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 10px;
-      }
-      .goal-title-wrap {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        min-width: 0;
-      }
-      .title {
-        font-size: 1.05rem;
-        font-weight: 650;
-        color: inherit;
-        text-decoration: none;
-      }
-      .kind {
-        font-size: 0.72rem;
-        opacity: 0.65;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-      }
-      .progress-number {
-        font-size: 1.15rem;
-        font-weight: 700;
-        white-space: nowrap;
-      }
-      .stats {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 14px;
-        margin-top: 10px;
-        font-size: 0.85rem;
-        opacity: 0.78;
-      }
-      .stats span {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-      }
-      .stats mat-icon {
-        width: 16px;
-        height: 16px;
-        font-size: 16px;
-      }
-      .dates {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-        margin-top: 12px;
-      }
-      .dates label {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-        font-size: 0.78rem;
-        opacity: 0.84;
-      }
-      .dates input {
-        color: inherit;
-        background: transparent;
-        border: 1px solid rgba(127, 127, 127, 0.35);
-        border-radius: 8px;
-        padding: 10px;
-        font: inherit;
-        min-height: 44px;
-        box-sizing: border-box;
-      }
-      .actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-        margin-top: 10px;
-      }
-      .empty-card {
-        text-align: center;
-        padding: 22px;
-      }
-      .empty-card mat-icon {
-        font-size: 42px;
-        width: 42px;
-        height: 42px;
-      }
+      :host { display: block; width: 100%; }
+      .goals-page { max-width: 1040px; margin: 0 auto; padding: 16px; box-sizing: border-box; }
+      .page-head { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+      .page-head h1 { margin: 0 0 6px; font-size: 1.75rem; }
+      .page-head p { margin: 0; opacity: .72; max-width: 720px; }
+      .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+      .view-switch { display: flex; gap: 4px; overflow-x: auto; margin: 0 0 14px; padding-bottom: 4px; }
+      .view-switch button { white-space: nowrap; }
+      .view-switch button.active { background: rgba(127,127,127,.17); }
+      .goal-tree { display: flex; flex-direction: column; gap: 9px; }
+      .goal-card { overflow: hidden; margin-left: calc(var(--goal-depth) * 18px); }
+      .goal-card.is-project { border-inline-start: 3px solid currentColor; }
+      .goal-topline { display: flex; align-items: center; gap: 8px; }
+      .collapse-btn { flex: 0 0 auto; }
+      .goal-title-wrap { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1; }
+      .title-copy { min-width: 0; }
+      .title { display: block; font-size: 1.05rem; font-weight: 650; color: inherit; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .kind { font-size: .68rem; opacity: .58; text-transform: uppercase; letter-spacing: .05em; }
+      .progress-number { font-size: 1rem; font-weight: 750; white-space: nowrap; }
+      mat-progress-bar { margin-top: 10px; }
+      .stats { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; font-size: .8rem; opacity: .76; }
+      .stats span { display: inline-flex; gap: 4px; align-items: center; }
+      .stats mat-icon { width: 16px; height: 16px; font-size: 16px; }
+      .dates, .defaults-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-top: 12px; }
+      label { display: flex; flex-direction: column; gap: 5px; font-size: .76rem; }
+      input, select { color: inherit; background: transparent; border: 1px solid rgba(127,127,127,.35); border-radius: 8px; padding: 9px; font: inherit; min-height: 42px; box-sizing: border-box; }
+      select[multiple] { min-height: 76px; }
+      option { color: initial; }
+      .defaults { margin-top: 12px; border: 1px solid rgba(127,127,127,.22); border-radius: 8px; padding: 8px 10px; }
+      .defaults summary { cursor: pointer; font-weight: 600; }
+      .direct-tasks { margin-top: 12px; border-top: 1px solid rgba(127,127,127,.2); padding-top: 8px; }
+      .section-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+      .task-empty { padding: 8px 0; opacity: .55; font-size: .82rem; }
+      .task-row { width: 100%; display: flex; gap: 7px; align-items: center; color: inherit; background: transparent; border: 0; border-radius: 7px; padding: 8px 6px; text-align: left; cursor: pointer; }
+      .task-row:hover { background: rgba(127,127,127,.10); }
+      .task-row mat-icon { width: 18px; height: 18px; font-size: 18px; }
+      .task-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .task-title.done { text-decoration: line-through; opacity: .58; }
+      .chip { font-size: .67rem; padding: 2px 6px; border-radius: 999px; background: rgba(127,127,127,.16); white-space: nowrap; }
+      .chip.next { font-weight: 700; }
+      .actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+      .title-only mat-card-content { padding-block: 7px; }
+      .title-only .kind { display: none; }
+      .tree-tasks { margin: 5px 0 0 42px; display: flex; flex-direction: column; }
+      .tree-tasks button { display: flex; align-items: center; gap: 6px; border: 0; background: transparent; color: inherit; padding: 5px; text-align: left; cursor: pointer; }
+      .tree-tasks mat-icon { width: 16px; height: 16px; font-size: 16px; }
+      .compact-view .goal-card { margin-left: 0; }
+      .empty-card { text-align: center; padding: 22px; }
+      .empty-card mat-icon { font-size: 42px; width: 42px; height: 42px; }
       @media (max-width: 600px) {
-        .goals-page {
-          padding: 12px 10px 92px;
-        }
-        .page-head {
-          align-items: stretch;
-          flex-direction: column;
-        }
-        .page-head button {
-          min-height: 48px;
-        }
-        .dates {
-          grid-template-columns: 1fr;
-        }
-        .goal-card {
-          margin-left: 0;
-          border-inline-start: calc(2px + min(var(--goal-depth), 3) * 2px) solid
-            rgba(127, 127, 127, 0.28);
-        }
-        .actions button,
-        .actions a {
-          min-height: 44px;
-          min-width: 0;
-          padding-inline: 8px;
-        }
+        .goals-page { padding: 12px 9px 92px; }
+        .page-head { align-items: stretch; flex-direction: column; }
+        .header-actions > * { min-height: 46px; flex: 1; }
+        .goal-card { margin-left: 0; border-inline-start: calc(2px + min(var(--goal-depth),3) * 2px) solid rgba(127,127,127,.28); }
+        .dates, .defaults-grid { grid-template-columns: 1fr; }
+        .actions button, .actions a { min-height: 44px; min-width: 0; padding-inline: 8px; }
+        .task-row { min-height: 44px; }
+        .chip:nth-of-type(n+4) { display: none; }
       }
     `,
   ],
@@ -397,127 +391,129 @@ export class GoalsPageComponent {
   private readonly _store = inject(Store);
   private readonly _taskService = inject(TaskService);
   private readonly _dialog = inject(MatDialog);
+  private readonly _lifeConfigService = inject(LifeOsConfigService);
+
+  readonly viewMode = signal<LifeGoalViewMode>('full');
+  readonly collapsed = signal<Set<string>>(new Set());
+  readonly scale = [1, 2, 3, 4, 5] as const;
+  readonly lifeConfig = this._lifeConfigService.config;
+  readonly viewModes: { id: LifeGoalViewMode; label: string; icon: string }[] = [
+    { id: 'full', label: 'Full', icon: 'view_agenda' },
+    { id: 'tree', label: 'Tree', icon: 'account_tree' },
+    { id: 'goals', label: 'Goals', icon: 'flag' },
+    { id: 'compact', label: 'Compact', icon: 'reorder' },
+  ];
 
   private readonly _projects = toSignal(
     this._store.select(selectAllProjectsExceptInbox),
-    {
-      initialValue: [] as Project[],
-    },
+    { initialValue: [] as Project[] },
   );
   private readonly _tasks = toSignal(this._taskService.allTasks$, {
     initialValue: [] as Task[],
   });
 
   readonly nodes = computed<GoalNode[]>(() => {
-    const projects = this._projects();
+    const projects = this._projects().filter((project) => !!project.lifeType);
     const tasks = this._tasks();
-    const projectById = new Map(projects.map((project) => [project.id, project]));
-    const taskMap = new Map(tasks.map((task) => [task.id, task]));
+    const byId = new Map(projects.map((project) => [project.id, project]));
     const children = new Map<string | null, Project[]>();
+    const directTasks = new Map<string, Task[]>();
 
     for (const project of projects) {
-      if (!project.lifeType) continue;
       const parentId = project.parentProjectId ?? null;
       const bucket = children.get(parentId) ?? [];
       bucket.push(project);
       children.set(parentId, bucket);
     }
-    for (const bucket of children.values()) {
-      bucket.sort((a, b) => a.title.localeCompare(b.title));
+    for (const bucket of children.values()) bucket.sort((a, b) => a.title.localeCompare(b.title));
+
+    for (const task of tasks) {
+      if (task.parentId || !byId.has(task.projectId)) continue;
+      const bucket = directTasks.get(task.projectId) ?? [];
+      bucket.push(task);
+      directTasks.set(task.projectId, bucket);
+    }
+    for (const bucket of directTasks.values()) {
+      bucket.sort((a, b) => Number(a.isDone) - Number(b.isDone) || a.title.localeCompare(b.title));
     }
 
-    const rootGoals = (children.get(null) ?? []).filter(
-      (project) => project.lifeType === 'goal',
-    );
-    const out: GoalNode[] = [];
-
-    const collectProjectIds = (id: string, visited = new Set<string>()): string[] => {
-      if (visited.has(id)) return [];
-      visited.add(id);
-      const ids = [id];
-      for (const child of children.get(id) ?? []) {
-        ids.push(...collectProjectIds(child.id, visited));
-      }
-      return ids;
+    const taskById = new Map(tasks.map((task) => [task.id, task]));
+    const taskProgress = (task: Task, path = new Set<string>()): number => {
+      if (task.isDone) return 100;
+      if (path.has(task.id)) return 0;
+      const nextPath = new Set(path);
+      nextPath.add(task.id);
+      const subs = (task.subTaskIds ?? [])
+        .map((id) => taskById.get(id))
+        .filter((sub): sub is Task => !!sub);
+      if (!subs.length) return 0;
+      return Math.round(subs.reduce((sum, sub) => sum + taskProgress(sub, nextPath), 0) / subs.length);
     };
 
-    const collectTaskIds = (projectIds: string[]): Set<string> => {
-      const ids = new Set<string>();
-      const visitTask = (id: string): void => {
-        if (ids.has(id)) return;
-        const task = taskMap.get(id);
-        if (!task) return;
-        ids.add(id);
-        for (const subId of task.subTaskIds ?? []) visitTask(subId);
-      };
-      for (const projectId of projectIds) {
-        const project = projectById.get(projectId);
-        if (!project || project.lifeType !== 'project') continue;
-        for (const id of [
-          ...(project.taskIds ?? []),
-          ...(project.backlogTaskIds ?? []),
-        ]) {
-          visitTask(id);
-        }
-      }
-      return ids;
+    const progressMemo = new Map<string, number>();
+    const nodeProgress = (project: Project, path = new Set<string>()): number => {
+      if (project.isDone) return 100;
+      const memo = progressMemo.get(project.id);
+      if (memo != null) return memo;
+      if (path.has(project.id)) return 0;
+      const nextPath = new Set(path);
+      nextPath.add(project.id);
+      const parts = [
+        ...(children.get(project.id) ?? []).map((child) => nodeProgress(child, nextPath)),
+        ...(directTasks.get(project.id) ?? []).map((task) => taskProgress(task)),
+      ];
+      const value = parts.length
+        ? Math.round(parts.reduce((sum, part) => sum + part, 0) / parts.length)
+        : 0;
+      progressMemo.set(project.id, value);
+      return value;
     };
 
-    const toNode = (project: Project, depth: number, path = new Set<string>()): void => {
+    const roots = (children.get(null) ?? []).filter((project) => project.lifeType === 'goal');
+    const output: GoalNode[] = [];
+    const mode = this.viewMode();
+    const collapsed = this.collapsed();
+
+    const visit = (project: Project, depth: number, path = new Set<string>()): void => {
       if (path.has(project.id)) return;
       const nextPath = new Set(path);
       nextPath.add(project.id);
-
-      const projectIds = collectProjectIds(project.id);
-      const ids = collectTaskIds(projectIds);
-      const relevantTasks = [...ids]
-        .map((id) => taskMap.get(id))
-        .filter((task): task is Task => !!task);
-      const leafTasks = relevantTasks.filter(
-        (task) => !(task.subTaskIds ?? []).some((id) => ids.has(id)),
-      );
-      const denominator = leafTasks.reduce(
-        (sum, task) => sum + Math.max(task.timeEstimate || 0, 1),
-        0,
-      );
-      const doneWeight = leafTasks.reduce(
-        (sum, task) => sum + (task.isDone ? Math.max(task.timeEstimate || 0, 1) : 0),
-        0,
-      );
-      const progress = project.isDone
-        ? 100
-        : denominator
-          ? Math.round((doneWeight / denominator) * 100)
-          : 0;
-      const remainingMs = leafTasks
-        .filter((task) => !task.isDone)
-        .reduce(
-          (sum, task) =>
-            sum + Math.max((task.timeEstimate || 0) - (task.timeSpent || 0), 0),
-          0,
-        );
-
-      out.push({
+      const direct = directTasks.get(project.id) ?? [];
+      output.push({
         project,
         depth,
-        progress,
-        doneTasks: leafTasks.filter((task) => task.isDone).length,
-        totalTasks: leafTasks.length,
-        remainingMs,
+        progress: nodeProgress(project),
+        directTasks: direct,
         childCount: (children.get(project.id) ?? []).length,
+        remainingMs: this._remainingEstimate(direct, taskById),
       });
-      for (const child of children.get(project.id) ?? []) {
-        if (!nextPath.has(child.id)) toNode(child, depth + 1, nextPath);
-      }
+      if (mode === 'goals' || mode === 'compact' || collapsed.has(project.id)) return;
+      for (const child of children.get(project.id) ?? []) visit(child, depth + 1, nextPath);
     };
 
-    rootGoals.forEach((goal) => toNode(goal, 0));
-    return out;
+    roots.forEach((root) => visit(root, 0));
+    return output;
   });
 
-  kindLabel(type: LifeProjectType | undefined, depth: number): string {
-    if (type === 'project') return 'Proiect';
-    return depth > 0 ? 'Subobiectiv' : 'Obiectiv';
+  isCollapsed(id: string): boolean {
+    return this.collapsed().has(id);
+  }
+
+  toggleCollapsed(id: string): void {
+    const next = new Set(this.collapsed());
+    next.has(id) ? next.delete(id) : next.add(id);
+    this.collapsed.set(next);
+  }
+
+  kindLabel(project: Project, depth: number): string {
+    if (project.lifeType === 'goal') return depth > 0 ? 'Subgoal' : 'Goal';
+    const parent = this._projects().find((candidate) => candidate.id === project.parentProjectId);
+    return parent?.lifeType === 'project' ? 'Subproject' : 'Project';
+  }
+
+  priorityLabel(priorityId: string | null | undefined): string | null {
+    if (!priorityId) return null;
+    return this.lifeConfig().priorityLevels.find((level) => level.id === priorityId)?.label ?? priorityId;
   }
 
   formatDuration(ms: number): string {
@@ -528,17 +524,37 @@ export class GoalsPageComponent {
   }
 
   addRootGoal(): void {
-    void this._promptTitle('Numele obiectivului').then((title) => {
-      if (title) this._create(title, 'goal', null);
-    });
+    void this._promptTitle('Goal name').then((title) => title && this._create(title, 'goal', null));
   }
 
   addChild(parent: Project, type: LifeProjectType): void {
-    void this._promptTitle(
-      type === 'project' ? 'Numele proiectului' : 'Numele subobiectivului',
-    ).then((title) => {
-      if (title) this._create(title, type, parent.id);
+    const placeholder =
+      type === 'goal'
+        ? 'Subgoal name'
+        : parent.lifeType === 'project'
+          ? 'Subproject name'
+          : 'Project name';
+    void this._promptTitle(placeholder).then((title) => title && this._create(title, type, parent.id));
+  }
+
+  addTask(project: Project): void {
+    void this._promptTitle('Task title').then((title) => {
+      if (!title) return;
+      const id = this._taskService.add(
+        title,
+        false,
+        {
+          projectId: project.id,
+          lifePriorityId: project.lifeDefaultPriorityId ?? this.lifeConfig().defaultPriorityId,
+        },
+        true,
+      );
+      this._taskService.setSelectedId(id);
     });
+  }
+
+  openTask(id: string): void {
+    this._taskService.setSelectedId(id);
   }
 
   complete(project: Project): void {
@@ -550,18 +566,37 @@ export class GoalsPageComponent {
   }
 
   rename(project: Project): void {
-    void this._promptTitle('Nume', project.title).then((title) => {
+    void this._promptTitle('Name', project.title).then((title) => {
       if (!title || title === project.title) return;
-      this._store.dispatch(
-        updateProject({ project: { id: project.id, changes: { title } } }),
-      );
+      this._store.dispatch(updateProject({ project: { id: project.id, changes: { title } } }));
     });
   }
 
   setGoalDate(id: string, key: 'goalTargetDay' | 'goalDeadlineDay', value: string): void {
-    this._store.dispatch(
-      updateProject({ project: { id, changes: { [key]: value || null } } }),
-    );
+    this._store.dispatch(updateProject({ project: { id, changes: { [key]: value || null } } }));
+  }
+
+  setProjectDefault(id: string, key: 'lifeDefaultPriorityId', value: string | null): void {
+    this._store.dispatch(updateProject({ project: { id, changes: { [key]: value } } }));
+  }
+
+  setProjectNumberDefault(
+    id: string,
+    key: 'lifeDefaultFocus' | 'lifeDefaultEnergy',
+    raw: string,
+  ): void {
+    const value = raw ? Math.max(1, Math.min(5, Number(raw))) : null;
+    this._store.dispatch(updateProject({ project: { id, changes: { [key]: value } } }));
+  }
+
+  setProjectMultiDefault(
+    id: string,
+    key: 'lifeDefaultLocationIds' | 'lifeDefaultRequirementIds',
+    event: Event,
+  ): void {
+    const select = event.target as HTMLSelectElement;
+    const values = Array.from(select.selectedOptions).map((option) => option.value);
+    this._store.dispatch(updateProject({ project: { id, changes: { [key]: values } } }));
   }
 
   private _create(
@@ -580,9 +615,28 @@ export class GoalsPageComponent {
       parentProjectId,
       goalTargetDay: null,
       goalDeadlineDay: null,
+      lifeDefaultPriorityId: null,
+      lifeDefaultFocus: null,
+      lifeDefaultEnergy: null,
+      lifeDefaultLocationIds: [],
+      lifeDefaultRequirementIds: [],
       isHiddenFromMenu: lifeType === 'goal',
     };
     this._store.dispatch(addProject({ project }));
+  }
+
+  private _remainingEstimate(directTasks: Task[], taskById: Map<string, Task>): number {
+    const visited = new Set<string>();
+    const sumTask = (task: Task): number => {
+      if (visited.has(task.id) || task.isDone) return 0;
+      visited.add(task.id);
+      const subtasks = (task.subTaskIds ?? [])
+        .map((id) => taskById.get(id))
+        .filter((sub): sub is Task => !!sub);
+      if (subtasks.length) return subtasks.reduce((sum, sub) => sum + sumTask(sub), 0);
+      return Math.max((task.timeEstimate || 0) - (task.timeSpent || 0), 0);
+    };
+    return directTasks.reduce((sum, task) => sum + sumTask(task), 0);
   }
 
   private async _promptTitle(placeholder: string, value = ''): Promise<string | null> {
