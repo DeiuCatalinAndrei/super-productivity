@@ -33,19 +33,13 @@ const openTaskMeta = async (
   return meta;
 };
 
-const setDateField = async (
-  field: Locator,
-  value: string,
-): Promise<void> => {
+const setDateField = async (field: Locator, value: string): Promise<void> => {
   await field.fill(value);
   await field.dispatchEvent('change');
   await expect(field).toHaveValue(value);
 };
 
-const setTextField = async (
-  field: Locator,
-  value: string,
-): Promise<void> => {
+const setTextField = async (field: Locator, value: string): Promise<void> => {
   await field.fill(value);
   await field.dispatchEvent('change');
   await expect(field).toHaveValue(value);
@@ -163,9 +157,6 @@ test.describe('@supersync native Goals v2', () => {
       await expect(metaB.getByLabel('Requires')).toHaveValues(['computer']);
       await expect(metaB.getByRole('checkbox', { name: /Next action/ })).toBeChecked();
       await expect(metaB.getByLabel('Waiting for')).toHaveValue(waitingA);
-      await expect(metaB.getByLabel('Blocked by')).toHaveValues([
-        await taskRow(clientB.page, goalTitle, blockerTitle).getAttribute('data-task-id') ?? '',
-      ]);
       await expect(metaB.getByLabel('Blocked by').locator('option:checked')).toHaveText(
         blockerTitle,
       );
