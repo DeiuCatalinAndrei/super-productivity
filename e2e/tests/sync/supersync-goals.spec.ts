@@ -127,7 +127,9 @@ test.describe('@supersync native Goals v2', () => {
       await expect(taskRow(clientA.page, goalTitle, directTaskTitle)).toContainText('P1');
       await expect(taskRow(clientA.page, goalTitle, directTaskTitle)).toContainText('F4');
       await expect(taskRow(clientA.page, goalTitle, directTaskTitle)).toContainText('E2');
-      await expect(taskRow(clientA.page, goalTitle, directTaskTitle)).toContainText('Next');
+      await expect(taskRow(clientA.page, goalTitle, directTaskTitle)).toContainText(
+        'Next',
+      );
 
       await clientA.sync.syncAndWait();
 
