@@ -17,6 +17,8 @@ import { LifeOsConfigService } from '../../features/lifeos/life-os-config.servic
 import { LifeSmartView } from '../../features/lifeos/life-os.model';
 import { Task } from '../../features/tasks/task.model';
 import { TaskService } from '../../features/tasks/task.service';
+import { GlobalConfigService } from '../../features/config/global-config.service';
+import { INBOX_PROJECT } from '../../features/project/project.const';
 import { getDbDateStr } from '../../util/get-db-date-str';
 
 export type LifeTodayTab =
@@ -565,6 +567,7 @@ export class LifeTodayPageComponent {
   private readonly _taskService = inject(TaskService);
   private readonly _life = inject(LifeOsConfigService);
   private readonly _counterService = inject(SimpleCounterService);
+  private readonly _globalConfig = inject(GlobalConfigService);
 
   readonly config = this._life.config;
   readonly tab = signal<LifeTodayTab>('overview');
@@ -642,10 +645,14 @@ export class LifeTodayPageComponent {
     const title = titleRaw.trim();
     if (!title) return;
     const minutes = Number(minutesRaw || 0);
+    const configuredProjectId = this._globalConfig.tasks()?.defaultProjectId;
+    const projectId =
+      typeof configuredProjectId === 'string' ? configuredProjectId : INBOX_PROJECT.id;
     const id = this._taskService.add(
       title,
       false,
       {
+        projectId,
         dueDay: getDbDateStr(),
         lifePriorityId: priority || this.config().defaultPriorityId,
         lifeFocus: focusRaw ? Number(focusRaw) : null,

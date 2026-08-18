@@ -11,7 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { LifeOsConfigService } from '../../features/lifeos/life-os-config.service';
 import { Project } from '../../features/project/project.model';
@@ -442,6 +442,7 @@ export class FuturePageComponent {
   private readonly _tasksService = inject(TaskService);
   private readonly _life = inject(LifeOsConfigService);
   private readonly _store = inject(Store);
+  private readonly _router = inject(Router);
   private readonly _tasks = toSignal(this._tasksService.allTasks$, {
     initialValue: [] as Task[],
   });
@@ -560,16 +561,15 @@ export class FuturePageComponent {
       .sort((a, b) => (a.lifeDueDay || '9999').localeCompare(b.lifeDueDay || '9999')),
   );
   readonly blockedTasks = computed(() => {
-    const done = new Set(
-      this._tasks()
-        .filter((task) => task.isDone)
-        .map((task) => task.id),
-    );
+    const byId = new Map(this._tasks().map((task) => [task.id, task]));
     return this._tasks().filter(
       (task) =>
         !task.isDone &&
         !task.parentId &&
-        (task.lifeBlockedByTaskIds || []).some((id) => !done.has(id)),
+        (task.lifeBlockedByTaskIds || []).some((id) => {
+          const blocker = byId.get(id);
+          return !!blocker && !blocker.isDone;
+        }),
     );
   });
   readonly reviewTasks = computed(() => {
@@ -609,7 +609,11 @@ export class FuturePageComponent {
     this._tasksService.setSelectedId(id);
   }
   openUpcoming(item: UpcomingItem): void {
-    if (item.taskId) this.openTask(item.taskId);
+    if (item.taskId) {
+      this.openTask(item.taskId);
+    } else if (item.projectId) {
+      void this._router.navigate(['/goals']);
+    }
   }
   blockerLabel(task: Task): string {
     const byId = new Map(this._tasks().map((item) => [item.id, item]));

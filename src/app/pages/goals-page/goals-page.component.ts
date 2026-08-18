@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -785,13 +786,27 @@ export class GoalsPageComponent {
   private readonly _tasks = toSignal(this._taskService.allTasks$, {
     initialValue: [] as Task[],
   });
+  private readonly _archiveTasks = signal<Task[]>([]);
+  private _archiveLoadGeneration = 0;
+
+  constructor() {
+    effect(() => {
+      this._tasks();
+      void this._reloadArchive();
+    });
+  }
 
   readonly nodes = computed<GoalNode[]>(() => {
     const projects = this._projects().filter((project) => !!project.lifeType);
-    const tasks = this._tasks();
+    const liveTasks = this._tasks();
+    const taskById = new Map<string, Task>();
+    for (const task of this._archiveTasks()) taskById.set(task.id, task);
+    for (const task of liveTasks) taskById.set(task.id, task);
+    const tasks = [...taskById.values()];
     const byId = new Map(projects.map((project) => [project.id, project]));
     const children = new Map<string | null, Project[]>();
     const directTasks = new Map<string, Task[]>();
+    const directLiveTasks = new Map<string, Task[]>();
 
     for (const project of projects) {
       const parentId = project.parentProjectId ?? null;
@@ -808,13 +823,18 @@ export class GoalsPageComponent {
       bucket.push(task);
       directTasks.set(task.projectId, bucket);
     }
-    for (const bucket of directTasks.values()) {
+    for (const task of liveTasks) {
+      if (task.parentId || !byId.has(task.projectId)) continue;
+      const bucket = directLiveTasks.get(task.projectId) ?? [];
+      bucket.push(task);
+      directLiveTasks.set(task.projectId, bucket);
+    }
+    for (const bucket of [...directTasks.values(), ...directLiveTasks.values()]) {
       bucket.sort(
         (a, b) => Number(a.isDone) - Number(b.isDone) || a.title.localeCompare(b.title),
       );
     }
 
-    const taskById = new Map(tasks.map((task) => [task.id, task]));
     const taskProgress = (task: Task, path = new Set<string>()): number => {
       if (task.isDone) return 100;
       if (path.has(task.id)) return 0;
@@ -848,6 +868,23 @@ export class GoalsPageComponent {
       return value;
     };
 
+    const remainingMemo = new Map<string, number>();
+    const nodeRemaining = (project: Project, path = new Set<string>()): number => {
+      const memo = remainingMemo.get(project.id);
+      if (memo != null) return memo;
+      if (path.has(project.id)) return 0;
+      const nextPath = new Set(path);
+      nextPath.add(project.id);
+      const value =
+        this._remainingEstimate(directTasks.get(project.id) ?? [], taskById) +
+        (children.get(project.id) ?? []).reduce(
+          (sum, child) => sum + nodeRemaining(child, nextPath),
+          0,
+        );
+      remainingMemo.set(project.id, value);
+      return value;
+    };
+
     const roots = (children.get(null) ?? []).filter(
       (project) => project.lifeType === 'goal',
     );
@@ -859,14 +896,14 @@ export class GoalsPageComponent {
       if (path.has(project.id)) return;
       const nextPath = new Set(path);
       nextPath.add(project.id);
-      const direct = directTasks.get(project.id) ?? [];
+      const direct = directLiveTasks.get(project.id) ?? [];
       output.push({
         project,
         depth,
         progress: nodeProgress(project),
         directTasks: direct,
         childCount: (children.get(project.id) ?? []).length,
-        remainingMs: this._remainingEstimate(direct, taskById),
+        remainingMs: nodeRemaining(project),
       });
       if (mode === 'goals' || mode === 'compact' || collapsed.has(project.id)) return;
       for (const child of children.get(project.id) ?? [])
@@ -935,16 +972,7 @@ export class GoalsPageComponent {
   addTask(project: Project): void {
     void this._promptTitle('Task title').then((title) => {
       if (!title) return;
-      const id = this._taskService.add(
-        title,
-        false,
-        {
-          projectId: project.id,
-          lifePriorityId:
-            project.lifeDefaultPriorityId ?? this.lifeConfig().defaultPriorityId,
-        },
-        true,
-      );
+      const id = this._taskService.add(title, false, { projectId: project.id }, true);
       this._taskService.setSelectedId(id);
     });
   }
@@ -1027,6 +1055,25 @@ export class GoalsPageComponent {
       isHiddenFromMenu: lifeType === 'goal',
     };
     this._store.dispatch(addProject({ project }));
+  }
+
+  private async _reloadArchive(): Promise<void> {
+    const loadGeneration = ++this._archiveLoadGeneration;
+    const loader = this._taskService.getArchivedTasks?.bind(this._taskService);
+    if (!loader) {
+      this._archiveTasks.set([]);
+      return;
+    }
+    try {
+      const tasks = await loader();
+      if (loadGeneration === this._archiveLoadGeneration) {
+        this._archiveTasks.set(tasks);
+      }
+    } catch {
+      if (loadGeneration === this._archiveLoadGeneration) {
+        this._archiveTasks.set([]);
+      }
+    }
   }
 
   private _remainingEstimate(directTasks: Task[], taskById: Map<string, Task>): number {

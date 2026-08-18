@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
+import { of } from 'rxjs';
 import { Task } from '../tasks/task.model';
 import { TaskService } from '../tasks/task.service';
 import { LifeOsConfigService } from './life-os-config.service';
@@ -281,7 +282,7 @@ export class LifeTaskMetaComponent {
 
   private readonly _taskService = inject(TaskService);
   private readonly _lifeConfig = inject(LifeOsConfigService);
-  private readonly _allTasks = toSignal(this._taskService.allTasks$, {
+  private readonly _allTasks = toSignal(this._taskService.allTasks$ ?? of([] as Task[]), {
     initialValue: [] as Task[],
   });
 
