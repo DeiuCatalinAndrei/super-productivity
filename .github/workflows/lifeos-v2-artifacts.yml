@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - build/lifeos-v2-artifacts
+  pull_request:
+    branches:
+      - agent/lifeos-v2-context-engine
+    paths:
+      - .github/workflows/lifeos-v2-artifacts.yml
   workflow_dispatch:
 
 permissions:
