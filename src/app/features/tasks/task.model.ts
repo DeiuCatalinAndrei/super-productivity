@@ -89,7 +89,28 @@ export interface TaskCopy
   projectId: string;
   timeSpentOnDay: TimeSpentOnDay;
 
-  // Additional app-specific fields
+  // LifeOS v2 task intelligence. These fields live on the native TASK entity and
+  // therefore use the existing operation log, backup/restore and cross-device sync.
+  /** Priority id configured in GLOBAL_CONFIG.tasks.lifeOs. */
+  lifePriorityId?: string | null;
+  /** Concentration required, 1 (light) through 5 (deep focus). */
+  lifeFocus?: number | null;
+  /** Energy required, 1 (very low) through 5 (very demanding). */
+  lifeEnergy?: number | null;
+  /** Desired completion date, separate from Scheduled (dueDay/dueWithTime). */
+  lifeDueDay?: string | null;
+  /** Logical locations where the task can be performed. */
+  lifeLocationIds?: string[];
+  /** Devices/tools/resources required to perform the task. */
+  lifeRequirementIds?: string[];
+  /** GTD-style marker for work that is immediately actionable. */
+  lifeIsNextAction?: boolean;
+  /** Person, response or event this task is waiting for. */
+  lifeWaitingFor?: string | null;
+  /** Native TASK ids that must be completed before this task is unblocked. */
+  lifeBlockedByTaskIds?: string[];
+  /** Optional YYYY-MM-DD date when this task should surface in Review. */
+  lifeReviewDay?: string | null;
 
   /**
    * Scheduled time as Unix timestamp (ms). For tasks scheduled with a specific time.
@@ -212,6 +233,9 @@ export const DEFAULT_TASK: Omit<TaskCopy, 'projectId'> = {
   created: Date.now(),
 
   attachments: [],
+  lifeLocationIds: [],
+  lifeRequirementIds: [],
+  lifeBlockedByTaskIds: [],
 };
 
 export interface TaskState extends EntityState<Task> {
