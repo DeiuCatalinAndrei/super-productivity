@@ -177,11 +177,7 @@ test.describe('@supersync native Goals v2', () => {
       await expect(
         goalCard(clientA.page, goalTitle).locator('input[type="date"]').nth(1),
       ).toHaveValue(updatedDeadline);
-      const roundTripMetaA = await openTaskMeta(
-        clientA.page,
-        goalTitle,
-        directTaskTitle,
-      );
+      const roundTripMetaA = await openTaskMeta(clientA.page, goalTitle, directTaskTitle);
       await expect(roundTripMetaA.getByLabel('Priority')).toHaveValue('p1');
       await expect(roundTripMetaA.getByLabel('Focus')).toHaveValue('5');
       await expect(roundTripMetaA.getByLabel('Energy')).toHaveValue('3');
