@@ -19,6 +19,38 @@ const savePrompt = async (page: Page, value: string): Promise<void> => {
 const goalCard = (page: Page, title: string): Locator =>
   page.locator('.goal-card').filter({ hasText: title }).first();
 
+const taskRow = (page: Page, goalTitle: string, taskTitle: string): Locator =>
+  goalCard(page, goalTitle).locator('.task-row').filter({ hasText: taskTitle }).first();
+
+const openTaskMeta = async (
+  page: Page,
+  goalTitle: string,
+  taskTitle: string,
+): Promise<Locator> => {
+  await taskRow(page, goalTitle, taskTitle).click();
+  const meta = page.locator('life-task-meta').first();
+  await expect(meta).toBeVisible();
+  return meta;
+};
+
+const setDateField = async (
+  field: Locator,
+  value: string,
+): Promise<void> => {
+  await field.fill(value);
+  await field.dispatchEvent('change');
+  await expect(field).toHaveValue(value);
+};
+
+const setTextField = async (
+  field: Locator,
+  value: string,
+): Promise<void> => {
+  await field.fill(value);
+  await field.dispatchEvent('change');
+  await expect(field).toHaveValue(value);
+};
+
 const setGoalDate = async (
   page: Page,
   title: string,
@@ -26,13 +58,11 @@ const setGoalDate = async (
   value: string,
 ): Promise<void> => {
   const input = goalCard(page, title).locator('input[type="date"]').nth(inputIndex);
-  await input.fill(value);
-  await input.dispatchEvent('change');
-  await expect(input).toHaveValue(value);
+  await setDateField(input, value);
 };
 
 test.describe('@supersync native Goals v2', () => {
-  test('hierarchy direct tasks dates and completion round-trip between two clients', async ({
+  test('hierarchy task intelligence dates and completion round-trip between two clients', async ({
     browser,
     baseURL,
     testRunId,
@@ -42,10 +72,15 @@ test.describe('@supersync native Goals v2', () => {
 
     const goalTitle = `Goal-${testRunId}`;
     const subgoalTitle = `Subgoal-${testRunId}`;
+    const blockerTitle = `Blocker-${testRunId}`;
     const directTaskTitle = `DirectTask-${testRunId}`;
     const targetDay = '2030-06-15';
     const initialDeadline = '2030-06-30';
     const updatedDeadline = '2030-07-05';
+    const softDueDay = '2030-06-20';
+    const reviewDay = '2030-06-10';
+    const waitingA = `Approval-${testRunId}`;
+    const waitingB = `Vendor-${testRunId}`;
 
     try {
       const user = await createTestUser(testRunId);
@@ -73,8 +108,32 @@ test.describe('@supersync native Goals v2', () => {
         .getByRole('button', { name: /^Add Task$/ })
         .first()
         .click();
+      await savePrompt(clientA.page, blockerTitle);
+      await expect(goalCard(clientA.page, goalTitle)).toContainText(blockerTitle);
+
+      await goalCard(clientA.page, goalTitle)
+        .getByRole('button', { name: /^Add Task$/ })
+        .first()
+        .click();
       await savePrompt(clientA.page, directTaskTitle);
       await expect(goalCard(clientA.page, goalTitle)).toContainText(directTaskTitle);
+
+      const metaA = await openTaskMeta(clientA.page, goalTitle, directTaskTitle);
+      await metaA.getByLabel('Priority').selectOption('p1');
+      await metaA.getByLabel('Focus').selectOption('4');
+      await metaA.getByLabel('Energy').selectOption('2');
+      await setDateField(metaA.getByLabel('Due date'), softDueDay);
+      await metaA.getByLabel('Location').selectOption(['home']);
+      await metaA.getByLabel('Requires').selectOption(['computer']);
+      await metaA.getByRole('checkbox', { name: /Next action/ }).check();
+      await setTextField(metaA.getByLabel('Waiting for'), waitingA);
+      await metaA.getByLabel('Blocked by').selectOption({ label: blockerTitle });
+      await setDateField(metaA.getByLabel('Review date'), reviewDay);
+
+      await expect(taskRow(clientA.page, goalTitle, directTaskTitle)).toContainText('P1');
+      await expect(taskRow(clientA.page, goalTitle, directTaskTitle)).toContainText('F4');
+      await expect(taskRow(clientA.page, goalTitle, directTaskTitle)).toContainText('E2');
+      await expect(taskRow(clientA.page, goalTitle, directTaskTitle)).toContainText('Next');
 
       await clientA.sync.syncAndWait();
 
@@ -86,6 +145,7 @@ test.describe('@supersync native Goals v2', () => {
 
       await expect(goalCard(clientB.page, goalTitle)).toBeVisible();
       await expect(goalCard(clientB.page, subgoalTitle)).toBeVisible();
+      await expect(goalCard(clientB.page, goalTitle)).toContainText(blockerTitle);
       await expect(goalCard(clientB.page, goalTitle)).toContainText(directTaskTitle);
       await expect(
         goalCard(clientB.page, goalTitle).locator('input[type="date"]').nth(0),
@@ -94,6 +154,26 @@ test.describe('@supersync native Goals v2', () => {
         goalCard(clientB.page, goalTitle).locator('input[type="date"]').nth(1),
       ).toHaveValue(initialDeadline);
 
+      const metaB = await openTaskMeta(clientB.page, goalTitle, directTaskTitle);
+      await expect(metaB.getByLabel('Priority')).toHaveValue('p1');
+      await expect(metaB.getByLabel('Focus')).toHaveValue('4');
+      await expect(metaB.getByLabel('Energy')).toHaveValue('2');
+      await expect(metaB.getByLabel('Due date')).toHaveValue(softDueDay);
+      await expect(metaB.getByLabel('Location')).toHaveValues(['home']);
+      await expect(metaB.getByLabel('Requires')).toHaveValues(['computer']);
+      await expect(metaB.getByRole('checkbox', { name: /Next action/ })).toBeChecked();
+      await expect(metaB.getByLabel('Waiting for')).toHaveValue(waitingA);
+      await expect(metaB.getByLabel('Blocked by')).toHaveValues([
+        await taskRow(clientB.page, goalTitle, blockerTitle).getAttribute('data-task-id') ?? '',
+      ]);
+      await expect(metaB.getByLabel('Blocked by').locator('option:checked')).toHaveText(
+        blockerTitle,
+      );
+      await expect(metaB.getByLabel('Review date')).toHaveValue(reviewDay);
+
+      await metaB.getByLabel('Focus').selectOption('5');
+      await metaB.getByLabel('Energy').selectOption('3');
+      await setTextField(metaB.getByLabel('Waiting for'), waitingB);
       await setGoalDate(clientB.page, goalTitle, 1, updatedDeadline);
       await clientB.sync.syncAndWait();
 
@@ -104,8 +184,17 @@ test.describe('@supersync native Goals v2', () => {
       await expect(
         goalCard(clientA.page, goalTitle).locator('input[type="date"]').nth(1),
       ).toHaveValue(updatedDeadline);
-      await expect(goalCard(clientA.page, subgoalTitle)).toBeVisible();
-      await expect(goalCard(clientA.page, goalTitle)).toContainText(directTaskTitle);
+      const roundTripMetaA = await openTaskMeta(
+        clientA.page,
+        goalTitle,
+        directTaskTitle,
+      );
+      await expect(roundTripMetaA.getByLabel('Priority')).toHaveValue('p1');
+      await expect(roundTripMetaA.getByLabel('Focus')).toHaveValue('5');
+      await expect(roundTripMetaA.getByLabel('Energy')).toHaveValue('3');
+      await expect(roundTripMetaA.getByLabel('Waiting for')).toHaveValue(waitingB);
+      await expect(roundTripMetaA.getByLabel('Due date')).toHaveValue(softDueDay);
+      await expect(roundTripMetaA.getByLabel('Review date')).toHaveValue(reviewDay);
 
       await goalCard(clientA.page, goalTitle)
         .getByRole('button', { name: /^Complete$/ })
