@@ -65,18 +65,28 @@ interface GoalNode {
           </p>
         </div>
         <div class="header-actions">
-          <a mat-button routerLink="/life-settings">
+          <a
+            mat-button
+            routerLink="/life-settings"
+          >
             <mat-icon>tune</mat-icon>
             Settings
           </a>
-          <button mat-flat-button color="primary" (click)="addRootGoal()">
+          <button
+            mat-flat-button
+            color="primary"
+            (click)="addRootGoal()"
+          >
             <mat-icon>add</mat-icon>
             New Goal
           </button>
         </div>
       </header>
 
-      <nav class="view-switch" aria-label="Goals view">
+      <nav
+        class="view-switch"
+        aria-label="Goals view"
+      >
         @for (mode of viewModes; track mode.id) {
           <button
             mat-button
@@ -94,15 +104,24 @@ interface GoalNode {
           <mat-card-content>
             <mat-icon>flag</mat-icon>
             <h2>Start with one clear goal</h2>
-            <p>Create a goal, then add direct tasks, subgoals, projects or subprojects.</p>
-            <button mat-flat-button color="primary" (click)="addRootGoal()">
+            <p>
+              Create a goal, then add direct tasks, subgoals, projects or subprojects.
+            </p>
+            <button
+              mat-flat-button
+              color="primary"
+              (click)="addRootGoal()"
+            >
               Create first goal
             </button>
           </mat-card-content>
         </mat-card>
       }
 
-      <section class="goal-tree" [class.compact-view]="viewMode() === 'compact'">
+      <section
+        class="goal-tree"
+        [class.compact-view]="viewMode() === 'compact'"
+      >
         @for (node of nodes(); track node.project.id) {
           <mat-card
             class="goal-card"
@@ -124,11 +143,16 @@ interface GoalNode {
                 </button>
 
                 <div class="goal-title-wrap">
-                  <mat-icon>{{ node.project.lifeType === 'project' ? 'folder' : 'flag' }}</mat-icon>
+                  <mat-icon>{{
+                    node.project.lifeType === 'project' ? 'folder' : 'flag'
+                  }}</mat-icon>
                   <div class="title-copy">
                     <div class="kind">{{ kindLabel(node.project, node.depth) }}</div>
                     @if (node.project.lifeType === 'project') {
-                      <a class="title" [routerLink]="['/project', node.project.id, 'tasks']">
+                      <a
+                        class="title"
+                        [routerLink]="['/project', node.project.id, 'tasks']"
+                      >
                         {{ node.project.title }}
                       </a>
                     } @else {
@@ -141,15 +165,27 @@ interface GoalNode {
               </div>
 
               @if (viewMode() !== 'compact' && viewMode() !== 'tree') {
-                <mat-progress-bar mode="determinate" [value]="node.progress"></mat-progress-bar>
+                <mat-progress-bar
+                  mode="determinate"
+                  [value]="node.progress"
+                ></mat-progress-bar>
               }
 
               @if (!isCollapsed(node.project.id) && viewMode() === 'full') {
                 <div class="stats">
-                  <span><mat-icon>task_alt</mat-icon>{{ node.directTasks.length }} direct tasks</span>
-                  <span><mat-icon>account_tree</mat-icon>{{ node.childCount }} direct children</span>
+                  <span
+                    ><mat-icon>task_alt</mat-icon>{{ node.directTasks.length }} direct
+                    tasks</span
+                  >
+                  <span
+                    ><mat-icon>account_tree</mat-icon>{{ node.childCount }} direct
+                    children</span
+                  >
                   @if (node.remainingMs > 0) {
-                    <span><mat-icon>schedule</mat-icon>{{ formatDuration(node.remainingMs) }} remaining</span>
+                    <span
+                      ><mat-icon>schedule</mat-icon
+                      >{{ formatDuration(node.remainingMs) }} remaining</span
+                    >
                   }
                   @if (node.project.isDone) {
                     <span><mat-icon>verified</mat-icon>Completed</span>
@@ -162,7 +198,13 @@ interface GoalNode {
                     <input
                       type="date"
                       [value]="node.project.goalTargetDay || ''"
-                      (change)="setGoalDate(node.project.id, 'goalTargetDay', $any($event.target).value)"
+                      (change)="
+                        setGoalDate(
+                          node.project.id,
+                          'goalTargetDay',
+                          $any($event.target).value
+                        )
+                      "
                     />
                   </label>
                   <label>
@@ -170,7 +212,13 @@ interface GoalNode {
                     <input
                       type="date"
                       [value]="node.project.goalDeadlineDay || ''"
-                      (change)="setGoalDate(node.project.id, 'goalDeadlineDay', $any($event.target).value)"
+                      (change)="
+                        setGoalDate(
+                          node.project.id,
+                          'goalDeadlineDay',
+                          $any($event.target).value
+                        )
+                      "
                     />
                   </label>
                 </div>
@@ -182,7 +230,13 @@ interface GoalNode {
                       <span>Priority</span>
                       <select
                         [value]="node.project.lifeDefaultPriorityId || ''"
-                        (change)="setProjectDefault(node.project.id, 'lifeDefaultPriorityId', $any($event.target).value || null)"
+                        (change)="
+                          setProjectDefault(
+                            node.project.id,
+                            'lifeDefaultPriorityId',
+                            $any($event.target).value || null
+                          )
+                        "
                       >
                         <option value="">Use global default</option>
                         @for (level of lifeConfig().priorityLevels; track level.id) {
@@ -194,7 +248,13 @@ interface GoalNode {
                       <span>Focus</span>
                       <select
                         [value]="node.project.lifeDefaultFocus || ''"
-                        (change)="setProjectNumberDefault(node.project.id, 'lifeDefaultFocus', $any($event.target).value)"
+                        (change)="
+                          setProjectNumberDefault(
+                            node.project.id,
+                            'lifeDefaultFocus',
+                            $any($event.target).value
+                          )
+                        "
                       >
                         <option value="">Not set</option>
                         @for (level of scale; track level) {
@@ -206,7 +266,13 @@ interface GoalNode {
                       <span>Energy</span>
                       <select
                         [value]="node.project.lifeDefaultEnergy || ''"
-                        (change)="setProjectNumberDefault(node.project.id, 'lifeDefaultEnergy', $any($event.target).value)"
+                        (change)="
+                          setProjectNumberDefault(
+                            node.project.id,
+                            'lifeDefaultEnergy',
+                            $any($event.target).value
+                          )
+                        "
                       >
                         <option value="">Not set</option>
                         @for (level of scale; track level) {
@@ -216,23 +282,53 @@ interface GoalNode {
                     </label>
                     <label>
                       <span>Location</span>
-                      <select multiple (change)="setProjectMultiDefault(node.project.id, 'lifeDefaultLocationIds', $event)">
+                      <select
+                        multiple
+                        (change)="
+                          setProjectMultiDefault(
+                            node.project.id,
+                            'lifeDefaultLocationIds',
+                            $event
+                          )
+                        "
+                      >
                         @for (option of lifeConfig().locations; track option.id) {
                           <option
                             [value]="option.id"
-                            [selected]="(node.project.lifeDefaultLocationIds || []).includes(option.id)"
-                          >{{ option.label }}</option>
+                            [selected]="
+                              (node.project.lifeDefaultLocationIds || []).includes(
+                                option.id
+                              )
+                            "
+                          >
+                            {{ option.label }}
+                          </option>
                         }
                       </select>
                     </label>
                     <label>
                       <span>Requires</span>
-                      <select multiple (change)="setProjectMultiDefault(node.project.id, 'lifeDefaultRequirementIds', $event)">
+                      <select
+                        multiple
+                        (change)="
+                          setProjectMultiDefault(
+                            node.project.id,
+                            'lifeDefaultRequirementIds',
+                            $event
+                          )
+                        "
+                      >
                         @for (option of lifeConfig().requirements; track option.id) {
                           <option
                             [value]="option.id"
-                            [selected]="(node.project.lifeDefaultRequirementIds || []).includes(option.id)"
-                          >{{ option.label }}</option>
+                            [selected]="
+                              (node.project.lifeDefaultRequirementIds || []).includes(
+                                option.id
+                              )
+                            "
+                          >
+                            {{ option.label }}
+                          </option>
                         }
                       </select>
                     </label>
@@ -242,7 +338,10 @@ interface GoalNode {
                 <section class="direct-tasks">
                   <div class="section-head">
                     <strong>Tasks</strong>
-                    <button mat-button (click)="addTask(node.project)">
+                    <button
+                      mat-button
+                      (click)="addTask(node.project)"
+                    >
                       <mat-icon>add_task</mat-icon>
                       Add Task
                     </button>
@@ -251,55 +350,94 @@ interface GoalNode {
                     <div class="task-empty">No direct tasks at this level.</div>
                   }
                   @for (task of node.directTasks; track task.id) {
-                    <button class="task-row" (click)="openTask(task.id)">
-                      <mat-icon>{{ task.isDone ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-                      <span class="task-title" [class.done]="task.isDone">{{ task.title }}</span>
+                    <button
+                      class="task-row"
+                      (click)="openTask(task.id)"
+                    >
+                      <mat-icon>{{
+                        task.isDone ? 'check_circle' : 'radio_button_unchecked'
+                      }}</mat-icon>
+                      <span
+                        class="task-title"
+                        [class.done]="task.isDone"
+                        >{{ task.title }}</span
+                      >
                       @if (priorityLabel(task.lifePriorityId); as priority) {
                         <span class="chip">{{ priority }}</span>
                       }
-                      @if (task.lifeFocus) { <span class="chip">F{{ task.lifeFocus }}</span> }
-                      @if (task.lifeEnergy) { <span class="chip">E{{ task.lifeEnergy }}</span> }
-                      @if (task.lifeDueDay) { <span class="chip">Due {{ task.lifeDueDay }}</span> }
-                      @if (task.lifeIsNextAction) { <span class="chip next">Next</span> }
+                      @if (task.lifeFocus) {
+                        <span class="chip">F{{ task.lifeFocus }}</span>
+                      }
+                      @if (task.lifeEnergy) {
+                        <span class="chip">E{{ task.lifeEnergy }}</span>
+                      }
+                      @if (task.lifeDueDay) {
+                        <span class="chip">Due {{ task.lifeDueDay }}</span>
+                      }
+                      @if (task.lifeIsNextAction) {
+                        <span class="chip next">Next</span>
+                      }
                     </button>
                   }
                 </section>
 
                 <div class="actions">
                   @if (node.project.lifeType === 'goal') {
-                    <button mat-button (click)="addChild(node.project, 'goal')">
+                    <button
+                      mat-button
+                      (click)="addChild(node.project, 'goal')"
+                    >
                       <mat-icon>subdirectory_arrow_right</mat-icon>
                       Add Subgoal
                     </button>
-                    <button mat-button (click)="addChild(node.project, 'project')">
+                    <button
+                      mat-button
+                      (click)="addChild(node.project, 'project')"
+                    >
                       <mat-icon>create_new_folder</mat-icon>
                       Add Project
                     </button>
                   } @else {
-                    <button mat-button (click)="addChild(node.project, 'project')">
+                    <button
+                      mat-button
+                      (click)="addChild(node.project, 'project')"
+                    >
                       <mat-icon>create_new_folder</mat-icon>
                       Add Subproject
                     </button>
                   }
 
-                  <button mat-button (click)="addTask(node.project)">
+                  <button
+                    mat-button
+                    (click)="addTask(node.project)"
+                  >
                     <mat-icon>add_task</mat-icon>
                     Add Task
                   </button>
 
                   @if (node.project.isDone) {
-                    <button mat-button (click)="reopen(node.project)">
+                    <button
+                      mat-button
+                      (click)="reopen(node.project)"
+                    >
                       <mat-icon>restart_alt</mat-icon>
                       Reopen
                     </button>
                   } @else {
-                    <button mat-flat-button color="primary" (click)="complete(node.project)">
+                    <button
+                      mat-flat-button
+                      color="primary"
+                      (click)="complete(node.project)"
+                    >
                       <mat-icon>verified</mat-icon>
                       Complete
                     </button>
                   }
 
-                  <button mat-button (click)="rename(node.project)">
+                  <button
+                    mat-button
+                    (click)="rename(node.project)"
+                  >
                     <mat-icon>edit</mat-icon>
                     Rename
                   </button>
@@ -309,7 +447,9 @@ interface GoalNode {
                   <div class="tree-tasks">
                     @for (task of node.directTasks; track task.id) {
                       <button (click)="openTask(task.id)">
-                        <mat-icon>{{ task.isDone ? 'check' : 'check_box_outline_blank' }}</mat-icon>
+                        <mat-icon>{{
+                          task.isDone ? 'check' : 'check_box_outline_blank'
+                        }}</mat-icon>
                         {{ task.title }}
                       </button>
                     }
@@ -324,64 +464,298 @@ interface GoalNode {
   `,
   styles: [
     `
-      :host { display: block; width: 100%; }
-      .goals-page { max-width: 1040px; margin: 0 auto; padding: 16px; box-sizing: border-box; }
-      .page-head { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
-      .page-head h1 { margin: 0 0 6px; font-size: 1.75rem; }
-      .page-head p { margin: 0; opacity: .72; max-width: 720px; }
-      .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-      .view-switch { display: flex; gap: 4px; overflow-x: auto; margin: 0 0 14px; padding-bottom: 4px; }
-      .view-switch button { white-space: nowrap; }
-      .view-switch button.active { background: rgba(127,127,127,.17); }
-      .goal-tree { display: flex; flex-direction: column; gap: 9px; }
-      .goal-card { overflow: hidden; margin-left: calc(var(--goal-depth) * 18px); }
-      .goal-card.is-project { border-inline-start: 3px solid currentColor; }
-      .goal-topline { display: flex; align-items: center; gap: 8px; }
-      .collapse-btn { flex: 0 0 auto; }
-      .goal-title-wrap { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1; }
-      .title-copy { min-width: 0; }
-      .title { display: block; font-size: 1.05rem; font-weight: 650; color: inherit; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .kind { font-size: .68rem; opacity: .58; text-transform: uppercase; letter-spacing: .05em; }
-      .progress-number { font-size: 1rem; font-weight: 750; white-space: nowrap; }
-      mat-progress-bar { margin-top: 10px; }
-      .stats { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; font-size: .8rem; opacity: .76; }
-      .stats span { display: inline-flex; gap: 4px; align-items: center; }
-      .stats mat-icon { width: 16px; height: 16px; font-size: 16px; }
-      .dates, .defaults-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-top: 12px; }
-      label { display: flex; flex-direction: column; gap: 5px; font-size: .76rem; }
-      input, select { color: inherit; background: transparent; border: 1px solid rgba(127,127,127,.35); border-radius: 8px; padding: 9px; font: inherit; min-height: 42px; box-sizing: border-box; }
-      select[multiple] { min-height: 76px; }
-      option { color: initial; }
-      .defaults { margin-top: 12px; border: 1px solid rgba(127,127,127,.22); border-radius: 8px; padding: 8px 10px; }
-      .defaults summary { cursor: pointer; font-weight: 600; }
-      .direct-tasks { margin-top: 12px; border-top: 1px solid rgba(127,127,127,.2); padding-top: 8px; }
-      .section-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-      .task-empty { padding: 8px 0; opacity: .55; font-size: .82rem; }
-      .task-row { width: 100%; display: flex; gap: 7px; align-items: center; color: inherit; background: transparent; border: 0; border-radius: 7px; padding: 8px 6px; text-align: left; cursor: pointer; }
-      .task-row:hover { background: rgba(127,127,127,.10); }
-      .task-row mat-icon { width: 18px; height: 18px; font-size: 18px; }
-      .task-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .task-title.done { text-decoration: line-through; opacity: .58; }
-      .chip { font-size: .67rem; padding: 2px 6px; border-radius: 999px; background: rgba(127,127,127,.16); white-space: nowrap; }
-      .chip.next { font-weight: 700; }
-      .actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
-      .title-only mat-card-content { padding-block: 7px; }
-      .title-only .kind { display: none; }
-      .tree-tasks { margin: 5px 0 0 42px; display: flex; flex-direction: column; }
-      .tree-tasks button { display: flex; align-items: center; gap: 6px; border: 0; background: transparent; color: inherit; padding: 5px; text-align: left; cursor: pointer; }
-      .tree-tasks mat-icon { width: 16px; height: 16px; font-size: 16px; }
-      .compact-view .goal-card { margin-left: 0; }
-      .empty-card { text-align: center; padding: 22px; }
-      .empty-card mat-icon { font-size: 42px; width: 42px; height: 42px; }
+      :host {
+        display: block;
+        width: 100%;
+      }
+      .goals-page {
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 16px;
+        box-sizing: border-box;
+      }
+      .page-head {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 14px;
+      }
+      .page-head h1 {
+        margin: 0 0 6px;
+        font-size: 1.75rem;
+      }
+      .page-head p {
+        margin: 0;
+        opacity: 0.72;
+        max-width: 720px;
+      }
+      .header-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .view-switch {
+        display: flex;
+        gap: 4px;
+        overflow-x: auto;
+        margin: 0 0 14px;
+        padding-bottom: 4px;
+      }
+      .view-switch button {
+        white-space: nowrap;
+      }
+      .view-switch button.active {
+        background: rgba(127, 127, 127, 0.17);
+      }
+      .goal-tree {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+      }
+      .goal-card {
+        overflow: hidden;
+        margin-left: calc(var(--goal-depth) * 18px);
+      }
+      .goal-card.is-project {
+        border-inline-start: 3px solid currentColor;
+      }
+      .goal-topline {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .collapse-btn {
+        flex: 0 0 auto;
+      }
+      .goal-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        min-width: 0;
+        flex: 1;
+      }
+      .title-copy {
+        min-width: 0;
+      }
+      .title {
+        display: block;
+        font-size: 1.05rem;
+        font-weight: 650;
+        color: inherit;
+        text-decoration: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .kind {
+        font-size: 0.68rem;
+        opacity: 0.58;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .progress-number {
+        font-size: 1rem;
+        font-weight: 750;
+        white-space: nowrap;
+      }
+      mat-progress-bar {
+        margin-top: 10px;
+      }
+      .stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 10px;
+        font-size: 0.8rem;
+        opacity: 0.76;
+      }
+      .stats span {
+        display: inline-flex;
+        gap: 4px;
+        align-items: center;
+      }
+      .stats mat-icon {
+        width: 16px;
+        height: 16px;
+        font-size: 16px;
+      }
+      .dates,
+      .defaults-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+      }
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        font-size: 0.76rem;
+      }
+      input,
+      select {
+        color: inherit;
+        background: transparent;
+        border: 1px solid rgba(127, 127, 127, 0.35);
+        border-radius: 8px;
+        padding: 9px;
+        font: inherit;
+        min-height: 42px;
+        box-sizing: border-box;
+      }
+      select[multiple] {
+        min-height: 76px;
+      }
+      option {
+        color: initial;
+      }
+      .defaults {
+        margin-top: 12px;
+        border: 1px solid rgba(127, 127, 127, 0.22);
+        border-radius: 8px;
+        padding: 8px 10px;
+      }
+      .defaults summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .direct-tasks {
+        margin-top: 12px;
+        border-top: 1px solid rgba(127, 127, 127, 0.2);
+        padding-top: 8px;
+      }
+      .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .task-empty {
+        padding: 8px 0;
+        opacity: 0.55;
+        font-size: 0.82rem;
+      }
+      .task-row {
+        width: 100%;
+        display: flex;
+        gap: 7px;
+        align-items: center;
+        color: inherit;
+        background: transparent;
+        border: 0;
+        border-radius: 7px;
+        padding: 8px 6px;
+        text-align: left;
+        cursor: pointer;
+      }
+      .task-row:hover {
+        background: rgba(127, 127, 127, 0.1);
+      }
+      .task-row mat-icon {
+        width: 18px;
+        height: 18px;
+        font-size: 18px;
+      }
+      .task-title {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .task-title.done {
+        text-decoration: line-through;
+        opacity: 0.58;
+      }
+      .chip {
+        font-size: 0.67rem;
+        padding: 2px 6px;
+        border-radius: 999px;
+        background: rgba(127, 127, 127, 0.16);
+        white-space: nowrap;
+      }
+      .chip.next {
+        font-weight: 700;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 10px;
+      }
+      .title-only mat-card-content {
+        padding-block: 7px;
+      }
+      .title-only .kind {
+        display: none;
+      }
+      .tree-tasks {
+        margin: 5px 0 0 42px;
+        display: flex;
+        flex-direction: column;
+      }
+      .tree-tasks button {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        padding: 5px;
+        text-align: left;
+        cursor: pointer;
+      }
+      .tree-tasks mat-icon {
+        width: 16px;
+        height: 16px;
+        font-size: 16px;
+      }
+      .compact-view .goal-card {
+        margin-left: 0;
+      }
+      .empty-card {
+        text-align: center;
+        padding: 22px;
+      }
+      .empty-card mat-icon {
+        font-size: 42px;
+        width: 42px;
+        height: 42px;
+      }
       @media (max-width: 600px) {
-        .goals-page { padding: 12px 9px 92px; }
-        .page-head { align-items: stretch; flex-direction: column; }
-        .header-actions > * { min-height: 46px; flex: 1; }
-        .goal-card { margin-left: 0; border-inline-start: calc(2px + min(var(--goal-depth),3) * 2px) solid rgba(127,127,127,.28); }
-        .dates, .defaults-grid { grid-template-columns: 1fr; }
-        .actions button, .actions a { min-height: 44px; min-width: 0; padding-inline: 8px; }
-        .task-row { min-height: 44px; }
-        .chip:nth-of-type(n+4) { display: none; }
+        .goals-page {
+          padding: 12px 9px 92px;
+        }
+        .page-head {
+          align-items: stretch;
+          flex-direction: column;
+        }
+        .header-actions > * {
+          min-height: 46px;
+          flex: 1;
+        }
+        .goal-card {
+          margin-left: 0;
+          border-inline-start: calc(2px + min(var(--goal-depth), 3) * 2px) solid
+            rgba(127, 127, 127, 0.28);
+        }
+        .dates,
+        .defaults-grid {
+          grid-template-columns: 1fr;
+        }
+        .actions button,
+        .actions a {
+          min-height: 44px;
+          min-width: 0;
+          padding-inline: 8px;
+        }
+        .task-row {
+          min-height: 44px;
+        }
+        .chip:nth-of-type(n + 4) {
+          display: none;
+        }
       }
     `,
   ],
@@ -425,7 +799,8 @@ export class GoalsPageComponent {
       bucket.push(project);
       children.set(parentId, bucket);
     }
-    for (const bucket of children.values()) bucket.sort((a, b) => a.title.localeCompare(b.title));
+    for (const bucket of children.values())
+      bucket.sort((a, b) => a.title.localeCompare(b.title));
 
     for (const task of tasks) {
       if (task.parentId || !byId.has(task.projectId)) continue;
@@ -434,7 +809,9 @@ export class GoalsPageComponent {
       directTasks.set(task.projectId, bucket);
     }
     for (const bucket of directTasks.values()) {
-      bucket.sort((a, b) => Number(a.isDone) - Number(b.isDone) || a.title.localeCompare(b.title));
+      bucket.sort(
+        (a, b) => Number(a.isDone) - Number(b.isDone) || a.title.localeCompare(b.title),
+      );
     }
 
     const taskById = new Map(tasks.map((task) => [task.id, task]));
@@ -447,7 +824,9 @@ export class GoalsPageComponent {
         .map((id) => taskById.get(id))
         .filter((sub): sub is Task => !!sub);
       if (!subs.length) return 0;
-      return Math.round(subs.reduce((sum, sub) => sum + taskProgress(sub, nextPath), 0) / subs.length);
+      return Math.round(
+        subs.reduce((sum, sub) => sum + taskProgress(sub, nextPath), 0) / subs.length,
+      );
     };
 
     const progressMemo = new Map<string, number>();
@@ -469,7 +848,9 @@ export class GoalsPageComponent {
       return value;
     };
 
-    const roots = (children.get(null) ?? []).filter((project) => project.lifeType === 'goal');
+    const roots = (children.get(null) ?? []).filter(
+      (project) => project.lifeType === 'goal',
+    );
     const output: GoalNode[] = [];
     const mode = this.viewMode();
     const collapsed = this.collapsed();
@@ -488,7 +869,8 @@ export class GoalsPageComponent {
         remainingMs: this._remainingEstimate(direct, taskById),
       });
       if (mode === 'goals' || mode === 'compact' || collapsed.has(project.id)) return;
-      for (const child of children.get(project.id) ?? []) visit(child, depth + 1, nextPath);
+      for (const child of children.get(project.id) ?? [])
+        visit(child, depth + 1, nextPath);
     };
 
     roots.forEach((root) => visit(root, 0));
@@ -501,19 +883,28 @@ export class GoalsPageComponent {
 
   toggleCollapsed(id: string): void {
     const next = new Set(this.collapsed());
-    next.has(id) ? next.delete(id) : next.add(id);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
     this.collapsed.set(next);
   }
 
   kindLabel(project: Project, depth: number): string {
     if (project.lifeType === 'goal') return depth > 0 ? 'Subgoal' : 'Goal';
-    const parent = this._projects().find((candidate) => candidate.id === project.parentProjectId);
+    const parent = this._projects().find(
+      (candidate) => candidate.id === project.parentProjectId,
+    );
     return parent?.lifeType === 'project' ? 'Subproject' : 'Project';
   }
 
   priorityLabel(priorityId: string | null | undefined): string | null {
     if (!priorityId) return null;
-    return this.lifeConfig().priorityLevels.find((level) => level.id === priorityId)?.label ?? priorityId;
+    return (
+      this.lifeConfig().priorityLevels.find((level) => level.id === priorityId)?.label ??
+      priorityId
+    );
   }
 
   formatDuration(ms: number): string {
@@ -524,7 +915,9 @@ export class GoalsPageComponent {
   }
 
   addRootGoal(): void {
-    void this._promptTitle('Goal name').then((title) => title && this._create(title, 'goal', null));
+    void this._promptTitle('Goal name').then(
+      (title) => title && this._create(title, 'goal', null),
+    );
   }
 
   addChild(parent: Project, type: LifeProjectType): void {
@@ -534,7 +927,9 @@ export class GoalsPageComponent {
         : parent.lifeType === 'project'
           ? 'Subproject name'
           : 'Project name';
-    void this._promptTitle(placeholder).then((title) => title && this._create(title, type, parent.id));
+    void this._promptTitle(placeholder).then(
+      (title) => title && this._create(title, type, parent.id),
+    );
   }
 
   addTask(project: Project): void {
@@ -545,7 +940,8 @@ export class GoalsPageComponent {
         false,
         {
           projectId: project.id,
-          lifePriorityId: project.lifeDefaultPriorityId ?? this.lifeConfig().defaultPriorityId,
+          lifePriorityId:
+            project.lifeDefaultPriorityId ?? this.lifeConfig().defaultPriorityId,
         },
         true,
       );
@@ -568,15 +964,23 @@ export class GoalsPageComponent {
   rename(project: Project): void {
     void this._promptTitle('Name', project.title).then((title) => {
       if (!title || title === project.title) return;
-      this._store.dispatch(updateProject({ project: { id: project.id, changes: { title } } }));
+      this._store.dispatch(
+        updateProject({ project: { id: project.id, changes: { title } } }),
+      );
     });
   }
 
   setGoalDate(id: string, key: 'goalTargetDay' | 'goalDeadlineDay', value: string): void {
-    this._store.dispatch(updateProject({ project: { id, changes: { [key]: value || null } } }));
+    this._store.dispatch(
+      updateProject({ project: { id, changes: { [key]: value || null } } }),
+    );
   }
 
-  setProjectDefault(id: string, key: 'lifeDefaultPriorityId', value: string | null): void {
+  setProjectDefault(
+    id: string,
+    key: 'lifeDefaultPriorityId',
+    value: string | null,
+  ): void {
     this._store.dispatch(updateProject({ project: { id, changes: { [key]: value } } }));
   }
 

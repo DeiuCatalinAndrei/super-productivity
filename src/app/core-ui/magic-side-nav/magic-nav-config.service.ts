@@ -88,8 +88,21 @@ export class MagicNavConfigService {
   private readonly _tags = toSignal(this._tagService.tagsNoMyDayAndNoList$, {
     initialValue: [],
   });
+  private readonly _visibleProjectsForNav = computed(() => {
+    const byId = new Map(
+      this._allProjectsExceptInbox().map((project) => [project.id, project]),
+    );
+    return this._visibleProjects().filter((project) => {
+      if (project.lifeType === 'goal') return false;
+      if (project.lifeType === 'project' && project.parentProjectId) {
+        const parent = byId.get(project.parentProjectId);
+        if (parent?.lifeType === 'project') return false;
+      }
+      return true;
+    });
+  });
   private readonly _projectNavTree = computed<MenuTreeViewNode[]>(() =>
-    this._menuTreeService.buildProjectViewTree(this._visibleProjects()),
+    this._menuTreeService.buildProjectViewTree(this._visibleProjectsForNav()),
   );
   private readonly _tagNavTree = computed<MenuTreeViewNode[]>(() =>
     this._menuTreeService.buildTagViewTree(this._tags()),
@@ -114,7 +127,7 @@ export class MagicNavConfigService {
     () => this._configService.appFeatures().isSearchEnabled,
   );
   readonly areInitialTreesReady = computed(() => {
-    const visibleProjects = this._visibleProjects();
+    const visibleProjects = this._visibleProjectsForNav();
     const tags = this._tags();
 
     const areProjectsReady =
@@ -127,7 +140,7 @@ export class MagicNavConfigService {
   constructor() {
     // TODO these should probably live in the _menuTreeService
     effect(() => {
-      const projects = this._visibleProjects();
+      const projects = this._visibleProjectsForNav();
       if (projects.length && !this._menuTreeService.hasProjectTree()) {
         this._menuTreeService.initializeProjectTree(projects);
       }
@@ -169,7 +182,7 @@ export class MagicNavConfigService {
         tree:
           this._projectNavTree().length > 0
             ? this._projectNavTree()
-            : this._visibleProjects().map((project) => ({
+            : this._visibleProjectsForNav().map((project) => ({
                 k: MenuTreeKind.PROJECT,
                 project,
               })),
@@ -332,6 +345,13 @@ export class MagicNavConfigService {
 
       {
         type: 'route',
+        id: 'life-settings',
+        label: 'LifeOS Settings',
+        icon: 'tune',
+        route: '/life-settings',
+      },
+      {
+        type: 'route',
         id: 'settings',
         label: T.MH.SETTINGS,
         icon: 'settings',
@@ -376,7 +396,7 @@ export class MagicNavConfigService {
         id: `main-${mainContext.id}`,
         label: mainContext.title,
         icon: mainContext.icon || 'today',
-        route: `/tag/${mainContext.id}/tasks`,
+        route: '/life-today',
         workContext: mainContext,
         workContextType: WorkContextType.TAG,
         defaultIcon: 'today',
@@ -405,9 +425,17 @@ export class MagicNavConfigService {
     items.push({
       type: 'route',
       id: 'goals',
-      label: 'Obiective',
+      label: 'Goals',
       icon: 'flag',
       route: '/goals',
+    });
+
+    items.push({
+      type: 'route',
+      id: 'future',
+      label: 'Future',
+      icon: 'event_upcoming',
+      route: '/future',
     });
 
     if (this.isPlannerEnabled()) {

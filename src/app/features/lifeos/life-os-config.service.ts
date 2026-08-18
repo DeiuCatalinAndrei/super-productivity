@@ -17,20 +17,18 @@ export class LifeOsConfigService {
     return {
       ...DEFAULT_LIFE_OS_CONFIG,
       ...(stored ?? {}),
-      priorityLevels:
-        stored?.priorityLevels?.length
-          ? stored.priorityLevels
-          : DEFAULT_LIFE_OS_CONFIG.priorityLevels,
-      locations:
-        stored?.locations?.length ? stored.locations : DEFAULT_LIFE_OS_CONFIG.locations,
-      requirements:
-        stored?.requirements?.length
-          ? stored.requirements
-          : DEFAULT_LIFE_OS_CONFIG.requirements,
-      smartViews:
-        stored?.smartViews?.length
-          ? stored.smartViews
-          : DEFAULT_LIFE_OS_CONFIG.smartViews,
+      priorityLevels: stored?.priorityLevels?.length
+        ? stored.priorityLevels
+        : DEFAULT_LIFE_OS_CONFIG.priorityLevels,
+      locations: stored?.locations?.length
+        ? stored.locations
+        : DEFAULT_LIFE_OS_CONFIG.locations,
+      requirements: stored?.requirements?.length
+        ? stored.requirements
+        : DEFAULT_LIFE_OS_CONFIG.requirements,
+      smartViews: stored?.smartViews?.length
+        ? stored.smartViews
+        : DEFAULT_LIFE_OS_CONFIG.smartViews,
     };
   });
 
@@ -47,7 +45,10 @@ export class LifeOsConfigService {
   matchesView(task: Task, view: LifeSmartView): boolean {
     if (task.isDone) return false;
     if (view.nextActionsOnly && !task.lifeIsNextAction) return false;
-    if (view.priorityIds?.length && !view.priorityIds.includes(task.lifePriorityId ?? '')) {
+    if (
+      view.priorityIds?.length &&
+      !view.priorityIds.includes(task.lifePriorityId ?? '')
+    ) {
       return false;
     }
 

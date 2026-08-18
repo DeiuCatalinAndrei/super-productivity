@@ -59,6 +59,7 @@ import {
 } from './store/task.selectors';
 import { selectTodayTaskIds } from '../work-context/store/work-context.selectors';
 import { RoundTimeOption } from '../project/project.model';
+import { selectAllProjects } from '../project/store/project.selectors';
 import { WorkContextService } from '../work-context/work-context.service';
 import { WorkContextType } from '../work-context/work-context.model';
 import {
@@ -200,6 +201,7 @@ export class TaskService {
   private _lastFocusedTaskEl: HTMLElement | null = null;
   private _allTasks$: Observable<Task[]> = this._store.pipe(select(selectAllTasks));
   private _taskEntities = this._store.selectSignal(selectTaskEntities);
+  private _lifeOsProjects = this._store.selectSignal(selectAllProjects);
 
   private _unsyncedContexts: Map<
     string,
@@ -1448,6 +1450,39 @@ export class TaskService {
     }
   }
 
+  private _getLifeOsDefaultsForProject(projectId: string | undefined): Partial<Task> {
+    const projects = this._lifeOsProjects();
+    const byId = new Map(projects.map((project) => [project.id, project]));
+    const visited = new Set<string>();
+
+    let current = projectId ? byId.get(projectId) : undefined;
+    let priorityId: string | null | undefined;
+    let focus: number | null | undefined;
+    let energy: number | null | undefined;
+    let locationIds: string[] | null | undefined;
+    let requirementIds: string[] | null | undefined;
+
+    while (current && !visited.has(current.id)) {
+      visited.add(current.id);
+      priorityId ??= current.lifeDefaultPriorityId;
+      focus ??= current.lifeDefaultFocus;
+      energy ??= current.lifeDefaultEnergy;
+      locationIds ??= current.lifeDefaultLocationIds;
+      requirementIds ??= current.lifeDefaultRequirementIds;
+      current = current.parentProjectId ? byId.get(current.parentProjectId) : undefined;
+    }
+
+    priorityId ??= this._globalConfigService.tasks()?.lifeOs?.defaultPriorityId;
+
+    return {
+      ...(priorityId ? { lifePriorityId: priorityId } : {}),
+      ...(focus != null ? { lifeFocus: focus } : {}),
+      ...(energy != null ? { lifeEnergy: energy } : {}),
+      ...(locationIds?.length ? { lifeLocationIds: [...locationIds] } : {}),
+      ...(requirementIds?.length ? { lifeRequirementIds: [...requirementIds] } : {}),
+    };
+  }
+
   createNewTaskWithDefaults({
     title,
     id,
@@ -1490,6 +1525,12 @@ export class TaskService {
         ? { dueDay: getDbDateStr() }
         : {}),
 
+      ...this._getLifeOsDefaultsForProject(
+        additional.projectId ||
+          (workContextType === WorkContextType.PROJECT
+            ? workContextId
+            : this._globalConfigService.tasks()?.defaultProjectId || INBOX_PROJECT.id),
+      ),
       ...additional,
     };
 

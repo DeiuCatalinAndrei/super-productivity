@@ -108,17 +108,18 @@
     >
       <ng-container input-title>
         <mat-icon>flag</mat-icon>
-        <span>Obiectiv / proiect</span>
+        <span>Goal / project</span>
       </ng-container>
       <ng-container input-value>
         @if (goalProjectContext(); as goalPath) {
           <span>{{ goalPath }}</span>
         } @else {
-          <span>Nelegat de un obiectiv</span>
+          <span>Not linked to a goal</span>
         }
       </ng-container>
     </task-detail-item>
   }
+  <life-task-meta [task]="task()"></life-task-meta>
   @if (showTimeEstimate()) {
     <task-detail-item
       (collapseParent)="collapseParent()"

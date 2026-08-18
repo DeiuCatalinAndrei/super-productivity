@@ -5,6 +5,7 @@ import { SyncProviderId } from '../../op-log/sync-providers/provider.const';
 import { ProjectCfgFormKey } from '../project/project.model';
 import { KeyboardConfig } from '@sp/keyboard-config';
 import { TaskReminderOptionId } from '../tasks/task.model';
+import { LifeOsConfig } from '../lifeos/life-os.model';
 
 export type AppFeaturesConfig = Readonly<{
   isTimeTrackingEnabled: boolean;
@@ -76,6 +77,8 @@ export type TasksConfig = Readonly<{
   isMarkdownFormattingInNotesEnabled: boolean;
   defaultProjectId?: string | null | false; // allow 'false' because of #569
   notesTemplate: string;
+  /** Native synced LifeOS priorities, contexts and Smart Views. */
+  lifeOs?: LifeOsConfig;
 }>;
 
 export type ShortSyntaxConfig = Readonly<{

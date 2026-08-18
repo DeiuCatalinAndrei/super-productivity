@@ -1,5 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { Task } from '../tasks/task.model';
@@ -11,7 +17,10 @@ import { LifeOsConfigService } from './life-os-config.service';
   standalone: true,
   imports: [CommonModule, MatIconModule],
   template: `
-    <section class="life-meta" aria-label="Task intelligence">
+    <section
+      class="life-meta"
+      aria-label="Task intelligence"
+    >
       <header>
         <mat-icon>tune</mat-icon>
         <strong>Task intelligence</strong>
@@ -110,7 +119,10 @@ import { LifeOsConfigService } from './life-os-config.service';
             [checked]="!!task().lifeIsNextAction"
             (change)="update('lifeIsNextAction', $any($event.target).checked)"
           />
-          <span><strong>Next action</strong><small>Ready to do when context allows.</small></span>
+          <span
+            ><strong>Next action</strong
+            ><small>Ready to do when context allows.</small></span
+          >
         </label>
 
         <label>
@@ -154,29 +166,54 @@ import { LifeOsConfigService } from './life-os-config.service';
         <span><strong>Focus</strong>: concentration required</span>
         <span><strong>Energy</strong>: effort required</span>
         <span><strong>Due</strong>: desired completion</span>
-        <span><strong>Deadline</strong>: hard limit (kept in the native Deadline field)</span>
+        <span
+          ><strong>Deadline</strong>: hard limit (kept in the native Deadline field)</span
+        >
       </div>
     </section>
   `,
   styles: [
     `
-      :host { display: block; width: 100%; }
+      :host {
+        display: block;
+        width: 100%;
+      }
       .life-meta {
         border-top: 1px solid rgba(127, 127, 127, 0.24);
         border-bottom: 1px solid rgba(127, 127, 127, 0.24);
         padding: 14px 16px;
       }
-      header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-      header mat-icon { opacity: 0.76; }
-      .meta-grid, .workflow-grid {
+      header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      header mat-icon {
+        opacity: 0.76;
+      }
+      .meta-grid,
+      .workflow-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px 12px;
       }
-      .workflow-grid { margin-top: 12px; }
-      label { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-      label > span:first-child { font-size: 0.76rem; opacity: 0.72; }
-      select, input[type='date'], input[type='text'] {
+      .workflow-grid {
+        margin-top: 12px;
+      }
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        min-width: 0;
+      }
+      label > span:first-child {
+        font-size: 0.76rem;
+        opacity: 0.72;
+      }
+      select,
+      input[type='date'],
+      input[type='text'] {
         box-sizing: border-box;
         width: 100%;
         min-height: 42px;
@@ -187,17 +224,31 @@ import { LifeOsConfigService } from './life-os-config.service';
         color: inherit;
         font: inherit;
       }
-      select[multiple] { min-height: 78px; }
-      option { color: initial; }
+      select[multiple] {
+        min-height: 78px;
+      }
+      option {
+        color: initial;
+      }
       .check-row {
         flex-direction: row;
         align-items: center;
         gap: 10px;
         padding: 8px 0;
       }
-      .check-row input { width: 18px; height: 18px; }
-      .check-row span { display: flex; flex-direction: column; opacity: 1; }
-      .check-row small { opacity: 0.62; margin-top: 2px; }
+      .check-row input {
+        width: 18px;
+        height: 18px;
+      }
+      .check-row span {
+        display: flex;
+        flex-direction: column;
+        opacity: 1;
+      }
+      .check-row small {
+        opacity: 0.62;
+        margin-top: 2px;
+      }
       .legend {
         display: flex;
         flex-wrap: wrap;
@@ -207,9 +258,18 @@ import { LifeOsConfigService } from './life-os-config.service';
         opacity: 0.64;
       }
       @media (max-width: 600px) {
-        .life-meta { padding-inline: 12px; }
-        .meta-grid, .workflow-grid { grid-template-columns: 1fr; }
-        select, input[type='date'], input[type='text'] { min-height: 48px; }
+        .life-meta {
+          padding-inline: 12px;
+        }
+        .meta-grid,
+        .workflow-grid {
+          grid-template-columns: 1fr;
+        }
+        select,
+        input[type='date'],
+        input[type='text'] {
+          min-height: 48px;
+        }
       }
     `,
   ],

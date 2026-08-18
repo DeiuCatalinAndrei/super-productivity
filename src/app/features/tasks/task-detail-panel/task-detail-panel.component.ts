@@ -322,11 +322,14 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
   issueAttachments = computed(() => {
     const data = this.issueData();
     const task = this.task();
-    if (data && task.issueType) return this._issueService.getMappedAttachments(task.issueType, data);
+    if (data && task.issueType)
+      return this._issueService.getMappedAttachments(task.issueType, data);
     return [];
   });
 
-  defaultTaskNotes = computed(() => this._globalConfigService.tasks()?.notesTemplate || '');
+  defaultTaskNotes = computed(
+    () => this._globalConfigService.tasks()?.notesTemplate || '',
+  );
   isStockNotesTemplate = computed(
     () => this.defaultTaskNotes() === DEFAULT_GLOBAL_CONFIG.tasks.notesTemplate,
   );
@@ -342,7 +345,9 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
   });
 
   isMarkdownChecklist = computed(() => isMarkdownChecklist(this.task().notes || ''));
-  isPlannedForTodayDay = computed(() => !!this.task().dueDay && this.task().dueDay === getDbDateStr());
+  isPlannedForTodayDay = computed(
+    () => !!this.task().dueDay && this.task().dueDay === getDbDateStr(),
+  );
   progress = computed(() => {
     const task = this.task();
     return (task && task.timeEstimate && (task.timeSpent / task.timeEstimate) * 100) || 0;
@@ -352,14 +357,21 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
     return !!(
       !t.isDone &&
       ((t.dueWithTime && t.dueWithTime < Date.now()) ||
-        (t.dueDay && isDBDateStr(t.dueDay) && t.dueDay !== getDbDateStr() && t.dueDay < getDbDateStr()))
+        (t.dueDay &&
+          isDBDateStr(t.dueDay) &&
+          t.dueDay !== getDbDateStr() &&
+          t.dueDay < getDbDateStr()))
     );
   });
   isShowSubTasksPanel = computed(() => !!this.task() && !this.task().parentId);
   showTimeEstimate = computed(() => !this.task().subTasks?.length);
   hasTimeData = computed(() => !!(this.task().timeSpent || this.task().timeEstimate));
-  hasAttachments = computed(() => this.issueAttachments().length > 0 || this.localAttachments().length > 0);
-  totalAttachments = computed(() => this.issueAttachments().length + this.localAttachments().length);
+  hasAttachments = computed(
+    () => this.issueAttachments().length > 0 || this.localAttachments().length > 0,
+  );
+  totalAttachments = computed(
+    () => this.issueAttachments().length + this.localAttachments().length,
+  );
   showScheduleIcon = computed(() => {
     const task = this.task();
     if (task.dueDay) return 'today';
@@ -387,10 +399,14 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
   private _jiraImageHeaders = IS_ELECTRON
     ? this._task$
         .pipe(
-          map((task) => ({ issueType: task.issueType, issueProviderId: task.issueProviderId })),
+          map((task) => ({
+            issueType: task.issueType,
+            issueProviderId: task.issueProviderId,
+          })),
           distinctUntilChanged(
             (prev, curr) =>
-              prev.issueType === curr.issueType && prev.issueProviderId === curr.issueProviderId,
+              prev.issueType === curr.issueType &&
+              prev.issueProviderId === curr.issueProviderId,
           ),
           map(({ issueType, issueProviderId }) =>
             issueType === JIRA_TYPE && issueProviderId ? issueProviderId : null,
@@ -399,7 +415,9 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
           switchMap((issueProviderId) =>
             issueProviderId
               ? this._store
-                  .select(selectIssueProviderById<IssueProviderJira>(issueProviderId, 'JIRA'))
+                  .select(
+                    selectIssueProviderById<IssueProviderJira>(issueProviderId, 'JIRA'),
+                  )
                   .pipe(
                     catchError(() => {
                       IssueLog.warn('Jira header setup skipped');
@@ -479,7 +497,9 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
           id: null,
           type: 'IMG',
           path: result.imageUrl,
-          title: this._translateService.instant(T.F.TASK.ADDITIONAL_INFO.PASTED_IMAGE_TITLE),
+          title: this._translateService.instant(
+            T.F.TASK.ADDITIONAL_INFO.PASTED_IMAGE_TITLE,
+          ),
           icon: DropPasteIcons.IMG,
         });
       }
@@ -608,7 +628,8 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
       this.taskService.addSubTaskTo(task.parentId);
       return;
     }
-    if (task._hideSubTasksMode === HideSubTasksMode.HideAll) this.taskService.showSubTasks(task.id);
+    if (task._hideSubTasksMode === HideSubTasksMode.HideAll)
+      this.taskService.showSubTasks(task.id);
     const wasExpanded = this.isSubTasksExpanded();
     this.isSubTasksExpanded.set(true);
     this.isAddSubtaskInputVisible.set(true);
@@ -669,7 +690,8 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
       data: { dateTime: this.task().created },
     });
     dialogRef.afterClosed().subscribe((created) => {
-      if (typeof created === 'number') this.taskService.update(this.task().id, { created });
+      if (typeof created === 'number')
+        this.taskService.update(this.task().id, { created });
     });
   }
 
