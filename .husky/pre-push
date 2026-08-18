@@ -1,3 +1,1 @@
-# TEMPORARY on agent/lifeos-v2-context-engine only.
-# PR CI validates the generated source immediately after push.
-exit 0
+npm run lint && npm run test
