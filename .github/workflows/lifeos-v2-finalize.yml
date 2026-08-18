@@ -1,0 +1,71 @@
+name: LifeOS v2 Finalize
+
+on:
+  push:
+    branches:
+      - agent/lifeos-v2-context-engine
+    paths:
+      - .github/workflows/lifeos-v2-finalize.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: agent/lifeos-v2-context-engine
+          persist-credentials: true
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm i
+      - name: Apply LifeOS final integration
+        run: python3 scripts/finalize-lifeos-v2.py
+      - name: Format LifeOS files
+        run: |
+          npx prettier --write \
+            src/app/features/lifeos/*.ts \
+            src/app/features/project/project.model.ts \
+            src/app/features/project/dialogs/select-goal-project/dialog-select-goal-project.component.ts \
+            src/app/features/tasks/task.model.ts \
+            src/app/features/tasks/task.service.ts \
+            src/app/features/tasks/task-detail-panel/task-detail-panel.component.ts \
+            src/app/features/tasks/task-detail-panel/task-detail-panel.component.html \
+            src/app/features/config/global-config.model.ts \
+            src/app/features/config/default-global-config.const.ts \
+            src/app/pages/goals-page/goals-page.component.ts \
+            src/app/pages/life-today-page/life-today-page.component.ts \
+            src/app/pages/future-page/future-page.component.ts \
+            src/app/pages/life-settings-page/life-settings-page.component.ts \
+            src/app/pages/config-page/config-page.component.html \
+            src/app/core-ui/magic-side-nav/magic-nav-config.service.ts \
+            src/app/core-ui/mobile-bottom-nav/mobile-bottom-nav.component.html \
+            src/app/app.routes.ts \
+            src/app/routes/pages.routes.ts \
+            e2e/tests/sync/supersync-goals.spec.ts
+      - name: ESLint autofix on LifeOS sources
+        run: |
+          npx eslint --fix \
+            src/app/features/lifeos/*.ts \
+            src/app/features/project/dialogs/select-goal-project/dialog-select-goal-project.component.ts \
+            src/app/features/tasks/task-detail-panel/task-detail-panel.component.ts \
+            src/app/pages/goals-page/goals-page.component.ts \
+            src/app/pages/life-today-page/life-today-page.component.ts \
+            src/app/pages/future-page/future-page.component.ts \
+            src/app/pages/life-settings-page/life-settings-page.component.ts \
+            e2e/tests/sync/supersync-goals.spec.ts
+      - name: Commit finalized LifeOS v2 sources
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app e2e/tests/sync/supersync-goals.spec.ts
+          if git diff --cached --quiet; then
+            echo "No finalized source changes to commit."
+            exit 0
+          fi
+          git commit --no-verify -m "feat(lifeos): finalize native integration and formatting"
+          git push origin HEAD:agent/lifeos-v2-context-engine
