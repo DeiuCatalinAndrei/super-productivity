@@ -9,7 +9,12 @@ import { Log } from '../../../core/log';
 export const selectProjectFeatureState =
   createFeatureSelector<ProjectState>(PROJECT_FEATURE_NAME);
 const { selectAll } = projectAdapter.getSelectors();
-export const selectAllProjects = createSelector(selectProjectFeatureState, selectAll);
+// Some isolated service/component tests intentionally provide a minimal store
+// without registering the PROJECT feature. Keep the selector tolerant there;
+// production behavior is unchanged when the feature state is present.
+export const selectAllProjects = createSelector(selectProjectFeatureState, (state) =>
+  state ? selectAll(state) : [],
+);
 export const selectAllProjectsExceptInbox = createSelector(selectAllProjects, (ps) =>
   ps.filter((p) => p.id !== INBOX_PROJECT.id),
 );
