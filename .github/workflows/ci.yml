@@ -29,11 +29,12 @@ jobs:
           node-version: 22
       - name: Install npm Packages
         run: npm i
-      - name: Apply integration changes once
+      - name: Apply LifeOS integration and validation fixes
         run: |
           if ! grep -q '<life-task-meta' src/app/features/tasks/task-detail-panel/task-detail-panel.component.html; then
             python3 scripts/finalize-lifeos-v2.py
           fi
+          python3 scripts/fix-lifeos-v2-validation.py
       - name: Format LifeOS sources
         run: |
           npx prettier --write \
