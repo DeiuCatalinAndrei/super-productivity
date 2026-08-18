@@ -209,9 +209,7 @@ export class LifeOsConfigService {
             );
           }
           if (
-            project.lifeDefaultRequirementIds?.some((id) =>
-              removedRequirementIds.has(id),
-            )
+            project.lifeDefaultRequirementIds?.some((id) => removedRequirementIds.has(id))
           ) {
             changes.lifeDefaultRequirementIds = project.lifeDefaultRequirementIds.filter(
               (id) => !removedRequirementIds.has(id),
