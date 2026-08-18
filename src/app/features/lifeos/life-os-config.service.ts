@@ -3,13 +3,17 @@ import { GlobalConfigService } from '../config/global-config.service';
 import { DEFAULT_LIFE_OS_CONFIG } from './life-os.const';
 import { LifeOsConfig, LifeSmartView } from './life-os.model';
 import { Task } from '../tasks/task.model';
+import { TasksConfig } from '../config/global-config.model';
+
+type TasksConfigWithLifeOs = TasksConfig & { lifeOs?: LifeOsConfig };
 
 @Injectable({ providedIn: 'root' })
 export class LifeOsConfigService {
   private readonly _globalConfig = inject(GlobalConfigService);
 
   readonly config = computed<LifeOsConfig>(() => {
-    const stored = this._globalConfig.tasks()?.lifeOs;
+    const tasksCfg = this._globalConfig.tasks() as TasksConfigWithLifeOs | undefined;
+    const stored = tasksCfg?.lifeOs;
     return {
       ...DEFAULT_LIFE_OS_CONFIG,
       ...(stored ?? {}),
@@ -31,16 +35,13 @@ export class LifeOsConfigService {
   });
 
   update(changes: Partial<LifeOsConfig>): void {
-    this._globalConfig.updateSection(
-      'tasks',
-      {
-        lifeOs: {
-          ...this.config(),
-          ...changes,
-        },
+    const sectionCfg: Partial<TasksConfigWithLifeOs> = {
+      lifeOs: {
+        ...this.config(),
+        ...changes,
       },
-      true,
-    );
+    };
+    this._globalConfig.updateSection('tasks', sectionCfg as Partial<TasksConfig>, true);
   }
 
   matchesView(task: Task, view: LifeSmartView): boolean {
