@@ -1,0 +1,79 @@
+name: LifeOS v2 Installable Artifacts
+
+on:
+  push:
+    branches:
+      - build/lifeos-v2-artifacts
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lifeos-v2-artifacts-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android-test-apk:
+    name: Android test APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: npm
+      - name: Setup Java
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699
+        with:
+          accept-android-sdk-licenses: true
+          packages: 'platform-tools platforms;android-36 build-tools;35.0.0'
+      - name: Install dependencies
+        run: npm i
+      - name: Build Android test APK
+        run: npm run dist:android
+      - name: Upload Android APK
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: lifeos-v2-android-apk
+          path: android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  windows-x64:
+    name: Windows x64 installer
+    runs-on: windows-latest
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm i
+      - name: Build Windows x64
+        run: npm run dist:win -- --x64
+      - name: Show build output
+        shell: pwsh
+        run: Get-ChildItem -Recurse .tmp/app-builds | Select-Object FullName,Length
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: lifeos-v2-windows-x64
+          path: |
+            .tmp/app-builds/*.exe
+            .tmp/app-builds/*.msi
+            .tmp/app-builds/*.zip
+          if-no-files-found: error
+          retention-days: 7
