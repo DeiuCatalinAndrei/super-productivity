@@ -31,8 +31,8 @@ const setGoalDate = async (
   await expect(input).toHaveValue(value);
 };
 
-test.describe('@supersync native Goals metadata', () => {
-  test('goal hierarchy and dates round-trip between two clients', async ({
+test.describe('@supersync native Goals v2', () => {
+  test('hierarchy direct tasks dates and completion round-trip between two clients', async ({
     browser,
     baseURL,
     testRunId,
@@ -42,6 +42,7 @@ test.describe('@supersync native Goals metadata', () => {
 
     const goalTitle = `Goal-${testRunId}`;
     const subgoalTitle = `Subgoal-${testRunId}`;
+    const directTaskTitle = `DirectTask-${testRunId}`;
     const targetDay = '2030-06-15';
     const initialDeadline = '2030-06-30';
     const updatedDeadline = '2030-07-05';
@@ -55,7 +56,7 @@ test.describe('@supersync native Goals metadata', () => {
       await clientA.page.goto('/#/goals');
       await clientA.page.waitForLoadState('networkidle');
 
-      await clientA.page.getByRole('button', { name: /Obiectiv nou/ }).click();
+      await clientA.page.getByRole('button', { name: /New Goal/ }).click();
       await savePrompt(clientA.page, goalTitle);
       await expect(goalCard(clientA.page, goalTitle)).toBeVisible();
 
@@ -63,10 +64,17 @@ test.describe('@supersync native Goals metadata', () => {
       await setGoalDate(clientA.page, goalTitle, 1, initialDeadline);
 
       await goalCard(clientA.page, goalTitle)
-        .getByRole('button', { name: /Subobiectiv/ })
+        .getByRole('button', { name: /Add Subgoal/ })
         .click();
       await savePrompt(clientA.page, subgoalTitle);
       await expect(goalCard(clientA.page, subgoalTitle)).toBeVisible();
+
+      await goalCard(clientA.page, goalTitle)
+        .getByRole('button', { name: /^Add Task$/ })
+        .first()
+        .click();
+      await savePrompt(clientA.page, directTaskTitle);
+      await expect(goalCard(clientA.page, goalTitle)).toContainText(directTaskTitle);
 
       await clientA.sync.syncAndWait();
 
@@ -78,6 +86,7 @@ test.describe('@supersync native Goals metadata', () => {
 
       await expect(goalCard(clientB.page, goalTitle)).toBeVisible();
       await expect(goalCard(clientB.page, subgoalTitle)).toBeVisible();
+      await expect(goalCard(clientB.page, goalTitle)).toContainText(directTaskTitle);
       await expect(
         goalCard(clientB.page, goalTitle).locator('input[type="date"]').nth(0),
       ).toHaveValue(targetDay);
@@ -96,19 +105,20 @@ test.describe('@supersync native Goals metadata', () => {
         goalCard(clientA.page, goalTitle).locator('input[type="date"]').nth(1),
       ).toHaveValue(updatedDeadline);
       await expect(goalCard(clientA.page, subgoalTitle)).toBeVisible();
+      await expect(goalCard(clientA.page, goalTitle)).toContainText(directTaskTitle);
 
       await goalCard(clientA.page, goalTitle)
-        .getByRole('button', { name: /Finalizează/ })
+        .getByRole('button', { name: /^Complete$/ })
         .click();
       await clientA.sync.syncAndWait();
 
       await clientB.sync.syncAndWait();
       await clientB.page.goto('/#/goals');
       await clientB.page.waitForLoadState('networkidle');
-      await expect(goalCard(clientB.page, goalTitle)).toContainText('Finalizat');
+      await expect(goalCard(clientB.page, goalTitle)).toContainText('Completed');
 
       await goalCard(clientB.page, goalTitle)
-        .getByRole('button', { name: /Redeschide/ })
+        .getByRole('button', { name: /^Reopen$/ })
         .click();
       await clientB.sync.syncAndWait();
 
@@ -116,7 +126,7 @@ test.describe('@supersync native Goals metadata', () => {
       await clientA.page.goto('/#/goals');
       await clientA.page.waitForLoadState('networkidle');
       await expect(
-        goalCard(clientA.page, goalTitle).getByRole('button', { name: /Finalizează/ }),
+        goalCard(clientA.page, goalTitle).getByRole('button', { name: /^Complete$/ }),
       ).toBeVisible();
     } finally {
       if (clientA) await closeClient(clientA);
