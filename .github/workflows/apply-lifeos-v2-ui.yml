@@ -1,0 +1,40 @@
+name: Apply LifeOS v2 UI
+
+on:
+  push:
+    branches:
+      - agent/lifeos-v2-context-engine
+    paths:
+      - scripts/apply-lifeos-v2-ui.py
+      - .github/workflows/apply-lifeos-v2-ui.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: agent/lifeos-v2-context-engine
+      - name: Apply UI integration patch
+        run: python3 scripts/apply-lifeos-v2-ui.py
+      - name: Commit generated UI changes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/features/tasks/task-detail-panel/task-detail-panel.component.ts \
+                  src/app/features/tasks/task-detail-panel/task-detail-panel.component.html \
+                  src/app/app.routes.ts \
+                  src/app/routes/pages.routes.ts \
+                  src/app/core-ui/magic-side-nav/magic-nav-config.service.ts \
+                  src/app/core-ui/mobile-bottom-nav/mobile-bottom-nav.component.html \
+                  src/app/pages/config-page/config-page.component.html
+          if git diff --cached --quiet; then
+            echo "No UI changes generated."
+            exit 0
+          fi
+          git commit --no-verify -m "feat(lifeos): connect Today Future settings and task metadata UI"
+          git push origin HEAD:agent/lifeos-v2-context-engine
