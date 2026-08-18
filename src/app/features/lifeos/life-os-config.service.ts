@@ -3,7 +3,7 @@ import { Store } from '@ngrx/store';
 import { take } from 'rxjs/operators';
 import { GlobalConfigService } from '../config/global-config.service';
 import { TasksConfig } from '../config/global-config.model';
-import { Project, ProjectCopy } from '../project/project.model';
+import { ProjectCopy } from '../project/project.model';
 import { updateProject } from '../project/store/project.actions';
 import { selectAllProjects } from '../project/store/project.selectors';
 import { Task, TaskCopy } from '../tasks/task.model';
@@ -116,10 +116,7 @@ export class LifeOsConfigService {
     return true;
   }
 
-  private _cleanupRemovedReferences(
-    previous: LifeOsConfig,
-    next: LifeOsConfig,
-  ): void {
+  private _cleanupRemovedReferences(previous: LifeOsConfig, next: LifeOsConfig): void {
     const nextPriorityIds = new Set(next.priorityLevels.map((item) => item.id));
     const nextLocationIds = new Set(next.locations.map((item) => item.id));
     const nextRequirementIds = new Set(next.requirements.map((item) => item.id));
@@ -129,9 +126,7 @@ export class LifeOsConfigService {
         .filter((id) => !nextPriorityIds.has(id)),
     );
     const removedLocationIds = new Set(
-      previous.locations
-        .map((item) => item.id)
-        .filter((id) => !nextLocationIds.has(id)),
+      previous.locations.map((item) => item.id).filter((id) => !nextLocationIds.has(id)),
     );
     const removedRequirementIds = new Set(
       previous.requirements
@@ -196,35 +191,38 @@ export class LifeOsConfigService {
     removedRequirementIds: Set<string>,
     replacementPriorityId: string | null,
   ): void {
-    this._store?.select(selectAllProjects).pipe(take(1)).subscribe((projects) => {
-      for (const project of projects) {
-        const changes: Partial<ProjectCopy> = {};
-        if (
-          project.lifeDefaultPriorityId &&
-          removedPriorityIds.has(project.lifeDefaultPriorityId)
-        ) {
-          changes.lifeDefaultPriorityId = replacementPriorityId;
+    this._store
+      ?.select(selectAllProjects)
+      .pipe(take(1))
+      .subscribe((projects) => {
+        for (const project of projects) {
+          const changes: Partial<ProjectCopy> = {};
+          if (
+            project.lifeDefaultPriorityId &&
+            removedPriorityIds.has(project.lifeDefaultPriorityId)
+          ) {
+            changes.lifeDefaultPriorityId = replacementPriorityId;
+          }
+          if (project.lifeDefaultLocationIds?.some((id) => removedLocationIds.has(id))) {
+            changes.lifeDefaultLocationIds = project.lifeDefaultLocationIds.filter(
+              (id) => !removedLocationIds.has(id),
+            );
+          }
+          if (
+            project.lifeDefaultRequirementIds?.some((id) =>
+              removedRequirementIds.has(id),
+            )
+          ) {
+            changes.lifeDefaultRequirementIds = project.lifeDefaultRequirementIds.filter(
+              (id) => !removedRequirementIds.has(id),
+            );
+          }
+          if (Object.keys(changes).length) {
+            this._store?.dispatch(
+              updateProject({ project: { id: project.id, changes }, isSkipSnack: true }),
+            );
+          }
         }
-        if (
-          project.lifeDefaultLocationIds?.some((id) => removedLocationIds.has(id))
-        ) {
-          changes.lifeDefaultLocationIds = project.lifeDefaultLocationIds.filter(
-            (id) => !removedLocationIds.has(id),
-          );
-        }
-        if (
-          project.lifeDefaultRequirementIds?.some((id) => removedRequirementIds.has(id))
-        ) {
-          changes.lifeDefaultRequirementIds = project.lifeDefaultRequirementIds.filter(
-            (id) => !removedRequirementIds.has(id),
-          );
-        }
-        if (Object.keys(changes).length) {
-          this._store?.dispatch(
-            updateProject({ project: { id: project.id, changes }, isSkipSnack: true }),
-          );
-        }
-      }
-    });
+      });
   }
 }
