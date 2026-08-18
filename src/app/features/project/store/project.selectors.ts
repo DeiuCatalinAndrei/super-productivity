@@ -9,11 +9,28 @@ import { Log } from '../../../core/log';
 export const selectProjectFeatureState =
   createFeatureSelector<ProjectState>(PROJECT_FEATURE_NAME);
 const { selectAll } = projectAdapter.getSelectors();
+
+const normalizeEmptyLifeOsDefaults = (project: Project): Project => {
+  if (!project.lifeType) return project;
+
+  const isEmptyLocations = project.lifeDefaultLocationIds?.length === 0;
+  const isEmptyRequirements = project.lifeDefaultRequirementIds?.length === 0;
+  if (!isEmptyLocations && !isEmptyRequirements) return project;
+
+  return {
+    ...project,
+    ...(isEmptyLocations ? { lifeDefaultLocationIds: undefined } : {}),
+    ...(isEmptyRequirements ? { lifeDefaultRequirementIds: undefined } : {}),
+  };
+};
+
 // Some isolated service/component tests intentionally provide a minimal store
-// without registering the PROJECT feature. Keep the selector tolerant there;
-// production behavior is unchanged when the feature state is present.
+// without registering the PROJECT feature. Keep the selector tolerant there.
+// For LifeOS, an empty Location/Requires default means "inherit", so normalize
+// empty arrays to undefined at the selector boundary while leaving persisted data
+// and all non-LifeOS projects untouched.
 export const selectAllProjects = createSelector(selectProjectFeatureState, (state) =>
-  state ? selectAll(state) : [],
+  state ? selectAll(state).map(normalizeEmptyLifeOsDefaults) : [],
 );
 export const selectAllProjectsExceptInbox = createSelector(selectAllProjects, (ps) =>
   ps.filter((p) => p.id !== INBOX_PROJECT.id),
