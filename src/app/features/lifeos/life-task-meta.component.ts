@@ -294,12 +294,12 @@ export class LifeTaskMetaComponent {
   );
 
   update(key: keyof Task, value: unknown): void {
-    this._taskService.update(this.task().id, { [key]: value } as Partial<Task>);
+    this._update({ [key]: value } as Partial<Task>);
   }
 
   updateNumber(key: 'lifeFocus' | 'lifeEnergy', raw: string): void {
     const value = raw ? Math.max(1, Math.min(5, Number(raw))) : null;
-    this._taskService.update(this.task().id, { [key]: value });
+    this._update({ [key]: value });
   }
 
   updateMulti(
@@ -308,6 +308,12 @@ export class LifeTaskMetaComponent {
   ): void {
     const select = event.target as HTMLSelectElement;
     const values = Array.from(select.selectedOptions).map((option) => option.value);
-    this._taskService.update(this.task().id, { [key]: values });
+    this._update({ [key]: values });
+  }
+
+  private _update(changes: Partial<Task>): void {
+    const taskId = this.task().id;
+    this._taskService.update(taskId, changes);
+    this._taskService.setSelectedId(taskId, true);
   }
 }
