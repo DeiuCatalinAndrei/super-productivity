@@ -74,10 +74,10 @@ test.describe('Basic Navigation', () => {
     await expect(page).toHaveURL(/\/#\/config/);
     await expect(page.locator('.page-settings')).toBeVisible();
 
-    // Today now opens the native LifeOS Today page from the side navigation.
+    // Today in the native side navigation returns to the native Today work view.
     await page.getByRole('menuitem', { name: 'Today', exact: true }).click();
     await page.waitForLoadState('networkidle');
-    await expect(page).toHaveURL(/\/#\/life-today/);
-    await expect(page.locator('life-today-page')).toBeVisible();
+    await expect(page).toHaveURL(/\/#\/tag\/TODAY\/tasks/);
+    await expect(page.locator('task-list').first()).toBeVisible();
   });
 });
