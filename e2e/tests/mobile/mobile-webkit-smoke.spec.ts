@@ -5,13 +5,13 @@ test.describe('Mobile WebKit smoke', () => {
     const mobileNav = page.locator('mobile-bottom-nav');
     await expect(mobileNav).toBeVisible();
 
-    await mobileNav.getByRole('button', { name: 'Planner', exact: true }).tap();
-    await expect(page).toHaveURL(/\/#\/planner/);
-    await expect(page.locator('planner')).toBeVisible();
+    await mobileNav.getByRole('button', { name: 'Goals', exact: true }).tap();
+    await expect(page).toHaveURL(/\/#\/goals/);
+    await expect(page.locator('goals-page')).toBeVisible();
 
     await mobileNav.getByRole('button', { name: 'Today', exact: true }).tap();
-    await expect(page).toHaveURL(/\/#\/tag\/TODAY\/tasks/);
-    await expect(page.locator('task-list').first()).toBeVisible();
+    await expect(page).toHaveURL(/\/#\/life-today/);
+    await expect(page.locator('life-today-page')).toBeVisible();
 
     await mobileNav.getByRole('button', { name: 'Add new task', exact: true }).tap();
     const taskTitle = `${testPrefix}-MobileWebKit`;
@@ -20,6 +20,6 @@ test.describe('Mobile WebKit smoke', () => {
     await addTaskInput.fill(taskTitle);
     await page.locator('.e2e-add-task-submit').tap();
 
-    await expect(page.locator('task').filter({ hasText: taskTitle })).toHaveCount(1);
+    await expect(page.getByText(taskTitle, { exact: true }).first()).toBeVisible();
   });
 });

@@ -31,8 +31,10 @@ test.describe('Task detail', () => {
     page.locator('.edit-date-info').filter({ hasText: new RegExp(infoPrefix) });
 
   const clearDateTimeInputs = async (page: Page): Promise<void> => {
-    const dateInput = page.getByRole('textbox', { name: 'Date' });
-    const timeInput = page.getByRole('combobox', { name: 'Time' });
+    // LifeOS adds Due date and Review date inputs to the task panel, so select the
+    // datetime dialog's Date field by its exact accessible name.
+    const dateInput = page.getByRole('textbox', { name: 'Date', exact: true });
+    const timeInput = page.getByRole('combobox', { name: 'Time', exact: true });
     // Let Angular's deferred initial ngModel writes settle before editing.
     await expect(dateInput).toHaveValue(/\S/);
     await expect(timeInput).toHaveValue(/\S/);

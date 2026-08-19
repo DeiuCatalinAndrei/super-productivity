@@ -68,16 +68,16 @@ test.describe('Basic Navigation', () => {
     // Wait for work view to be ready
     await workViewPage.waitForTaskList();
 
-    // Based on screenshot, look for Settings text in the nav - simpler approach
-    await page.click('text=Settings');
+    // Select exact menu items because LifeOS adds neighboring entries such as LifeOS Settings.
+    await page.getByRole('menuitem', { name: 'Settings', exact: true }).click();
     await page.waitForLoadState('networkidle');
     await expect(page).toHaveURL(/\/#\/config/);
     await expect(page.locator('.page-settings')).toBeVisible();
 
-    // Navigate back to work view by clicking the Today tag
-    await page.click('text=Today');
+    // Today now opens the native LifeOS Today page from the side navigation.
+    await page.getByRole('menuitem', { name: 'Today', exact: true }).click();
     await page.waitForLoadState('networkidle');
-    await expect(page).toHaveURL(/\/#\/tag\/TODAY/);
-    await expect(page.locator('task-list').first()).toBeVisible();
+    await expect(page).toHaveURL(/\/#\/life-today/);
+    await expect(page.locator('life-today-page')).toBeVisible();
   });
 });

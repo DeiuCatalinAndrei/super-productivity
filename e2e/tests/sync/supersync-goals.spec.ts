@@ -34,15 +34,24 @@ const openTaskMeta = async (
 };
 
 const setDateField = async (field: Locator, value: string): Promise<void> => {
-  await field.fill(value);
-  await field.dispatchEvent('change');
-  await expect(field).toHaveValue(value);
+  // Dispatch the native input/change sequence in one DOM operation. Angular may
+  // recreate the selected-task panel after a task update, so a second locator
+  // action against the pre-update field can otherwise race with that rerender.
+  await field.evaluate((input, nextValue) => {
+    const element = input as HTMLInputElement;
+    element.value = nextValue;
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+  }, value);
 };
 
 const setTextField = async (field: Locator, value: string): Promise<void> => {
-  await field.fill(value);
-  await field.dispatchEvent('change');
-  await expect(field).toHaveValue(value);
+  await field.evaluate((input, nextValue) => {
+    const element = input as HTMLInputElement;
+    element.value = nextValue;
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+  }, value);
 };
 
 const setGoalDate = async (
@@ -112,11 +121,15 @@ test.describe('@supersync native Goals v2', () => {
       await savePrompt(clientA.page, directTaskTitle);
       await expect(goalCard(clientA.page, goalTitle)).toContainText(directTaskTitle);
 
-      const metaA = await openTaskMeta(clientA.page, goalTitle, directTaskTitle);
+      let metaA = await openTaskMeta(clientA.page, goalTitle, directTaskTitle);
       await metaA.getByLabel('Priority').selectOption('p1');
       await metaA.getByLabel('Focus').selectOption('4');
       await metaA.getByLabel('Energy').selectOption('2');
       await setDateField(metaA.getByLabel('Due date'), softDueDay);
+
+      // Updating a native date input may recreate the selected-task panel; reopen
+      // the task before continuing with the rest of its LifeOS metadata.
+      metaA = await openTaskMeta(clientA.page, goalTitle, directTaskTitle);
       await metaA.getByLabel('Location').selectOption(['home']);
       await metaA.getByLabel('Requires').selectOption(['computer']);
       await metaA.getByRole('checkbox', { name: /Next action/ }).check();
