@@ -8,9 +8,11 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
+import { Store } from '@ngrx/store';
 import { of } from 'rxjs';
-import { Task } from '../tasks/task.model';
+import { Task, TaskDetailTargetPanel } from '../tasks/task.model';
 import { TaskService } from '../tasks/task.service';
+import { setSelectedTask } from '../tasks/store/task.actions';
 import { LifeOsConfigService } from './life-os-config.service';
 
 @Component({
@@ -281,6 +283,7 @@ export class LifeTaskMetaComponent {
   readonly scale = [1, 2, 3, 4, 5] as const;
 
   private readonly _taskService = inject(TaskService);
+  private readonly _store = inject(Store);
   private readonly _lifeConfig = inject(LifeOsConfigService);
   private readonly _allTasks = toSignal(this._taskService.allTasks$ ?? of([] as Task[]), {
     initialValue: [] as Task[],
@@ -314,6 +317,12 @@ export class LifeTaskMetaComponent {
   private _update(changes: Partial<Task>): void {
     const taskId = this.task().id;
     this._taskService.update(taskId, changes);
-    this._taskService.setSelectedId(taskId, true);
+    this._store.dispatch(
+      setSelectedTask({
+        id: taskId,
+        taskDetailTargetPanel: TaskDetailTargetPanel.Default,
+        isSkipToggle: true,
+      }),
+    );
   }
 }
