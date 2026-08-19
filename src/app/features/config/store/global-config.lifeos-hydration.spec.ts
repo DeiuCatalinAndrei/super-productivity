@@ -1,13 +1,10 @@
 import { AppDataComplete } from '../../../op-log/model/model-config';
 import { loadAllData } from '../../../root-store/meta/load-all-data.action';
 import { DEFAULT_GLOBAL_CONFIG } from '../default-global-config.const';
-import {
-  globalConfigReducer,
-  initialGlobalConfigState,
-} from './global-config.reducer';
+import { globalConfigReducer, initialGlobalConfigState } from './global-config.reducer';
 
 describe('LifeOS global config hydration', () => {
-  const createLegacyConfigWithoutLifeOs = () => {
+  const createLegacyConfigWithoutLifeOs = (): typeof initialGlobalConfigState => {
     const legacyTasks = { ...initialGlobalConfigState.tasks };
     delete legacyTasks.lifeOs;
 
