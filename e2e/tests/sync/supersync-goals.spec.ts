@@ -152,6 +152,12 @@ test.describe('@supersync native Goals v2', () => {
       await clientB.page.goto('/#/goals');
       await clientB.page.waitForLoadState('networkidle');
 
+      // Rehydrate the second client from persisted local state before asserting.
+      // This catches fields that appear immediately after sync but fail to survive
+      // an application reload/restart.
+      await clientB.page.reload();
+      await clientB.page.waitForLoadState('networkidle');
+
       await expect(goalCard(clientB.page, goalTitle)).toBeVisible();
       await expect(goalCard(clientB.page, subgoalTitle)).toBeVisible();
       await expect(goalCard(clientB.page, goalTitle)).toContainText(blockerTitle);
