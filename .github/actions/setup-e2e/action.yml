@@ -44,12 +44,23 @@ runs:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
+    # Playwright's dependency install shells out to apt. GitHub-hosted Ubuntu
+    # mirrors occasionally stall for several minutes; bound each attempt and
+    # retry so one bad mirror does not consume the whole sync build timeout.
     - name: Install Playwright Browsers
       if: steps.playwright-cache.outputs.cache-hit != 'true'
-      shell: bash
-      run: npx playwright install --with-deps chromium
+      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3
+      with:
+        timeout_minutes: 4
+        max_attempts: 2
+        retry_wait_seconds: 10
+        command: npx playwright install --with-deps chromium
 
     - name: Install Playwright Dependencies (on cache hit)
       if: steps.playwright-cache.outputs.cache-hit == 'true'
-      shell: bash
-      run: npx playwright install-deps chromium
+      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3
+      with:
+        timeout_minutes: 4
+        max_attempts: 2
+        retry_wait_seconds: 10
+        command: npx playwright install-deps chromium
