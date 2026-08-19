@@ -103,8 +103,15 @@ jobs:
             ${{ runner.os }}-node22-
       - name: Install npm Packages
         run: npm i
+      # Playwright shells out to apt for browser dependencies. Bound and retry
+      # the install so a stalled GitHub-hosted Ubuntu mirror cannot hang CI.
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps chromium webkit
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3
+        with:
+          timeout_minutes: 6
+          max_attempts: 2
+          retry_wait_seconds: 10
+          command: npx playwright install --with-deps chromium webkit
       - run: npm run env # Generate env.generated.ts from environment variables
       - run: npm run int:test # Validate i18n JSON files
       - run: npm run test:electron # Node-side unit tests for electron/*.cjs
