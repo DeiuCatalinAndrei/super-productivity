@@ -46,15 +46,23 @@ runs:
 
     # Playwright's system dependency installer shells out to apt via sudo. Do not
     # wrap it in an action-level timeout: killing the root child from the runner
-    # user can fail with EPERM. Instead make apt itself fail/retry on a stalled
-    # mirror, then retry the whole dependency installation from the shell.
+    # user can fail with EPERM. Prefer the canonical Ubuntu mirror when the hosted
+    # runner points at a slow Azure mirror, then let apt retry stalled transfers.
     - name: Configure apt reliability for Playwright
       shell: bash
       run: |
+        while IFS= read -r source_file; do
+          sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' "$source_file"
+        done < <(
+          grep -rl 'azure.archive.ubuntu.com' \
+            /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null || true
+        )
+
         sudo tee /etc/apt/apt.conf.d/99-playwright-ci >/dev/null <<'EOF'
         Acquire::Retries "5";
         Acquire::http::Timeout "30";
         Acquire::https::Timeout "30";
+        Acquire::ForceIPv4 "true";
         EOF
 
     - name: Install Playwright Dependencies

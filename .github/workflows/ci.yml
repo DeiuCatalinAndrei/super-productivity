@@ -104,15 +104,23 @@ jobs:
       - name: Install npm Packages
         run: npm i
 
-      # Playwright's dependency installer elevates to root. Keep apt itself
-      # bounded/retryable instead of timing it out from an unprivileged action,
-      # which can fail to kill the root apt process with EPERM.
+      # Playwright's dependency installer elevates to root. Prefer the canonical
+      # Ubuntu mirror when the hosted runner points at a slow Azure mirror, then
+      # keep apt retryable instead of timing it out from an unprivileged action.
       - name: Configure apt reliability for Playwright
         run: |
+          while IFS= read -r source_file; do
+            sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' "$source_file"
+          done < <(
+            grep -rl 'azure.archive.ubuntu.com' \
+              /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null || true
+          )
+
           sudo tee /etc/apt/apt.conf.d/99-playwright-ci >/dev/null <<'EOF'
           Acquire::Retries "5";
           Acquire::http::Timeout "30";
           Acquire::https::Timeout "30";
+          Acquire::ForceIPv4 "true";
           EOF
       - name: Install Playwright Dependencies
         run: |
