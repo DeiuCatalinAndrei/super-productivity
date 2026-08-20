@@ -72,6 +72,35 @@ describe('LifeContextEngineService', () => {
     expect(ranked.map((item) => item.task.id)).not.toContain('waiting');
   });
 
+  it('surfaces a waiting item only when its follow-up date becomes due', () => {
+    const futureFollowUp = task({
+      id: 'future-follow-up',
+      lifeWaitingFor: 'Vendor reply',
+      lifeFollowUpDay: '2026-08-21',
+    });
+    const dueFollowUp = task({
+      id: 'due-follow-up',
+      lifeWaitingFor: 'Alex reply',
+      lifeFollowUpDay: '2026-08-20',
+    });
+
+    const ranked = service.rankTasks(
+      [futureFollowUp, dueFollowUp],
+      DEFAULT_LIFE_OS_CONFIG,
+      {
+        day: '2026-08-20',
+        availableMinutes: null,
+        focus: null,
+        energy: null,
+        locationIds: [],
+        requirementIds: [],
+      },
+    );
+
+    expect(ranked.map((item) => item.task.id)).toEqual(['due-follow-up']);
+    expect(ranked[0].reasons).toContain('Follow up today');
+  });
+
   it('filters tasks that cannot be done in the active location', () => {
     const home = task({ id: 'home', lifeLocationIds: ['home'] });
     const office = task({ id: 'office', lifeLocationIds: ['office'] });
