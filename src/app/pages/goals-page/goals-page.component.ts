@@ -361,7 +361,9 @@ interface GoalNode {
                       <button
                         class="task-toggle"
                         type="button"
-                        [attr.aria-label]="task.isDone ? 'Mark task not done' : 'Mark task done'"
+                        [attr.aria-label]="
+                          task.isDone ? 'Mark task not done' : 'Mark task done'
+                        "
                         (click)="toggleTaskDone(task, $event)"
                       >
                         <mat-icon>{{
@@ -457,12 +459,17 @@ interface GoalNode {
                 @if (node.directTasks.length) {
                   <div class="tree-tasks">
                     @for (task of node.directTasks; track task.id) {
-                      <div class="tree-task-row" (click)="openTask(task.id)">
+                      <div
+                        class="tree-task-row"
+                        (click)="openTask(task.id)"
+                      >
                         <button
                           class="task-toggle"
                           type="button"
                           (click)="toggleTaskDone(task, $event)"
-                          [attr.aria-label]="task.isDone ? 'Mark task not done' : 'Mark task done'"
+                          [attr.aria-label]="
+                            task.isDone ? 'Mark task not done' : 'Mark task done'
+                          "
                         >
                           <mat-icon>{{
                             task.isDone ? 'check_box' : 'check_box_outline_blank'
