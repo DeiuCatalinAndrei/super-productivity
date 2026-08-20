@@ -147,8 +147,7 @@ import { LifeOsConfigService } from './life-os-config.service';
             [disabled]="!task().lifeWaitingFor"
             (change)="update('lifeFollowUpDay', $any($event.target).value || null)"
           />
-          <small
-            class="field-hint"
+          <small class="field-hint"
             >Surface this waiting item again on a specific day.</small
           >
         </label>
