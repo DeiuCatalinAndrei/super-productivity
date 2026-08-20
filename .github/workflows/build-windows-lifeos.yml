@@ -42,7 +42,7 @@ jobs:
 
       - name: Build Windows x64 installer
         shell: bash
-        run: npm run buildAllElectron:noTests:prod && npx electron-builder --win nsis --x64 --publish never
+        run: npm run buildFrontend:prod:es6 && npm run electron:build && npx electron-builder --win nsis --x64 --publish never
 
       - name: Verify x64 installer
         shell: pwsh
