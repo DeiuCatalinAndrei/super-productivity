@@ -91,6 +91,13 @@ export const APP_ROUTES: Routes = [
     canActivate: [FocusOverlayOpenGuard],
   },
   {
+    path: 'smart-views',
+    loadComponent: () =>
+      import('./routes/pages.routes').then((m) => m.LifeTodayPageComponent),
+    data: { page: 'smart-views' },
+    canActivate: [FocusOverlayOpenGuard],
+  },
+  {
     path: 'goals',
     loadComponent: () =>
       import('./routes/pages.routes').then((m) => m.GoalsPageComponent),

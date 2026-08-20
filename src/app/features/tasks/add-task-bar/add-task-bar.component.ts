@@ -89,6 +89,7 @@ import { PlannerActions } from '../../planner/store/planner.actions';
 import { DateService } from '../../../core/date/date.service';
 import { MenuTreeService } from '../../menu-tree/menu-tree.service';
 import { SelectOptionRowComponent } from '../../../ui/select-option-row/select-option-row.component';
+import { LifeOsConfigService } from '../../lifeos/life-os-config.service';
 
 export interface TaskAddEvent {
   taskId: string;
@@ -142,8 +143,22 @@ export class AddTaskBarComponent implements AfterViewInit, OnInit, OnDestroy {
   private readonly _dateService = inject(DateService);
   private readonly _menuTreeService = inject(MenuTreeService);
   readonly stateService = inject(AddTaskBarStateService);
+  private readonly _lifeOsConfigService = inject(LifeOsConfigService);
 
   T = T;
+  readonly lifeConfig = this._lifeOsConfigService.config;
+  readonly lifeMetaExpanded = signal(false);
+  readonly lifePriorityId = signal('');
+  readonly lifeFocus = signal<number | null>(null);
+  readonly lifeEnergy = signal<number | null>(null);
+  readonly lifeDueDay = signal('');
+  readonly lifeLocationId = signal('');
+  readonly lifeRequirementId = signal('');
+  readonly lifeIsNextAction = signal(false);
+  readonly lifeWaitingFor = signal('');
+  readonly lifeFollowUpDay = signal('');
+  readonly lifeReviewDay = signal('');
+  readonly lifeBlockedByIds = signal('');
 
   // Inputs
   tabindex = input<number>(0);
@@ -339,6 +354,7 @@ export class AddTaskBarComponent implements AfterViewInit, OnInit, OnDestroy {
   private _defaultTagIds: string[] = [];
 
   ngOnInit(): void {
+    this.lifePriorityId.set(this.lifeConfig().defaultPriorityId || '');
     this._setProjectInitially();
     this._setTagInitially();
     this._setupDefaultDate();
@@ -508,6 +524,23 @@ export class AddTaskBarComponent implements AfterViewInit, OnInit, OnDestroy {
             : additionalFields?.attachments || [],
       };
 
+      taskData.lifePriorityId = this.lifePriorityId() || null;
+      taskData.lifeFocus = this.lifeFocus();
+      taskData.lifeEnergy = this.lifeEnergy();
+      taskData.lifeDueDay = this.lifeDueDay() || null;
+      taskData.lifeLocationIds = this.lifeLocationId() ? [this.lifeLocationId()] : [];
+      taskData.lifeRequirementIds = this.lifeRequirementId()
+        ? [this.lifeRequirementId()]
+        : [];
+      taskData.lifeIsNextAction = this.lifeIsNextAction();
+      taskData.lifeWaitingFor = this.lifeWaitingFor().trim() || null;
+      taskData.lifeFollowUpDay = this.lifeFollowUpDay() || null;
+      taskData.lifeReviewDay = this.lifeReviewDay() || null;
+      taskData.lifeBlockedByTaskIds = this.lifeBlockedByIds()
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean);
+
       const note = this.stateService.noteTxt().trim();
       if (note) {
         taskData.notes = note;
@@ -661,9 +694,24 @@ export class AddTaskBarComponent implements AfterViewInit, OnInit, OnDestroy {
         isNewTask: true,
       });
       this._resetAfterAdd();
+      this._resetLifeMeta();
     } finally {
       this._isAddingTask = false;
     }
+  }
+
+  private _resetLifeMeta(): void {
+    this.lifePriorityId.set(this.lifeConfig().defaultPriorityId || '');
+    this.lifeFocus.set(null);
+    this.lifeEnergy.set(null);
+    this.lifeDueDay.set('');
+    this.lifeLocationId.set('');
+    this.lifeRequirementId.set('');
+    this.lifeIsNextAction.set(false);
+    this.lifeWaitingFor.set('');
+    this.lifeFollowUpDay.set('');
+    this.lifeReviewDay.set('');
+    this.lifeBlockedByIds.set('');
   }
 
   onSubmitBtnClick(): void {

@@ -10,7 +10,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { HabitTrackerComponent } from '../../features/simple-counter/habit-tracker/habit-tracker.component';
 import { SimpleCounterService } from '../../features/simple-counter/simple-counter.service';
 import { LifeOsConfigService } from '../../features/lifeos/life-os-config.service';
@@ -471,13 +471,23 @@ export type LifeTodayTab =
         #taskRow
         let-task
       >
-        <button
+        <div
           class="task-row"
+          role="button"
+          tabindex="0"
           (click)="openTask(task.id)"
+          (keydown.enter)="openTask(task.id)"
         >
-          <mat-icon>{{
-            task.isDone ? 'check_circle' : 'radio_button_unchecked'
-          }}</mat-icon>
+          <button
+            class="task-toggle"
+            type="button"
+            [attr.aria-label]="task.isDone ? 'Mark task not done' : 'Mark task done'"
+            (click)="toggleTaskDone(task, $event)"
+          >
+            <mat-icon>{{
+              task.isDone ? 'check_circle' : 'radio_button_unchecked'
+            }}</mat-icon>
+          </button>
           <span
             class="task-title"
             [class.done]="task.isDone"
@@ -501,7 +511,7 @@ export type LifeTodayTab =
           @if (task.deadlineDay || task.deadlineWithTime) {
             <span class="chip deadline">Deadline</span>
           }
-        </button>
+        </div>
       </ng-template>
     </main>
   `,
@@ -579,8 +589,14 @@ export type LifeTodayTab =
         font: inherit;
         box-sizing: border-box;
       }
+      select {
+        color-scheme: light dark;
+        background: Canvas;
+        color: CanvasText;
+      }
       option {
-        color: initial;
+        background: Canvas;
+        color: CanvasText;
       }
       .tabs,
       .smart-buttons {
@@ -642,6 +658,23 @@ export type LifeTodayTab =
         width: 18px;
         height: 18px;
         font-size: 18px;
+      }
+      .task-toggle {
+        flex: 0 0 auto;
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        padding: 0;
+      }
+      .task-toggle:hover {
+        background: rgba(127, 127, 127, 0.14);
       }
       .task-title {
         flex: 1;
@@ -830,9 +863,11 @@ export class LifeTodayPageComponent {
   private readonly _contextEngine = inject(LifeContextEngineService);
   private readonly _counterService = inject(SimpleCounterService);
   private readonly _globalConfig = inject(GlobalConfigService);
+  private readonly _router = inject(Router);
 
   readonly config = this._life.config;
-  readonly tab = signal<LifeTodayTab>('overview');
+  readonly isSmartViewsRoute = this._router.url.startsWith('/smart-views');
+  readonly tab = signal<LifeTodayTab>(this.isSmartViewsRoute ? 'context' : 'overview');
   readonly scale = [1, 2, 3, 4, 5] as const;
   readonly scaleDesc = [5, 4, 3, 2, 1] as const;
   readonly tabs: { id: LifeTodayTab; label: string; icon: string }[] = [
@@ -983,6 +1018,15 @@ export class LifeTodayPageComponent {
 
   openTask(id: string): void {
     this._taskService.setSelectedId(id);
+  }
+
+  toggleTaskDone(task: Task, event: Event): void {
+    event.stopPropagation();
+    if (task.isDone) {
+      this._taskService.setUnDone(task.id);
+    } else {
+      this._taskService.setDone(task.id);
+    }
   }
 
   priorityLabel(id: string | null | undefined): string | null {
