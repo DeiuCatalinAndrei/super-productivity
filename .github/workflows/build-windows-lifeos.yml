@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   windows-installer:
@@ -44,12 +44,32 @@ jobs:
         shell: bash
         run: npm run dist:win
 
-      - name: Upload Windows installer
+      - name: Verify x64 installer
+        shell: pwsh
+        run: |
+          $installer = '.tmp/app-builds/Super-Productivity-Setup-x64.exe'
+          if (!(Test-Path $installer)) {
+            Write-Error "Windows x64 installer not found: $installer"
+            Get-ChildItem '.tmp/app-builds' -Recurse | Select-Object FullName
+            exit 1
+          }
+
+      - name: Upload Windows installer artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: lifeos-windows-installer-${{ github.sha }}
-          path: |
-            .tmp/app-builds/*.exe
-            .tmp/app-builds/*.blockmap
+          path: .tmp/app-builds/Super-Productivity-Setup-x64.exe
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish direct Windows installer release
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228
+        with:
+          tag_name: lifeos-windows-${{ github.sha }}
+          target_commitish: ${{ github.sha }}
+          name: Super Productivity LifeOS Windows
+          body: |
+            Custom LifeOS Windows x64 installer built from master.
+            Source commit: ${{ github.sha }}
+          prerelease: true
+          files: .tmp/app-builds/Super-Productivity-Setup-x64.exe
