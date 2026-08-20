@@ -95,7 +95,8 @@ export class LifeContextEngineService {
       (level) => level.id === priorityId,
     );
     if (priorityIndex >= 0) {
-      score += Math.max(6, 36 - (priorityIndex * 10));
+      const priorityPenalty = priorityIndex * 10;
+      score += Math.max(6, 36 - priorityPenalty);
       reasons.push(config.priorityLevels[priorityIndex].label);
     }
 
@@ -207,7 +208,8 @@ export class LifeContextEngineService {
     const available = Math.max(1, Math.min(5, availableRaw));
     if (required <= available) {
       const delta = available - required;
-      const bonus = Math.max(2, 8 - (delta * 2));
+      const fitPenalty = delta * 2;
+      const bonus = Math.max(2, 8 - fitPenalty);
       if (delta <= 1) reasons.push(`${label} fit`);
       return bonus;
     }
@@ -231,7 +233,8 @@ export class LifeContextEngineService {
   }
 
   private _dateRank(task: Task): number {
-    const day = task.lifeFollowUpDay || task.deadlineDay || task.lifeDueDay || task.dueDay;
+    const day =
+      task.lifeFollowUpDay || task.deadlineDay || task.lifeDueDay || task.dueDay;
     return day ? this._dateOrdinal(day) : Number.MAX_SAFE_INTEGER;
   }
 
