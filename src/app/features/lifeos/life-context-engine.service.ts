@@ -91,9 +91,11 @@ export class LifeContextEngineService {
     }
 
     const priorityId = task.lifePriorityId || config.defaultPriorityId;
-    const priorityIndex = config.priorityLevels.findIndex((level) => level.id === priorityId);
+    const priorityIndex = config.priorityLevels.findIndex(
+      (level) => level.id === priorityId,
+    );
     if (priorityIndex >= 0) {
-      score += Math.max(6, 36 - priorityIndex * 10);
+      score += Math.max(6, 36 - (priorityIndex * 10));
       reasons.push(config.priorityLevels[priorityIndex].label);
     }
 
@@ -143,7 +145,12 @@ export class LifeContextEngineService {
       }
     }
 
-    if (!task.lifePriorityId && !task.lifeIsNextAction && !deadlineDay && !task.lifeDueDay) {
+    if (
+      !task.lifePriorityId &&
+      !task.lifeIsNextAction &&
+      !deadlineDay &&
+      !task.lifeDueDay
+    ) {
       score -= 8;
     }
 
@@ -162,7 +169,9 @@ export class LifeContextEngineService {
   }
 
   private _matchesContext(task: Task, context: LifeCurrentContext): boolean {
-    const taskLocations = task.lifeLocationIds?.length ? task.lifeLocationIds : ['anywhere'];
+    const taskLocations = task.lifeLocationIds?.length
+      ? task.lifeLocationIds
+      : ['anywhere'];
     if (
       context.locationIds.length &&
       !context.locationIds.includes('anywhere') &&
@@ -198,7 +207,7 @@ export class LifeContextEngineService {
     const available = Math.max(1, Math.min(5, availableRaw));
     if (required <= available) {
       const delta = available - required;
-      const bonus = Math.max(2, 8 - delta * 2);
+      const bonus = Math.max(2, 8 - (delta * 2));
       if (delta <= 1) reasons.push(`${label} fit`);
       return bonus;
     }
