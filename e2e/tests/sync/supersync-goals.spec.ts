@@ -240,6 +240,10 @@ test.describe('@supersync native Goals v2', () => {
       await expect(
         goalCard(clientA.page, goalTitle).locator('input[type="date"]').nth(1),
       ).toHaveValue(updatedDeadline);
+      // A hash navigation can briefly restore the previously selected task before the
+      // route finishes clearing transient selection state. Wait for that reset so the
+      // helper performs a real post-sync open instead of accepting a stale panel.
+      await expect(clientA.page.locator('life-task-meta')).toBeHidden();
       const roundTripMetaA = await openTaskMeta(clientA.page, goalTitle, directTaskTitle);
       await expect(roundTripMetaA.getByLabel('Priority')).toHaveValue('p1');
       await expect(roundTripMetaA.getByLabel('Focus')).toHaveValue('5');
