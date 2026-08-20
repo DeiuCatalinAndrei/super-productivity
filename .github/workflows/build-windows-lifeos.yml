@@ -1,58 +1,71 @@
-name: Format LifeOS UX (temporary)
+name: Build LifeOS Windows Installer
 
 on:
-  push:
-    branches:
-      - agent/lifeos-ux-polish-final
-    paths:
-      - '.github/workflows/build-windows-lifeos.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  format:
-    runs-on: ubuntu-latest
+  windows-installer:
+    runs-on: windows-latest
+    env:
+      UNSPLASH_KEY: ${{ secrets.UNSPLASH_KEY }}
+      UNSPLASH_CLIENT_ID: ${{ secrets.UNSPLASH_CLIENT_ID }}
+
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Set timezone
+        uses: szenius/set-timezone@1f9716b0f7120e344f0c62bb7b1ee98819aefd42
         with:
-          ref: agent/lifeos-ux-polish-final
-          fetch-depth: 0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+          timezoneWindows: 'W. Europe Standard Time'
+
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          node-version: 22
-      - name: Install dependencies
-        run: npm i
-      - name: Format LifeOS UX files
+          persist-credentials: false
+
+      - name: Setup Electron build environment
+        uses: ./.github/actions/setup-electron-build
+
+      - name: Install npm packages
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 15
+          shell: bash
+          command: npm install @nx/nx-win32-x64-msvc && npm i
+
+      - name: Build Windows x64 installer
+        shell: bash
+        run: npm run buildFrontend:prod:es6 && npm run electron:build && npx electron-builder --win nsis --x64 --publish never
+
+      - name: Verify x64 installer
+        shell: pwsh
         run: |
-          npx prettier --write \
-            src/app/app.routes.ts \
-            src/app/core-ui/magic-side-nav/magic-nav-config.service.ts \
-            src/app/core-ui/mobile-bottom-nav/mobile-bottom-nav.component.html \
-            src/app/features/simple-counter/habit-tracker/habit-tracker.component.ts \
-            src/app/features/tasks/add-task-bar/add-task-bar.component.ts \
-            src/app/features/tasks/add-task-bar/add-task-bar.component.html \
-            src/app/features/tasks/add-task-bar/add-task-bar.component.scss \
-            src/app/pages/goals-page/goals-page.component.ts \
-            src/app/pages/life-today-page/life-today-page.component.ts
-      - name: Restore workflow files and commit formatting
-        run: |
-          git fetch origin master
-          git checkout origin/master -- .github/workflows/build-windows-lifeos.yml
-          rm -f .github/workflows/format-lifeos-ux.yml
-          git config user.name 'OpenAI Agent'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- \
-            .github/workflows/build-windows-lifeos.yml \
-            .github/workflows/format-lifeos-ux.yml \
-            src/app/app.routes.ts \
-            src/app/core-ui/magic-side-nav/magic-nav-config.service.ts \
-            src/app/core-ui/mobile-bottom-nav/mobile-bottom-nav.component.html \
-            src/app/features/simple-counter/habit-tracker/habit-tracker.component.ts \
-            src/app/features/tasks/add-task-bar/add-task-bar.component.ts \
-            src/app/features/tasks/add-task-bar/add-task-bar.component.html \
-            src/app/features/tasks/add-task-bar/add-task-bar.component.scss \
-            src/app/pages/goals-page/goals-page.component.ts \
-            src/app/pages/life-today-page/life-today-page.component.ts
-          git commit -m 'style(lifeos): format UX updates'
-          git push origin HEAD:agent/lifeos-ux-polish-final
+          $installer = '.tmp/app-builds/Super-Productivity-Setup-x64.exe'
+          if (!(Test-Path $installer)) {
+            Write-Error "Windows x64 installer not found: $installer"
+            Get-ChildItem '.tmp/app-builds' -Recurse | Select-Object FullName
+            exit 1
+          }
+
+      - name: Upload Windows installer artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: lifeos-windows-installer-${{ github.sha }}
+          path: .tmp/app-builds/Super-Productivity-Setup-x64.exe
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish direct Windows installer release
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228
+        with:
+          tag_name: lifeos-windows-${{ github.sha }}
+          target_commitish: ${{ github.sha }}
+          name: Super Productivity LifeOS Windows
+          body: |
+            Custom LifeOS Windows x64 installer built from master.
+            Source commit: ${{ github.sha }}
+          prerelease: true
+          files: .tmp/app-builds/Super-Productivity-Setup-x64.exe
