@@ -1,0 +1,34 @@
+name: Format LifeOS UX
+
+on:
+  push:
+    branches:
+      - agent/lifeos-ux-polish-final
+    paths:
+      - '.github/workflows/format-lifeos-ux.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: agent/lifeos-ux-polish-final
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm i
+      - name: Format touched files
+        run: npx prettier --write src/app/features/tasks/add-task-bar/add-task-bar.component.html src/app/pages/goals-page/goals-page.component.ts
+      - name: Commit formatter output
+        run: |
+          rm .github/workflows/format-lifeos-ux.yml
+          git config user.name 'OpenAI Agent'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- src/app/features/tasks/add-task-bar/add-task-bar.component.html src/app/pages/goals-page/goals-page.component.ts .github/workflows/format-lifeos-ux.yml
+          git commit -m 'style(lifeos): format UX updates'
+          git push origin HEAD:agent/lifeos-ux-polish-final
