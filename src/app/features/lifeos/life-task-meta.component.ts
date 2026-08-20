@@ -34,38 +34,63 @@ import { LifeOsConfigService } from './life-os-config.service';
         <label>
           <span>Priority</span>
           <select
-            [value]="task().lifePriorityId || config().defaultPriorityId || ''"
             (change)="update('lifePriorityId', $any($event.target).value || null)"
           >
-            <option value="">None</option>
+            <option
+              value=""
+              [selected]="!(task().lifePriorityId || config().defaultPriorityId)"
+            >
+              None
+            </option>
             @for (level of config().priorityLevels; track level.id) {
-              <option [value]="level.id">{{ level.label }}</option>
+              <option
+                [value]="level.id"
+                [selected]="
+                  (task().lifePriorityId || config().defaultPriorityId || '') === level.id
+                "
+              >
+                {{ level.label }}
+              </option>
             }
           </select>
         </label>
 
         <label>
           <span>Focus</span>
-          <select
-            [value]="task().lifeFocus || ''"
-            (change)="updateNumber('lifeFocus', $any($event.target).value)"
-          >
-            <option value="">Not set</option>
+          <select (change)="updateNumber('lifeFocus', $any($event.target).value)">
+            <option
+              value=""
+              [selected]="task().lifeFocus == null"
+            >
+              Not set
+            </option>
             @for (level of scale; track level) {
-              <option [value]="level">{{ level }} / 5</option>
+              <option
+                [value]="level"
+                [selected]="task().lifeFocus === level"
+              >
+                {{ level }} / 5
+              </option>
             }
           </select>
         </label>
 
         <label>
           <span>Energy</span>
-          <select
-            [value]="task().lifeEnergy || ''"
-            (change)="updateNumber('lifeEnergy', $any($event.target).value)"
-          >
-            <option value="">Not set</option>
+          <select (change)="updateNumber('lifeEnergy', $any($event.target).value)">
+            <option
+              value=""
+              [selected]="task().lifeEnergy == null"
+            >
+              Not set
+            </option>
             @for (level of scale; track level) {
-              <option [value]="level">{{ level }} / 5</option>
+              <option
+                [value]="level"
+                [selected]="task().lifeEnergy === level"
+              >
+                {{ level }} / 5
+              </option>
             }
           </select>
         </label>
