@@ -13,6 +13,7 @@ import { of } from 'rxjs';
 import { Task, TaskDetailTargetPanel } from '../tasks/task.model';
 import { TaskService } from '../tasks/task.service';
 import { setSelectedTask } from '../tasks/store/task.actions';
+import { LifeContextEngineService } from './life-context-engine.service';
 import { LifeOsConfigService } from './life-os-config.service';
 
 @Component({
@@ -285,16 +286,30 @@ export class LifeTaskMetaComponent {
   private readonly _taskService = inject(TaskService);
   private readonly _store = inject(Store);
   private readonly _lifeConfig = inject(LifeOsConfigService);
+  private readonly _contextEngine = inject(LifeContextEngineService);
   private readonly _allTasks = toSignal(this._taskService.allTasks$ ?? of([] as Task[]), {
     initialValue: [] as Task[],
   });
 
   readonly config = this._lifeConfig.config;
-  readonly blockerCandidates = computed(() =>
-    this._allTasks()
-      .filter((candidate) => candidate.id !== this.task().id && !candidate.isDone)
-      .sort((a, b) => a.title.localeCompare(b.title)),
-  );
+  readonly blockerCandidates = computed(() => {
+    const current = this.task();
+    const selected = new Set(current.lifeBlockedByTaskIds || []);
+    const tasks = this._allTasks();
+    return tasks
+      .filter(
+        (candidate) =>
+          candidate.id !== current.id &&
+          !candidate.isDone &&
+          (selected.has(candidate.id) ||
+            !this._contextEngine.wouldCreateDependencyCycle(
+              current.id,
+              candidate.id,
+              tasks,
+            )),
+      )
+      .sort((a, b) => a.title.localeCompare(b.title));
+  });
 
   update(key: keyof Task, value: unknown): void {
     this._update({ [key]: value } as Partial<Task>);
@@ -310,7 +325,18 @@ export class LifeTaskMetaComponent {
     event: Event,
   ): void {
     const select = event.target as HTMLSelectElement;
-    const values = Array.from(select.selectedOptions).map((option) => option.value);
+    let values = Array.from(select.selectedOptions).map((option) => option.value);
+    if (key === 'lifeBlockedByTaskIds') {
+      const tasks = this._allTasks();
+      values = values.filter(
+        (blockerId) =>
+          !this._contextEngine.wouldCreateDependencyCycle(
+            this.task().id,
+            blockerId,
+            tasks,
+          ),
+      );
+    }
     this._update({ [key]: values });
   }
 
