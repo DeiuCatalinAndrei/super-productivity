@@ -73,11 +73,22 @@ export class LifeContextEngineService {
     byId: Map<string, Task>,
   ): LifeTaskRecommendation | null {
     if (this._isBlocked(task, byId)) return null;
-    if (task.lifeWaitingFor?.trim()) return null;
+
+    const isWaiting = !!task.lifeWaitingFor?.trim();
+    const followUpDays = task.lifeFollowUpDay
+      ? this._daysBetween(context.day, task.lifeFollowUpDay)
+      : null;
+    const isFollowUpDue = isWaiting && followUpDays != null && followUpDays <= 0;
+    if (isWaiting && !isFollowUpDue) return null;
     if (!this._matchesContext(task, context)) return null;
 
     let score = 0;
     const reasons: string[] = [];
+
+    if (isFollowUpDue && followUpDays != null) {
+      score += followUpDays < 0 ? 38 : 34;
+      reasons.push(followUpDays < 0 ? 'Follow-up overdue' : 'Follow up today');
+    }
 
     const priorityId = task.lifePriorityId || config.defaultPriorityId;
     const priorityIndex = config.priorityLevels.findIndex((level) => level.id === priorityId);
@@ -86,7 +97,7 @@ export class LifeContextEngineService {
       reasons.push(config.priorityLevels[priorityIndex].label);
     }
 
-    if (task.lifeIsNextAction) {
+    if (task.lifeIsNextAction && !isWaiting) {
       score += 18;
       reasons.push('Next action');
     }
@@ -211,7 +222,7 @@ export class LifeContextEngineService {
   }
 
   private _dateRank(task: Task): number {
-    const day = task.deadlineDay || task.lifeDueDay || task.dueDay;
+    const day = task.lifeFollowUpDay || task.deadlineDay || task.lifeDueDay || task.dueDay;
     return day ? this._dateOrdinal(day) : Number.MAX_SAFE_INTEGER;
   }
 
