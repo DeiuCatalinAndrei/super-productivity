@@ -261,4 +261,11 @@ export interface TaskState extends EntityState<Task> {
    * matters, record the dismissal day in the delete op payload and prune on replay.
    */
   deletedIcalEventIds?: string[];
+  dismissedCalendarAutoImportEventIdsByProvider?: Record<string, string[]>;
 }
+
+export interface WorklogTask extends Task {
+  dateStr: string;
+}
+
+export type SubmitTrigger = 'blur' | 'escape' | 'enter' | 'modEnter';
