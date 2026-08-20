@@ -135,8 +135,19 @@ import { LifeOsConfigService } from './life-os-config.service';
             type="text"
             placeholder="Person, reply, event…"
             [value]="task().lifeWaitingFor || ''"
-            (change)="update('lifeWaitingFor', $any($event.target).value.trim() || null)"
+            (change)="updateWaitingFor($any($event.target).value)"
           />
+        </label>
+
+        <label>
+          <span>Follow up</span>
+          <input
+            type="date"
+            [value]="task().lifeFollowUpDay || ''"
+            [disabled]="!task().lifeWaitingFor"
+            (change)="update('lifeFollowUpDay', $any($event.target).value || null)"
+          />
+          <small class="field-hint">Surface this waiting item again on a specific day.</small>
         </label>
 
         <label>
@@ -249,9 +260,13 @@ import { LifeOsConfigService } from './life-os-config.service';
         flex-direction: column;
         opacity: 1;
       }
-      .check-row small {
+      .check-row small,
+      .field-hint {
         opacity: 0.62;
         margin-top: 2px;
+      }
+      .field-hint {
+        font-size: 0.68rem;
       }
       .legend {
         display: flex;
@@ -313,6 +328,14 @@ export class LifeTaskMetaComponent {
 
   update(key: keyof Task, value: unknown): void {
     this._update({ [key]: value } as Partial<Task>);
+  }
+
+  updateWaitingFor(raw: string): void {
+    const value = raw.trim() || null;
+    this._update({
+      lifeWaitingFor: value,
+      ...(value ? {} : { lifeFollowUpDay: null }),
+    });
   }
 
   updateNumber(key: 'lifeFocus' | 'lifeEnergy', raw: string): void {
