@@ -32,6 +32,8 @@ export interface LifeOsConfig {
   requirements: LifeContextOption[];
   smartViews: LifeSmartView[];
   weeklyReviewDay: number;
+  /** Last completed guided Weekly Review. Stored in synced Global Config. */
+  lastWeeklyReviewAt?: number | null;
 }
 
 export type LifeGoalViewMode = 'full' | 'tree' | 'goals' | 'compact';
