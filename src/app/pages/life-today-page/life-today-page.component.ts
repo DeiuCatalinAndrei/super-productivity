@@ -334,7 +334,11 @@ export type LifeTodayTab =
           </div>
 
           <div class="recommendations-list">
-            @for (recommendation of bestNow(); track recommendation.task.id; let i = $index) {
+            @for (
+              recommendation of bestNow();
+              track recommendation.task.id;
+              let i = $index
+            ) {
               <button
                 class="recommendation-card"
                 (click)="openTask(recommendation.task.id)"
@@ -866,6 +870,7 @@ export class LifeTodayPageComponent {
   readonly nextActions = computed(() =>
     this.todayTasks().filter((task) => task.lifeIsNextAction && !task.isDone),
   );
+
   readonly dueSoon = computed(() => {
     const today = getDbDateStr();
     const end = this._addDays(today, 3);
@@ -879,6 +884,7 @@ export class LifeTodayPageComponent {
       )
       .sort((a, b) => (a.lifeDueDay || '').localeCompare(b.lifeDueDay || ''));
   });
+
   readonly bestNow = computed(() =>
     this._contextEngine.rankTasks(
       this._tasks(),
@@ -894,13 +900,16 @@ export class LifeTodayPageComponent {
       8,
     ),
   );
+
   readonly bestNowPreview = computed(() => this.bestNow().slice(0, 3));
+
   readonly selectedSmartView = computed<LifeSmartView | null>(
     () =>
       this.config().smartViews.find((view) => view.id === this.selectedSmartViewId()) ??
       this.config().smartViews[0] ??
       null,
   );
+
   readonly contextTasks = computed(() => {
     const view = this.selectedSmartView();
     if (!view) return [];
@@ -949,30 +958,38 @@ export class LifeTodayPageComponent {
   setAvailableMinutes(raw: string): void {
     this.availableMinutes.set(raw ? Math.max(1, Number(raw)) : null);
   }
+
   setCurrentFocus(raw: string): void {
     this.currentFocus.set(raw ? Math.max(1, Math.min(5, Number(raw))) : null);
   }
+
   setCurrentEnergy(raw: string): void {
     this.currentEnergy.set(raw ? Math.max(1, Math.min(5, Number(raw))) : null);
   }
+
   tasksForPriority(id: string): Task[] {
     return this.todayTasks().filter(
       (task) => (task.lifePriorityId || this.config().defaultPriorityId) === id,
     );
   }
+
   tasksForFocus(level: number): Task[] {
     return this.todayTasks().filter((task) => task.lifeFocus === level);
   }
+
   tasksForEnergy(level: number): Task[] {
     return this.todayTasks().filter((task) => task.lifeEnergy === level);
   }
+
   openTask(id: string): void {
     this._taskService.setSelectedId(id);
   }
+
   priorityLabel(id: string | null | undefined): string | null {
     if (!id) return null;
     return this.config().priorityLevels.find((level) => level.id === id)?.label ?? id;
   }
+
   estimateLabel(ms: number): string {
     const min = Math.round(ms / 60000);
     return min >= 60
@@ -985,13 +1002,15 @@ export class LifeTodayPageComponent {
     const index = this.config().priorityLevels.findIndex((level) => level.id === id);
     return index < 0 ? 999 : index;
   }
+
   private _isScheduledOn(task: Task, day: string): boolean {
     if (task.dueDay === day) return true;
     if (!task.dueWithTime) return false;
-    const d = new Date(task.dueWithTime);
-    const local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const date = new Date(task.dueWithTime);
+    const local = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     return local === day;
   }
+
   private _addDays(day: string, count: number): string {
     const date = new Date(`${day}T12:00:00`);
     date.setDate(date.getDate() + count);
