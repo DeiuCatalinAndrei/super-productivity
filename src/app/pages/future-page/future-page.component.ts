@@ -21,6 +21,7 @@ import { TaskService } from '../../features/tasks/task.service';
 import { getDbDateStr } from '../../util/get-db-date-str';
 
 type FutureTab = 'upcoming' | 'waiting' | 'blocked' | 'review';
+type ReviewStepId = 'overdue' | 'waiting' | 'blocked' | 'review-dates' | 'goals' | 'next-actions';
 interface UpcomingItem {
   id: string;
   kind: 'scheduled' | 'due' | 'deadline' | 'goal-due' | 'goal-deadline';
@@ -28,6 +29,13 @@ interface UpcomingItem {
   title: string;
   taskId?: string;
   projectId?: string;
+}
+interface ReviewStep {
+  id: ReviewStepId;
+  label: string;
+  icon: string;
+  description: string;
+  count: () => number;
 }
 
 @Component({
@@ -169,86 +177,201 @@ interface UpcomingItem {
       }
 
       @if (tab() === 'review') {
-        <section class="review-grid">
-          <mat-card
-            ><mat-card-content
-              ><h2>Weekly Review</h2>
-              <p>
-                Configured review day: <strong>{{ reviewDayLabel() }}</strong>
-              </p>
-              <p class="hint">
-                Review goals, overdue work, waiting-for items, blocked tasks and anything
-                explicitly scheduled for review.
-              </p></mat-card-content
-            ></mat-card
-          >
-          <mat-card
-            ><mat-card-content
-              ><div class="card-head">
-                <h2>Tasks to Review</h2>
-                <span>{{ reviewTasks().length }}</span>
+        <section class="guided-review">
+          <mat-card class="review-guide">
+            <mat-card-content>
+              <div class="review-title-row">
+                <div>
+                  <h2>Weekly Review</h2>
+                  <p class="hint">
+                    Configured for <strong>{{ reviewDayLabel() }}</strong>. Work through
+                    every step, then complete the review.
+                  </p>
+                </div>
+                <div class="last-review">
+                  <span>Last completed</span><strong>{{ lastReviewLabel() }}</strong>
+                </div>
               </div>
-              @for (task of reviewTasks(); track task.id) {
+
+              <mat-progress-bar
+                mode="determinate"
+                [value]="reviewProgress()"
+              ></mat-progress-bar>
+
+              <div class="review-steps">
+                @for (step of reviewSteps; track step.id; let i = $index) {
+                  <button
+                    mat-button
+                    [class.active]="reviewStepIndex() === i"
+                    (click)="reviewStepIndex.set(i)"
+                  >
+                    <mat-icon>{{ step.icon }}</mat-icon>
+                    <span>{{ step.label }}</span>
+                    @if (step.count()) {
+                      <span class="count">{{ step.count() }}</span>
+                    }
+                  </button>
+                }
+              </div>
+
+              @if (activeReviewStep(); as step) {
+                <div class="review-step-panel">
+                  <div class="review-step-head">
+                    <div>
+                      <small>Step {{ reviewStepIndex() + 1 }} / {{ reviewSteps.length }}</small>
+                      <h3>{{ step.label }}</h3>
+                      <p>{{ step.description }}</p>
+                    </div>
+                    <span class="step-count">{{ step.count() }}</span>
+                  </div>
+
+                  @if (step.id === 'overdue') {
+                    @for (item of overdue(); track item.id) {
+                      <ng-container
+                        *ngTemplateOutlet="upcomingRow; context: { $implicit: item }"
+                      ></ng-container>
+                    }
+                    @if (!overdue().length) {
+                      <p class="empty">Nothing overdue. This step is clear.</p>
+                    }
+                  }
+
+                  @if (step.id === 'waiting') {
+                    @for (task of waitingTasks(); track task.id) {
+                      <button class="task-row" (click)="openTask(task.id)">
+                        <mat-icon>hourglass_top</mat-icon>
+                        <span class="grow"><strong>{{ task.title }}</strong><small>{{ task.lifeWaitingFor }}</small></span>
+                      </button>
+                    }
+                    @if (!waitingTasks().length) {
+                      <p class="empty">No waiting-for items to chase.</p>
+                    }
+                  }
+
+                  @if (step.id === 'blocked') {
+                    @for (task of blockedTasks(); track task.id) {
+                      <button class="task-row" (click)="openTask(task.id)">
+                        <mat-icon>block</mat-icon>
+                        <span class="grow"><strong>{{ task.title }}</strong><small>{{ blockerLabel(task) }}</small></span>
+                      </button>
+                    }
+                    @if (!blockedTasks().length) {
+                      <p class="empty">No active blockers.</p>
+                    }
+                  }
+
+                  @if (step.id === 'review-dates') {
+                    @for (task of reviewTasks(); track task.id) {
+                      <button class="task-row" (click)="openTask(task.id)">
+                        <mat-icon>rate_review</mat-icon>
+                        <span class="grow">{{ task.title }}</span>
+                        <span class="chip">{{ task.lifeReviewDay }}</span>
+                      </button>
+                    }
+                    @if (!reviewTasks().length) {
+                      <p class="empty">No task review dates are due.</p>
+                    }
+                  }
+
+                  @if (step.id === 'goals') {
+                    @for (goal of activeGoals(); track goal.id) {
+                      <a class="goal-row" routerLink="/goals">
+                        <mat-icon>flag</mat-icon>
+                        <span class="grow"><strong>{{ goal.title }}</strong><small>
+                          @if (goal.goalTargetDay) { Due {{ goal.goalTargetDay }} }
+                          @if (goal.goalDeadlineDay) { · Deadline {{ goal.goalDeadlineDay }} }
+                        </small></span>
+                      </a>
+                    }
+                    @if (!activeGoals().length) {
+                      <p class="empty">No active root goals.</p>
+                    }
+                  }
+
+                  @if (step.id === 'next-actions') {
+                    @for (task of allNextActions(); track task.id) {
+                      <button class="task-row" (click)="openTask(task.id)">
+                        <mat-icon>play_arrow</mat-icon>
+                        <span class="grow">{{ task.title }}</span>
+                      </button>
+                    }
+                    @if (!allNextActions().length) {
+                      <p class="empty">
+                        No Next Actions are marked. Pick at least one actionable task before
+                        finishing the review.
+                      </p>
+                    }
+                  }
+                </div>
+              }
+
+              <div class="review-actions">
                 <button
-                  class="task-row"
-                  (click)="openTask(task.id)"
+                  mat-button
+                  (click)="previousReviewStep()"
+                  [disabled]="reviewStepIndex() === 0"
                 >
-                  <mat-icon>rate_review</mat-icon
-                  ><span class="grow">{{ task.title }}</span
-                  ><span class="chip">{{ task.lifeReviewDay }}</span>
+                  <mat-icon>arrow_back</mat-icon>Previous
                 </button>
-              }
-              @if (!reviewTasks().length) {
-                <p class="empty">No task review dates are due.</p>
-              }
-            </mat-card-content></mat-card
-          >
-          <mat-card
-            ><mat-card-content
-              ><div class="card-head">
-                <h2>Next Actions</h2>
-                <span>{{ allNextActions().length }}</span>
+                <span class="grow"></span>
+                @if (isLastReviewStep()) {
+                  <button
+                    mat-flat-button
+                    color="primary"
+                    (click)="completeWeeklyReview()"
+                  >
+                    <mat-icon>done_all</mat-icon>Complete review
+                  </button>
+                } @else {
+                  <button
+                    mat-flat-button
+                    color="primary"
+                    (click)="nextReviewStep()"
+                  >
+                    Next<mat-icon>arrow_forward</mat-icon>
+                  </button>
+                }
               </div>
-              @for (task of allNextActions(); track task.id) {
-                <button
-                  class="task-row"
-                  (click)="openTask(task.id)"
-                >
-                  <mat-icon>play_arrow</mat-icon
-                  ><span class="grow">{{ task.title }}</span>
-                </button>
-              }
-            </mat-card-content></mat-card
-          >
-          <mat-card class="wide"
-            ><mat-card-content
-              ><div class="card-head">
-                <h2>Active Goals</h2>
-                <span>{{ activeGoals().length }}</span>
-              </div>
-              @for (goal of activeGoals(); track goal.id) {
-                <a
-                  class="goal-row"
-                  routerLink="/goals"
-                  ><mat-icon>flag</mat-icon
-                  ><span class="grow"
-                    ><strong>{{ goal.title }}</strong
-                    ><small>
-                      @if (goal.goalTargetDay) {
-                        Due {{ goal.goalTargetDay }}
-                      }
-                      @if (goal.goalDeadlineDay) {
-                        · Deadline {{ goal.goalDeadlineDay }}
-                      }
-                    </small></span
-                  ></a
-                >
-              }
-              @if (!activeGoals().length) {
-                <p class="empty">No active goals.</p>
-              }
-            </mat-card-content></mat-card
-          >
+            </mat-card-content>
+          </mat-card>
+
+          <section class="review-grid">
+            <mat-card>
+              <mat-card-content>
+                <div class="card-head"><h2>Tasks to Review</h2><span>{{ reviewTasks().length }}</span></div>
+                @for (task of reviewTasks(); track task.id) {
+                  <button class="task-row" (click)="openTask(task.id)">
+                    <mat-icon>rate_review</mat-icon><span class="grow">{{ task.title }}</span><span class="chip">{{ task.lifeReviewDay }}</span>
+                  </button>
+                }
+                @if (!reviewTasks().length) { <p class="empty">No task review dates are due.</p> }
+              </mat-card-content>
+            </mat-card>
+            <mat-card>
+              <mat-card-content>
+                <div class="card-head"><h2>Next Actions</h2><span>{{ allNextActions().length }}</span></div>
+                @for (task of allNextActions(); track task.id) {
+                  <button class="task-row" (click)="openTask(task.id)">
+                    <mat-icon>play_arrow</mat-icon><span class="grow">{{ task.title }}</span>
+                  </button>
+                }
+              </mat-card-content>
+            </mat-card>
+            <mat-card class="wide">
+              <mat-card-content>
+                <div class="card-head"><h2>Active Goals</h2><span>{{ activeGoals().length }}</span></div>
+                @for (goal of activeGoals(); track goal.id) {
+                  <a class="goal-row" routerLink="/goals">
+                    <mat-icon>flag</mat-icon><span class="grow"><strong>{{ goal.title }}</strong><small>
+                      @if (goal.goalTargetDay) { Due {{ goal.goalTargetDay }} }
+                      @if (goal.goalDeadlineDay) { · Deadline {{ goal.goalDeadlineDay }} }
+                    </small></span>
+                  </a>
+                }
+                @if (!activeGoals().length) { <p class="empty">No active goals.</p> }
+              </mat-card-content>
+            </mat-card>
+          </section>
         </section>
       }
 
@@ -302,10 +425,12 @@ interface UpcomingItem {
         overflow-x: auto;
         margin: 14px 0;
       }
-      .tabs button {
+      .tabs button,
+      .review-steps button {
         white-space: nowrap;
       }
-      .tabs button.active {
+      .tabs button.active,
+      .review-steps button.active {
         background: rgba(127, 127, 127, 0.17);
       }
       .count {
@@ -328,7 +453,8 @@ interface UpcomingItem {
       }
       .bucket h2,
       .list-panel h2,
-      .review-grid h2 {
+      .review-grid h2,
+      .review-guide h2 {
         margin: 0 0 8px;
         font-size: 1rem;
       }
@@ -387,6 +513,71 @@ interface UpcomingItem {
         opacity: 0.58;
         font-size: 0.84rem;
       }
+      .guided-review {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .review-title-row,
+      .review-step-head,
+      .review-actions,
+      .card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+      .last-review {
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        align-items: flex-end;
+        font-size: 0.75rem;
+      }
+      .last-review span {
+        opacity: 0.55;
+      }
+      .review-steps {
+        display: flex;
+        gap: 4px;
+        overflow-x: auto;
+        margin: 12px 0;
+        padding-bottom: 4px;
+      }
+      .review-step-panel {
+        min-height: 220px;
+        padding: 12px;
+        border: 1px solid rgba(127, 127, 127, 0.2);
+        border-radius: 10px;
+      }
+      .review-step-head {
+        align-items: flex-start;
+        margin-bottom: 10px;
+      }
+      .review-step-head small {
+        opacity: 0.55;
+      }
+      .review-step-head h3 {
+        margin: 3px 0;
+        font-size: 1.12rem;
+      }
+      .review-step-head p {
+        margin: 0;
+        opacity: 0.68;
+      }
+      .step-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 38px;
+        min-height: 38px;
+        border-radius: 99px;
+        background: rgba(127, 127, 127, 0.14);
+        font-weight: 750;
+      }
+      .review-actions {
+        margin-top: 12px;
+      }
       .review-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -394,11 +585,6 @@ interface UpcomingItem {
       }
       .review-grid .wide {
         grid-column: 1/-1;
-      }
-      .card-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
       }
       .card-head span {
         opacity: 0.55;
@@ -412,8 +598,14 @@ interface UpcomingItem {
         .future-page {
           padding: 12px 9px 92px;
         }
-        .page-head {
+        .page-head,
+        .review-title-row,
+        .review-step-head {
           flex-direction: column;
+          align-items: stretch;
+        }
+        .last-review {
+          align-items: flex-start;
         }
         .timeline,
         .review-grid {
@@ -451,6 +643,7 @@ export class FuturePageComponent {
     { initialValue: [] as Project[] },
   );
   readonly tab = signal<FutureTab>('upcoming');
+  readonly reviewStepIndex = signal(0);
   readonly tabs = [
     {
       id: 'upcoming' as const,
@@ -474,7 +667,7 @@ export class FuturePageComponent {
       id: 'review' as const,
       label: 'Review',
       icon: 'rate_review',
-      count: () => this.reviewTasks().length,
+      count: () => this.reviewOpenCount(),
     },
   ];
 
@@ -604,6 +797,71 @@ export class FuturePageComponent {
         this._life.config().weeklyReviewDay
       ] || 'Sunday',
   );
+  readonly lastReviewLabel = computed(() => {
+    const value = this._life.config().lastWeeklyReviewAt;
+    if (!value) return 'Never';
+    return new Intl.DateTimeFormat(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    }).format(new Date(value));
+  });
+  readonly reviewOpenCount = computed(
+    () => this.overdue().length + this.waitingTasks().length + this.blockedTasks().length + this.reviewTasks().length,
+  );
+  readonly reviewSteps: ReviewStep[] = [
+    {
+      id: 'overdue',
+      label: 'Overdue',
+      icon: 'warning',
+      description: 'Reschedule, finish, delegate or consciously drop anything that slipped behind.',
+      count: () => this.overdue().length,
+    },
+    {
+      id: 'waiting',
+      label: 'Waiting',
+      icon: 'hourglass_top',
+      description: 'Check every delegated or pending item and decide whether a follow-up is needed.',
+      count: () => this.waitingTasks().length,
+    },
+    {
+      id: 'blocked',
+      label: 'Blocked',
+      icon: 'block',
+      description: 'Remove stale dependencies and identify the next action that can unblock progress.',
+      count: () => this.blockedTasks().length,
+    },
+    {
+      id: 'review-dates',
+      label: 'Review dates',
+      icon: 'rate_review',
+      description: 'Process tasks that explicitly asked to come back to your attention.',
+      count: () => this.reviewTasks().length,
+    },
+    {
+      id: 'goals',
+      label: 'Goals',
+      icon: 'flag',
+      description: 'Check that active goals are still relevant and have real projects or actions behind them.',
+      count: () => this.activeGoals().length,
+    },
+    {
+      id: 'next-actions',
+      label: 'Next Actions',
+      icon: 'play_arrow',
+      description: 'Finish by making sure there is concrete work ready for the coming week.',
+      count: () => this.allNextActions().length,
+    },
+  ];
+  readonly activeReviewStep = computed(
+    () => this.reviewSteps[this.reviewStepIndex()] ?? this.reviewSteps[0],
+  );
+  readonly reviewProgress = computed(
+    () => ((this.reviewStepIndex() + 1) / this.reviewSteps.length) * 100,
+  );
+  readonly isLastReviewStep = computed(
+    () => this.reviewStepIndex() >= this.reviewSteps.length - 1,
+  );
 
   openTask(id: string): void {
     this._tasksService.setSelectedId(id);
@@ -614,6 +872,16 @@ export class FuturePageComponent {
     } else if (item.projectId) {
       void this._router.navigate(['/goals']);
     }
+  }
+  previousReviewStep(): void {
+    this.reviewStepIndex.update((index) => Math.max(0, index - 1));
+  }
+  nextReviewStep(): void {
+    this.reviewStepIndex.update((index) => Math.min(this.reviewSteps.length - 1, index + 1));
+  }
+  completeWeeklyReview(): void {
+    this._life.update({ lastWeeklyReviewAt: Date.now() });
+    this.reviewStepIndex.set(0);
   }
   blockerLabel(task: Task): string {
     const byId = new Map(this._tasks().map((item) => [item.id, item]));
