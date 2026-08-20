@@ -1,0 +1,55 @@
+name: Build LifeOS Windows Installer
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/build-windows-lifeos.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-installer:
+    runs-on: windows-latest
+    env:
+      UNSPLASH_KEY: ${{ secrets.UNSPLASH_KEY }}
+      UNSPLASH_CLIENT_ID: ${{ secrets.UNSPLASH_CLIENT_ID }}
+
+    steps:
+      - name: Set timezone
+        uses: szenius/set-timezone@1f9716b0f7120e344f0c62bb7b1ee98819aefd42
+        with:
+          timezoneWindows: 'W. Europe Standard Time'
+
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Setup Electron build environment
+        uses: ./.github/actions/setup-electron-build
+
+      - name: Install npm packages
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 15
+          shell: bash
+          command: npm install @nx/nx-win32-x64-msvc && npm i
+
+      - name: Build Windows installer
+        shell: bash
+        run: npm run dist:win
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: lifeos-windows-installer-${{ github.sha }}
+          path: |
+            .tmp/app-builds/*.exe
+            .tmp/app-builds/*.blockmap
+          if-no-files-found: error
+          retention-days: 14
