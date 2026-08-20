@@ -27,8 +27,14 @@ const openTaskMeta = async (
   goalTitle: string,
   taskTitle: string,
 ): Promise<Locator> => {
-  await taskRow(page, goalTitle, taskTitle).click();
   const meta = page.locator('life-task-meta').first();
+  // Creating a task selects it and opens the detail panel. Clicking the same row
+  // again toggles that panel closed, so only click when the metadata panel is not
+  // already open. This also keeps the helper valid after a reload, when no task is
+  // selected and the row really does need to be opened.
+  if (!(await meta.isVisible())) {
+    await taskRow(page, goalTitle, taskTitle).click();
+  }
   await expect(meta).toBeVisible();
   return meta;
 };
