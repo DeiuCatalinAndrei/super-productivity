@@ -15,6 +15,7 @@ interface GoalProjectPickerData {
 interface GoalProjectOption {
   project: Project;
   path: string;
+  kind: 'Goal' | 'Subgoal' | 'Project' | 'Subproject';
 }
 
 @Component({
@@ -22,18 +23,18 @@ interface GoalProjectOption {
   standalone: true,
   imports: [MatButtonModule, MatDialogModule, MatIconModule],
   template: `
-    <h2 mat-dialog-title>🎯 Obiectiv / proiect</h2>
+    <h2 mat-dialog-title>Goal / project</h2>
     <mat-dialog-content>
       <p class="hint">
-        Alege proiectul în care se execută taskul. Obiectivele și subobiectivele doar
-        organizează proiectele; taskurile nu sunt mutate direct într-un obiectiv.
+        Assign this task directly to any Goal, Subgoal, Project or Subproject. The task
+        remains a native Super Productivity task and syncs normally.
       </p>
 
       @if (options().length === 0) {
         <div class="empty">
           <mat-icon>flag</mat-icon>
-          <strong>Nu există încă proiecte în Obiective.</strong>
-          <span>Creează mai întâi un obiectiv și un proiect din pagina Obiective.</span>
+          <strong>No goals yet.</strong>
+          <span>Create a goal from the Goals page first.</span>
         </div>
       } @else {
         <div class="options">
@@ -44,25 +45,29 @@ interface GoalProjectOption {
               (click)="select(option.project.id)"
             >
               <mat-icon>{{
-                option.project.id === data.currentProjectId ? 'check_circle' : 'folder'
+                option.project.id === data.currentProjectId
+                  ? 'check_circle'
+                  : option.project.lifeType === 'goal'
+                    ? 'flag'
+                    : 'folder'
               }}</mat-icon>
               <span class="project-copy">
                 <strong>{{ option.project.title }}</strong>
-                <small>{{ option.path }}</small>
+                <small>{{ option.kind }} · {{ option.path }}</small>
               </span>
             </button>
           }
         </div>
       }
     </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button
+    <mat-dialog-actions align="end"
+      ><button
         mat-button
         (click)="close()"
       >
-        Anulează
-      </button>
-    </mat-dialog-actions>
+        Cancel
+      </button></mat-dialog-actions
+    >
   `,
   styles: [
     `
@@ -75,10 +80,10 @@ interface GoalProjectOption {
         display: flex;
         flex-direction: column;
         gap: 4px;
-        min-width: min(520px, 78vw);
+        min-width: min(540px, 78vw);
       }
       .project-option {
-        min-height: 52px;
+        min-height: 54px;
         height: auto;
         justify-content: flex-start;
         text-align: left;
@@ -122,7 +127,7 @@ interface GoalProjectOption {
           min-width: 0;
         }
         .project-option {
-          min-height: 56px;
+          min-height: 58px;
         }
       }
     `,
@@ -133,23 +138,21 @@ export class DialogSelectGoalProjectComponent {
   private readonly _store = inject(Store);
   private readonly _dialogRef = inject(MatDialogRef<DialogSelectGoalProjectComponent>);
   readonly data = inject<GoalProjectPickerData>(MAT_DIALOG_DATA);
-
   private readonly _projects = toSignal(
     this._store.select(selectAllProjectsExceptInbox),
-    {
-      initialValue: [] as Project[],
-    },
+    { initialValue: [] as Project[] },
   );
 
   readonly options = computed<GoalProjectOption[]>(() => {
-    const projects = this._projects();
+    const projects = this._projects().filter(
+      (project) => !!project.lifeType && !project.isArchived,
+    );
     const byId = new Map(projects.map((project) => [project.id, project]));
-
     return projects
-      .filter((project) => project.lifeType === 'project' && !project.isArchived)
       .map((project) => ({
         project,
-        path: this._buildGoalPath(project, byId),
+        path: this._buildPath(project, byId),
+        kind: this._kind(project, byId),
       }))
       .sort(
         (a, b) =>
@@ -160,24 +163,29 @@ export class DialogSelectGoalProjectComponent {
   select(projectId: string): void {
     this._dialogRef.close(projectId);
   }
-
   close(): void {
     this._dialogRef.close();
   }
 
-  private _buildGoalPath(project: Project, byId: Map<string, Project>): string {
-    const titles: string[] = [];
-    const visited = new Set<string>();
+  private _buildPath(project: Project, byId: Map<string, Project>): string {
+    const titles = [project.title];
+    const visited = new Set<string>([project.id]);
     let parentId = project.parentProjectId;
-
     while (parentId && !visited.has(parentId)) {
       visited.add(parentId);
       const parent = byId.get(parentId);
       if (!parent) break;
-      if (parent.lifeType === 'goal') titles.unshift(parent.title);
+      titles.unshift(parent.title);
       parentId = parent.parentProjectId;
     }
+    return titles.join(' › ');
+  }
 
-    return titles.length ? titles.join(' › ') : 'Obiective';
+  private _kind(project: Project, byId: Map<string, Project>): GoalProjectOption['kind'] {
+    if (project.lifeType === 'goal') return project.parentProjectId ? 'Subgoal' : 'Goal';
+    const parent = project.parentProjectId
+      ? byId.get(project.parentProjectId)
+      : undefined;
+    return parent?.lifeType === 'project' ? 'Subproject' : 'Project';
   }
 }

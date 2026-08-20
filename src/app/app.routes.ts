@@ -84,10 +84,31 @@ export const APP_ROUTES: Routes = [
     canActivate: [FocusOverlayOpenGuard],
   },
   {
+    path: 'life-today',
+    loadComponent: () =>
+      import('./routes/pages.routes').then((m) => m.LifeTodayPageComponent),
+    data: { page: 'life-today' },
+    canActivate: [FocusOverlayOpenGuard],
+  },
+  {
     path: 'goals',
     loadComponent: () =>
       import('./routes/pages.routes').then((m) => m.GoalsPageComponent),
     data: { page: 'goals' },
+    canActivate: [FocusOverlayOpenGuard],
+  },
+  {
+    path: 'future',
+    loadComponent: () =>
+      import('./routes/pages.routes').then((m) => m.FuturePageComponent),
+    data: { page: 'future' },
+    canActivate: [FocusOverlayOpenGuard],
+  },
+  {
+    path: 'life-settings',
+    loadComponent: () =>
+      import('./routes/pages.routes').then((m) => m.LifeSettingsPageComponent),
+    data: { page: 'life-settings' },
     canActivate: [FocusOverlayOpenGuard],
   },
   {

@@ -8,6 +8,7 @@ import { TaskReminderOptionId } from '../tasks/task.model';
 import { GlobalConfigState } from './global-config.model';
 import { INBOX_PROJECT } from '../project/project.const';
 import { DEFAULT_MAX_BACKUP_FILES } from '../../../../electron/shared-with-frontend/backup-file-cleanup.util';
+import { DEFAULT_LIFE_OS_CONFIG } from '../lifeos/life-os.const';
 
 const minute = 60 * 1000;
 const defaultTaskNotesTemplate = `**How can I best achieve it now?**
@@ -48,6 +49,7 @@ export const DEFAULT_GLOBAL_CONFIG: GlobalConfigState = {
     defaultProjectId: INBOX_PROJECT.id,
     isMarkdownFormattingInNotesEnabled: true,
     notesTemplate: defaultTaskNotesTemplate,
+    lifeOs: DEFAULT_LIFE_OS_CONFIG,
   },
   misc: {
     isConfirmBeforeExit: false,

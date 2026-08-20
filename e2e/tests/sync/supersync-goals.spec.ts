@@ -19,6 +19,77 @@ const savePrompt = async (page: Page, value: string): Promise<void> => {
 const goalCard = (page: Page, title: string): Locator =>
   page.locator('.goal-card').filter({ hasText: title }).first();
 
+const taskRow = (page: Page, goalTitle: string, taskTitle: string): Locator =>
+  goalCard(page, goalTitle).locator('.task-row').filter({ hasText: taskTitle }).first();
+
+const openTaskMeta = async (
+  page: Page,
+  goalTitle: string,
+  taskTitle: string,
+): Promise<Locator> => {
+  const meta = page.locator('life-task-meta').first();
+  // Creating a task selects it and opens the detail panel. Clicking the same row
+  // again toggles that panel closed, so only click when the metadata panel is not
+  // already open. This also keeps the helper valid after a reload, when no task is
+  // selected and the row really does need to be opened.
+  if (!(await meta.isVisible())) {
+    await taskRow(page, goalTitle, taskTitle).click();
+  }
+  await expect(meta).toBeVisible();
+  return meta;
+};
+
+const setDateField = async (field: Locator, value: string): Promise<void> => {
+  // Dispatch the native input/change sequence in one DOM operation. Angular may
+  // recreate the selected-task panel after a task update, so a second locator
+  // action against the pre-update field can otherwise race with that rerender.
+  await field.evaluate((input, nextValue) => {
+    const element = input as HTMLInputElement;
+    element.value = nextValue;
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+  }, value);
+};
+
+const setTextField = async (field: Locator, value: string): Promise<void> => {
+  await field.evaluate((input, nextValue) => {
+    const element = input as HTMLInputElement;
+    element.value = nextValue;
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+  }, value);
+};
+
+const setSelectField = async (
+  field: Locator,
+  value: string | string[],
+): Promise<void> => {
+  const values = Array.isArray(value) ? value : [value];
+  await field.evaluate((select, nextValues) => {
+    const element = select as HTMLSelectElement;
+    for (const option of Array.from(element.options)) {
+      option.selected = nextValues.includes(option.value);
+    }
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+  }, values);
+};
+
+const setSelectFieldByLabel = async (field: Locator, label: string): Promise<void> => {
+  await field.evaluate((select, nextLabel) => {
+    const element = select as HTMLSelectElement;
+    const option = Array.from(element.options).find(
+      (candidate) => candidate.textContent?.trim() === nextLabel,
+    );
+    if (!option) throw new Error(`Select option not found: ${nextLabel}`);
+    for (const candidate of Array.from(element.options)) {
+      candidate.selected = candidate === option;
+    }
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+  }, label);
+};
+
 const setGoalDate = async (
   page: Page,
   title: string,
@@ -26,13 +97,11 @@ const setGoalDate = async (
   value: string,
 ): Promise<void> => {
   const input = goalCard(page, title).locator('input[type="date"]').nth(inputIndex);
-  await input.fill(value);
-  await input.dispatchEvent('change');
-  await expect(input).toHaveValue(value);
+  await setDateField(input, value);
 };
 
-test.describe('@supersync native Goals metadata', () => {
-  test('goal hierarchy and dates round-trip between two clients', async ({
+test.describe('@supersync native Goals v2', () => {
+  test('hierarchy task intelligence dates and completion round-trip between two clients', async ({
     browser,
     baseURL,
     testRunId,
@@ -42,9 +111,17 @@ test.describe('@supersync native Goals metadata', () => {
 
     const goalTitle = `Goal-${testRunId}`;
     const subgoalTitle = `Subgoal-${testRunId}`;
+    const blockerTitle = `Blocker-${testRunId}`;
+    const directTaskTitle = `DirectTask-${testRunId}`;
     const targetDay = '2030-06-15';
     const initialDeadline = '2030-06-30';
     const updatedDeadline = '2030-07-05';
+    const softDueDay = '2030-06-20';
+    const reviewDay = '2030-06-10';
+    const followUpDay = '2030-06-11';
+    const updatedFollowUpDay = '2030-06-12';
+    const waitingA = `Approval-${testRunId}`;
+    const waitingB = `Vendor-${testRunId}`;
 
     try {
       const user = await createTestUser(testRunId);
@@ -55,7 +132,7 @@ test.describe('@supersync native Goals metadata', () => {
       await clientA.page.goto('/#/goals');
       await clientA.page.waitForLoadState('networkidle');
 
-      await clientA.page.getByRole('button', { name: /Obiectiv nou/ }).click();
+      await clientA.page.getByRole('button', { name: /New Goal/ }).click();
       await savePrompt(clientA.page, goalTitle);
       await expect(goalCard(clientA.page, goalTitle)).toBeVisible();
 
@@ -63,10 +140,51 @@ test.describe('@supersync native Goals metadata', () => {
       await setGoalDate(clientA.page, goalTitle, 1, initialDeadline);
 
       await goalCard(clientA.page, goalTitle)
-        .getByRole('button', { name: /Subobiectiv/ })
+        .getByRole('button', { name: /Add Subgoal/ })
         .click();
       await savePrompt(clientA.page, subgoalTitle);
       await expect(goalCard(clientA.page, subgoalTitle)).toBeVisible();
+
+      await goalCard(clientA.page, goalTitle)
+        .getByRole('button', { name: /^Add Task$/ })
+        .first()
+        .click();
+      await savePrompt(clientA.page, blockerTitle);
+      await expect(goalCard(clientA.page, goalTitle)).toContainText(blockerTitle);
+
+      await goalCard(clientA.page, goalTitle)
+        .getByRole('button', { name: /^Add Task$/ })
+        .first()
+        .click();
+      await savePrompt(clientA.page, directTaskTitle);
+      await expect(goalCard(clientA.page, goalTitle)).toContainText(directTaskTitle);
+
+      const metaA = await openTaskMeta(clientA.page, goalTitle, directTaskTitle);
+      await setSelectField(metaA.getByLabel('Priority'), 'p1');
+      await setSelectField(metaA.getByLabel('Focus'), '4');
+      await setSelectField(metaA.getByLabel('Energy'), '2');
+      await setDateField(metaA.getByLabel('Due date'), softDueDay);
+
+      // Metadata updates keep the selected task open. Keep editing through the same
+      // locator so this test also guards against regressions that close/reset the panel.
+      await expect(metaA.getByLabel('Priority')).toHaveValue('p1');
+      await expect(metaA.getByLabel('Focus')).toHaveValue('4');
+      await expect(metaA.getByLabel('Energy')).toHaveValue('2');
+      await expect(metaA.getByLabel('Due date')).toHaveValue(softDueDay);
+      await setSelectField(metaA.getByLabel('Location'), ['home']);
+      await setSelectField(metaA.getByLabel('Requires'), ['computer']);
+      await metaA.getByRole('checkbox', { name: /Next action/ }).check();
+      await setTextField(metaA.getByLabel('Waiting for'), waitingA);
+      await setDateField(metaA.getByLabel('Follow up'), followUpDay);
+      await setSelectFieldByLabel(metaA.getByLabel('Blocked by'), blockerTitle);
+      await setDateField(metaA.getByLabel('Review date'), reviewDay);
+
+      await expect(taskRow(clientA.page, goalTitle, directTaskTitle)).toContainText('P1');
+      await expect(taskRow(clientA.page, goalTitle, directTaskTitle)).toContainText('F4');
+      await expect(taskRow(clientA.page, goalTitle, directTaskTitle)).toContainText('E2');
+      await expect(taskRow(clientA.page, goalTitle, directTaskTitle)).toContainText(
+        'Next',
+      );
 
       await clientA.sync.syncAndWait();
 
@@ -76,8 +194,16 @@ test.describe('@supersync native Goals metadata', () => {
       await clientB.page.goto('/#/goals');
       await clientB.page.waitForLoadState('networkidle');
 
+      // Rehydrate the second client from persisted local state before asserting.
+      // This catches fields that appear immediately after sync but fail to survive
+      // an application reload/restart.
+      await clientB.page.reload();
+      await clientB.page.waitForLoadState('networkidle');
+
       await expect(goalCard(clientB.page, goalTitle)).toBeVisible();
       await expect(goalCard(clientB.page, subgoalTitle)).toBeVisible();
+      await expect(goalCard(clientB.page, goalTitle)).toContainText(blockerTitle);
+      await expect(goalCard(clientB.page, goalTitle)).toContainText(directTaskTitle);
       await expect(
         goalCard(clientB.page, goalTitle).locator('input[type="date"]').nth(0),
       ).toHaveValue(targetDay);
@@ -85,6 +211,25 @@ test.describe('@supersync native Goals metadata', () => {
         goalCard(clientB.page, goalTitle).locator('input[type="date"]').nth(1),
       ).toHaveValue(initialDeadline);
 
+      const metaB = await openTaskMeta(clientB.page, goalTitle, directTaskTitle);
+      await expect(metaB.getByLabel('Priority')).toHaveValue('p1');
+      await expect(metaB.getByLabel('Focus')).toHaveValue('4');
+      await expect(metaB.getByLabel('Energy')).toHaveValue('2');
+      await expect(metaB.getByLabel('Due date')).toHaveValue(softDueDay);
+      await expect(metaB.getByLabel('Location')).toHaveValues(['home']);
+      await expect(metaB.getByLabel('Requires')).toHaveValues(['computer']);
+      await expect(metaB.getByRole('checkbox', { name: /Next action/ })).toBeChecked();
+      await expect(metaB.getByLabel('Waiting for')).toHaveValue(waitingA);
+      await expect(metaB.getByLabel('Follow up')).toHaveValue(followUpDay);
+      await expect(metaB.getByLabel('Blocked by').locator('option:checked')).toHaveText(
+        blockerTitle,
+      );
+      await expect(metaB.getByLabel('Review date')).toHaveValue(reviewDay);
+
+      await setSelectField(metaB.getByLabel('Focus'), '5');
+      await setSelectField(metaB.getByLabel('Energy'), '3');
+      await setTextField(metaB.getByLabel('Waiting for'), waitingB);
+      await setDateField(metaB.getByLabel('Follow up'), updatedFollowUpDay);
       await setGoalDate(clientB.page, goalTitle, 1, updatedDeadline);
       await clientB.sync.syncAndWait();
 
@@ -95,20 +240,33 @@ test.describe('@supersync native Goals metadata', () => {
       await expect(
         goalCard(clientA.page, goalTitle).locator('input[type="date"]').nth(1),
       ).toHaveValue(updatedDeadline);
-      await expect(goalCard(clientA.page, subgoalTitle)).toBeVisible();
+      // A hash navigation can briefly restore the previously selected task before the
+      // route finishes clearing transient selection state. Wait for that reset so the
+      // helper performs a real post-sync open instead of accepting a stale panel.
+      await expect(clientA.page.locator('life-task-meta')).toBeHidden();
+      const roundTripMetaA = await openTaskMeta(clientA.page, goalTitle, directTaskTitle);
+      await expect(roundTripMetaA.getByLabel('Priority')).toHaveValue('p1');
+      await expect(roundTripMetaA.getByLabel('Focus')).toHaveValue('5');
+      await expect(roundTripMetaA.getByLabel('Energy')).toHaveValue('3');
+      await expect(roundTripMetaA.getByLabel('Waiting for')).toHaveValue(waitingB);
+      await expect(roundTripMetaA.getByLabel('Follow up')).toHaveValue(
+        updatedFollowUpDay,
+      );
+      await expect(roundTripMetaA.getByLabel('Due date')).toHaveValue(softDueDay);
+      await expect(roundTripMetaA.getByLabel('Review date')).toHaveValue(reviewDay);
 
       await goalCard(clientA.page, goalTitle)
-        .getByRole('button', { name: /Finalizează/ })
+        .getByRole('button', { name: /^Complete$/ })
         .click();
       await clientA.sync.syncAndWait();
 
       await clientB.sync.syncAndWait();
       await clientB.page.goto('/#/goals');
       await clientB.page.waitForLoadState('networkidle');
-      await expect(goalCard(clientB.page, goalTitle)).toContainText('Finalizat');
+      await expect(goalCard(clientB.page, goalTitle)).toContainText('Completed');
 
       await goalCard(clientB.page, goalTitle)
-        .getByRole('button', { name: /Redeschide/ })
+        .getByRole('button', { name: /^Reopen$/ })
         .click();
       await clientB.sync.syncAndWait();
 
@@ -116,7 +274,7 @@ test.describe('@supersync native Goals metadata', () => {
       await clientA.page.goto('/#/goals');
       await clientA.page.waitForLoadState('networkidle');
       await expect(
-        goalCard(clientA.page, goalTitle).getByRole('button', { name: /Finalizează/ }),
+        goalCard(clientA.page, goalTitle).getByRole('button', { name: /^Complete$/ }),
       ).toBeVisible();
     } finally {
       if (clientA) await closeClient(clientA);

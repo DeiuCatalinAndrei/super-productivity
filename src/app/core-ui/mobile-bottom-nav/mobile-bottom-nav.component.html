@@ -6,7 +6,7 @@
   <button
     mat-button
     class="nav-button"
-    [routerLink]="todayRoute"
+    routerLink="/life-today"
     routerLinkActive="active"
     [routerLinkActiveOptions]="{ exact: false }"
     [attr.aria-label]="T.G.TODAY_TAG_TITLE | translate"
@@ -19,7 +19,7 @@
     class="nav-button"
     routerLink="/goals"
     routerLinkActive="active"
-    aria-label="Obiective"
+    aria-label="Goals"
   >
     <mat-icon>flag</mat-icon>
   </button>
@@ -27,11 +27,11 @@
   <button
     mat-button
     class="nav-button"
-    routerLink="/planner"
+    routerLink="/future"
     routerLinkActive="active"
-    [attr.aria-label]="T.MH.PLANNER | translate"
+    aria-label="Future"
   >
-    <mat-icon>edit_calendar</mat-icon>
+    <mat-icon>event_upcoming</mat-icon>
   </button>
 
   <button

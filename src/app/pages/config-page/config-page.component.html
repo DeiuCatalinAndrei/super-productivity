@@ -114,6 +114,15 @@
             <h2 class="mat-h2 section-title">
               {{ 'PS.TABS.TASKS' | translate }}
             </h2>
+            <div class="lifeos-settings-link">
+              <a
+                mat-flat-button
+                routerLink="/life-settings"
+              >
+                <mat-icon>tune</mat-icon>
+                LifeOS task intelligence, priorities and contexts
+              </a>
+            </div>
             @for (section of globalTasksFormCfg; track section.key) {
               <section class="config-section section-{{ section.key }}">
                 <config-section

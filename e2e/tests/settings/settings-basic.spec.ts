@@ -27,8 +27,8 @@ test.describe('Settings', () => {
   test('should navigate to settings via sidebar', async ({ page, workViewPage }) => {
     await workViewPage.waitForTaskList();
 
-    // Click Settings in sidebar
-    await page.click('text=Settings');
+    // Click the native Settings entry, not the adjacent LifeOS Settings entry.
+    await page.getByRole('menuitem', { name: 'Settings', exact: true }).click();
     await page.waitForLoadState('networkidle');
 
     // Verify we're on settings page

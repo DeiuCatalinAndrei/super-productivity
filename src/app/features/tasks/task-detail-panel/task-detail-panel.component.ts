@@ -98,6 +98,7 @@ import { DialogSelectGoalProjectComponent } from '../../project/dialogs/select-g
 import { Project } from '../../project/project.model';
 import { selectAllProjectsExceptInbox } from '../../project/store/project.selectors';
 import { TaskProjectMoveService } from '../task-project-move.service';
+import { LifeTaskMetaComponent } from '../../lifeos/life-task-meta.component';
 
 @Component({
   selector: 'task-detail-panel',
@@ -133,6 +134,7 @@ import { TaskProjectMoveService } from '../task-project-move.service';
     IssueIconPipe,
     AddSubtaskInputComponent,
     TaskContextMenuComponent,
+    LifeTaskMetaComponent,
   ],
 })
 export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -210,9 +212,7 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
   });
 
   readonly hasGoalProjects = computed(() =>
-    this._projects().some(
-      (project) => project.lifeType === 'project' && !project.isArchived,
-    ),
+    this._projects().some((project) => !!project.lifeType && !project.isArchived),
   );
 
   readonly goalProjectContext = computed(() => {
@@ -222,7 +222,7 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
     const projects = this._projects();
     const byId = new Map(projects.map((project) => [project.id, project]));
     const project = byId.get(projectId);
-    if (!project || project.lifeType !== 'project') return null;
+    if (!project || !project.lifeType) return null;
 
     const titles = [project.title];
     const visited = new Set<string>([project.id]);
@@ -231,7 +231,7 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
       visited.add(parentId);
       const parent = byId.get(parentId);
       if (!parent) break;
-      if (parent.lifeType === 'goal') titles.unshift(parent.title);
+      if (parent.lifeType) titles.unshift(parent.title);
       parentId = parent.parentProjectId;
     }
     return titles.join(' › ');
@@ -250,18 +250,12 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
     if (checkKeyCombo(ev, keys.taskToggleDetailPanelOpen)) {
       this.collapseParent();
     } else if (checkKeyCombo(ev, keys.taskAddSubTask)) {
-      // Opening the panel auto-focuses a detail item, so focus is inside the
-      // panel rather than on a <task> row. The global task-shortcut handler
-      // can't resolve a focused task in that state and drops the shortcut, so
-      // handle add-subtask here. stopPropagation prevents the document-level
-      // handler from adding a second subtask when focus is on an in-panel row.
       ev.preventDefault();
       ev.stopPropagation();
       this.addSubTask();
     }
   }
 
-  // Parent task data
   parentTaskData = toSignal(
     this._task$.pipe(
       map((task) => task.parentId),
@@ -273,7 +267,6 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
     { initialValue: null },
   );
 
-  // Repeat config label
   private _repeatCfg$ = this._task$.pipe(
     map((task) => task.repeatCfgId),
     distinctUntilChanged(),
@@ -287,9 +280,7 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
   repeatCfgLabel = toSignal(
     this._repeatCfg$.pipe(
       map((repeatCfg) => {
-        if (!repeatCfg) {
-          return null;
-        }
+        if (!repeatCfg) return null;
         const [key, params] = getTaskRepeatInfoText(
           repeatCfg,
           this._dateTimeFormatService.currentLocale(),
@@ -302,10 +293,8 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
     { initialValue: null },
   );
 
-  // Issue data reactive loading (replacing async effect)
   private _issueData$ = this._task$.pipe(
     takeUntilDestroyed(this._destroyRef),
-    // Only react to changes in issue-related properties
     map((task) => ({
       issueId: task.issueId,
       issueType: task.issueType,
@@ -313,14 +302,8 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
     })),
     distinctUntilChanged((prev, curr) => prev.issueId === curr.issueId),
     switchMap(({ issueId, issueType, issueProviderId }) => {
-      if (!issueId || !issueType || !issueProviderId) {
-        return of(null);
-      }
-
-      if (issueType === ICAL_TYPE) {
-        return of(null);
-      }
-
+      if (!issueId || !issueType || !issueProviderId) return of(null);
+      if (issueType === ICAL_TYPE) return of(null);
       return this._issueService.getById$(issueType, issueId, issueProviderId).pipe(
         takeUntilDestroyed(this._destroyRef),
         catchError((err) => {
@@ -332,75 +315,43 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
     shareReplay(1),
   );
 
-  issueData = toSignal(this._issueData$, {
-    initialValue: null as IssueData | null,
-  });
+  issueData = toSignal(this._issueData$, { initialValue: null as IssueData | null });
 
-  isIssueDataLoadedForCurrentType = computed(() => {
-    const data = this.issueData();
-    return data !== null;
-  });
+  isIssueDataLoadedForCurrentType = computed(() => this.issueData() !== null);
 
-  // Issue attachments
   issueAttachments = computed(() => {
     const data = this.issueData();
     const task = this.task();
-    if (data && task.issueType) {
+    if (data && task.issueType)
       return this._issueService.getMappedAttachments(task.issueType, data);
-    }
     return [];
   });
 
-  // Default task notes computed signal
-  defaultTaskNotes = computed(() => {
-    const tasks = this._globalConfigService.tasks();
-    return tasks?.notesTemplate || '';
-  });
-
-  // True only for the app's generic stock template (not a user-customized one).
-  // Used to let the checklist button replace the shown default text with a fresh
-  // checklist; customized templates are treated as real content and preserved.
+  defaultTaskNotes = computed(
+    () => this._globalConfigService.tasks()?.notesTemplate || '',
+  );
   isStockNotesTemplate = computed(
     () => this.defaultTaskNotes() === DEFAULT_GLOBAL_CONFIG.tasks.notesTemplate,
   );
-
-  // Local attachments computed signal
-  localAttachments = computed(() => {
-    return this.task().attachments || [];
-  });
-
-  // Panel expansion computed signals
-  isExpandedIssuePanel = computed(() => {
-    return !this.layoutService.isXs() && !!this.issueData();
-  });
+  localAttachments = computed(() => this.task().attachments || []);
+  isExpandedIssuePanel = computed(() => !this.layoutService.isXs() && !!this.issueData());
 
   isExpandedNotesPanel = computed(() => {
-    if (this._taskDetailTargetPanel() === TaskDetailTargetPanel.Notes) {
-      return true;
-    }
-
+    if (this._taskDetailTargetPanel() === TaskDetailTargetPanel.Notes) return true;
     const task = this.task();
     return this.layoutService.isXs()
       ? this.isMarkdownChecklist()
       : !!task.notes || (!task.issueId && !task.attachments?.length);
   });
 
-  // Task-based computed signals
-  isMarkdownChecklist = computed(() => {
-    const notes = this.task().notes;
-    return isMarkdownChecklist(notes || '');
-  });
-
-  isPlannedForTodayDay = computed(() => {
-    const task = this.task();
-    return !!task.dueDay && task.dueDay === getDbDateStr();
-  });
-
+  isMarkdownChecklist = computed(() => isMarkdownChecklist(this.task().notes || ''));
+  isPlannedForTodayDay = computed(
+    () => !!this.task().dueDay && this.task().dueDay === getDbDateStr(),
+  );
   progress = computed(() => {
     const task = this.task();
     return (task && task.timeEstimate && (task.timeSpent / task.timeEstimate) * 100) || 0;
   });
-
   isOverdue = computed(() => {
     const t = this.task();
     return !!(
@@ -412,25 +363,15 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
           t.dueDay < getDbDateStr()))
     );
   });
-
-  // Template helper computed signals
-  isShowSubTasksPanel = computed(() => {
-    const task = this.task();
-    return task && !task.parentId;
-  });
-
+  isShowSubTasksPanel = computed(() => !!this.task() && !this.task().parentId);
   showTimeEstimate = computed(() => !this.task().subTasks?.length);
-
   hasTimeData = computed(() => !!(this.task().timeSpent || this.task().timeEstimate));
-
-  hasAttachments = computed(() => {
-    return this.issueAttachments().length > 0 || this.localAttachments().length > 0;
-  });
-
-  totalAttachments = computed(() => {
-    return this.issueAttachments().length + this.localAttachments().length;
-  });
-
+  hasAttachments = computed(
+    () => this.issueAttachments().length > 0 || this.localAttachments().length > 0,
+  );
+  totalAttachments = computed(
+    () => this.issueAttachments().length + this.localAttachments().length,
+  );
   showScheduleIcon = computed(() => {
     const task = this.task();
     if (task.dueDay) return 'today';
@@ -438,16 +379,13 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
     if (task.repeatCfgId) return 'repeat';
     return 'alarm';
   });
-
   scheduleLabelKey = computed(() => {
     const task = this.task();
     return task.dueWithTime || task.dueDay
       ? this.T.F.TASK.ADDITIONAL_INFO.DUE
       : this.T.F.TASK.ADDITIONAL_INFO.SCHEDULE_TASK;
   });
-
   isDeadlineOverdue = computed(() => isDeadlineOverdueFn(this.task(), getDbDateStr()));
-
   deadlineLabelKey = computed(() => {
     const t = this.task();
     if (t.deadlineWithTime || t.deadlineDay) {
@@ -458,8 +396,6 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
     return this.T.F.TASK.CMP.SET_DEADLINE;
   });
 
-  // EFFECTS
-  // -------
   private _jiraImageHeaders = IS_ELECTRON
     ? this._task$
         .pipe(
@@ -483,7 +419,6 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
                     selectIssueProviderById<IssueProviderJira>(issueProviderId, 'JIRA'),
                   )
                   .pipe(
-                    // Orphan issueProviderId — see #7135.
                     catchError(() => {
                       IssueLog.warn('Jira header setup skipped');
                       return of(null);
@@ -515,22 +450,14 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
     .pipe(
       map((task) => task.id),
       distinctUntilChanged(),
-      skip(1), // Skip initial emission
+      skip(1),
       takeUntilDestroyed(this._destroyRef),
     )
     .subscribe(() => {
-      // Don't carry a half-open subtask draft or the expanded sub-task section
-      // over to the next task (the panel component is reused across tasks,
-      // unlike per-row <task> components).
       this.isAddSubtaskInputVisible.set(false);
       this.isSubTasksExpanded.set(false);
-      // Only auto-focus panel content when focus is already inside the panel,
-      // to avoid stealing focus from the main task list during navigation (#6578)
-      if (document.activeElement?.closest('task-detail-panel')) {
-        this._focusFirst();
-      }
+      if (document.activeElement?.closest('task-detail-panel')) this._focusFirst();
     });
-  // -------
 
   private _focusTimeout?: number;
   private _dragEnterTarget?: HTMLElement;
@@ -557,21 +484,11 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   @HostListener('paste', ['$event']) async onPaste(ev: ClipboardEvent): Promise<void> {
-    // Let existing textarea/input/contenteditable paste handlers work normally
     const target = ev.target as HTMLElement;
-    if (isInputElement(target)) {
-      return;
-    }
-
-    // Prioritize text over images (e.g. OneNote puts both on the clipboard).
-    // Otherwise a text paste would be silently turned into an image attachment.
-    if (clipboardHasText(ev.clipboardData)) {
-      return;
-    }
-
+    if (isInputElement(target)) return;
+    if (clipboardHasText(ev.clipboardData)) return;
     const progress = this._clipboardImageService.handlePasteWithProgress(ev);
     if (!progress) return;
-
     ev.preventDefault();
     try {
       const result = await progress.resultPromise;
@@ -614,14 +531,6 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
             }
           } else if (v === TaskDetailTargetPanel.Notes) {
             const noteWrapperElRef = this.noteWrapperElRef();
-            // Focus the notes section in its rendered (preview) state — do NOT
-            // also enter edit mode. This target opens via a checklist progress
-            // badge or the "open notes" (N) shortcut; both should land on the
-            // rendered notes, not the raw editor. Setting isFocusNotes opened
-            // the textarea that focusItem() below immediately blurred back to
-            // preview — a flash of raw "- [ ] " source (only visible for
-            // checklists). Preview was always the settled state; explicit edits
-            // still work via click/Enter (editActionTriggered).
             if (!noteWrapperElRef) {
               devError('this.noteWrapperElRef not ready');
               this._focusFirst();
@@ -642,9 +551,7 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
         .clearImgHeaders()
         .catch(() => IssueLog.err('Jira image authentication cleanup failed'));
     }
-    if (window.history.state?.[HISTORY_STATE.TASK_DETAIL_PANEL]) {
-      window.history.back();
-    }
+    if (window.history.state?.[HISTORY_STATE.TASK_DETAIL_PANEL]) window.history.back();
     window.clearTimeout(this._focusTimeout);
   }
 
@@ -665,9 +572,7 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   estimateTime(): void {
-    this._matDialog.open(DialogTimeEstimateComponent, {
-      data: { task: this.task() },
-    });
+    this._matDialog.open(DialogTimeEstimateComponent, { data: { task: this.task() } });
   }
 
   scheduleTask(): void {
@@ -681,7 +586,6 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
   openGoalProjectDialog(): void {
     const task = this.task();
     if (task.parentId) return;
-
     this._matDialog
       .open(DialogSelectGoalProjectComponent, {
         autoFocus: false,
@@ -711,48 +615,28 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
 
   addAttachment(): void {
     this._matDialog
-      .open(DialogEditTaskAttachmentComponent, {
-        data: {},
-      })
+      .open(DialogEditTaskAttachmentComponent, { data: {} })
       .afterClosed()
       .subscribe((result) => {
-        if (result) {
-          this.attachmentService.addAttachment(this.task().id, {
-            ...result,
-          });
-        }
+        if (result) this.attachmentService.addAttachment(this.task().id, { ...result });
       });
   }
 
   addSubTask(): void {
     const task = this.task();
-    // The sub-task section (and thus the inline input) only renders for a
-    // top-level task. On a subtask's own panel "add subtask" means "add a
-    // sibling under my parent" — there is no section to host the input, so
-    // create it directly (matches the pre-inline-draft behaviour).
     if (task.parentId) {
       this.taskService.addSubTaskTo(task.parentId);
       return;
     }
-
-    if (task._hideSubTasksMode === HideSubTasksMode.HideAll) {
+    if (task._hideSubTasksMode === HideSubTasksMode.HideAll)
       this.taskService.showSubTasks(task.id);
-    }
     const wasExpanded = this.isSubTasksExpanded();
     this.isSubTasksExpanded.set(true);
     this.isAddSubtaskInputVisible.set(true);
-    // When already expanded the input is immediately focusable. When we just
-    // expanded it, the panel body is visibility:hidden until the expand
-    // animation finishes — onSubTasksAfterExpand() handles focus in that case.
-    if (wasExpanded) {
-      window.setTimeout(() => this.addSubtaskInput()?.focus());
-    }
+    if (wasExpanded) window.setTimeout(() => this.addSubtaskInput()?.focus());
   }
 
   onSubTasksAfterExpand(): void {
-    // Defer focus: with animations disabled Material fires afterExpand
-    // synchronously inside the same change-detection pass, before the
-    // addSubtaskInput viewChild is committed (it would be undefined here).
     if (this.isAddSubtaskInputVisible()) {
       window.setTimeout(() => this.addSubtaskInput()?.focus());
     }
@@ -760,9 +644,6 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
 
   onAddSubtaskInputClosed(reason: AddSubtaskInputCloseReason): void {
     this.isAddSubtaskInputVisible.set(false);
-    // Keep the sub-task section expanded so the just-added sub-tasks stay
-    // visible. On Escape (a keyboard cancel) return focus to the trigger so
-    // keyboard navigation continues from the panel rather than falling to body.
     if (reason === 'escape') {
       window.setTimeout(() => this.addSubTaskBtn()?.nativeElement.focus());
     } else if (reason === 'prev' || reason === 'next') {
@@ -785,54 +666,38 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
       direction === 'next' && mainParentTaskEl
         ? (findNextTaskAfterSubtree(mainParentTaskEl) ?? fallbackTarget)
         : fallbackTarget;
-
     window.setTimeout(() => target?.focus());
   }
 
   collapseParent(): void {
     if (!this.isDialogMode()) {
       this.taskService.setSelectedId(null);
-      // NOTE: we delay for a frame to avoid problems with the global task keyboard shortcut handler
-      window.setTimeout(() => {
-        this.taskService.focusTaskIfPossible(this.task().id);
-      });
+      window.setTimeout(() => this.taskService.focusTaskIfPossible(this.task().id));
     }
   }
 
   editCompleted(): void {
     const dialogRef = this._matDialog.open(DialogSelectDateTimeComponent, {
-      data: {
-        dateTime: this.task().doneOn,
-      },
+      data: { dateTime: this.task().doneOn },
     });
-
     dialogRef.afterClosed().subscribe((doneOn) => {
-      if (typeof doneOn === 'number') {
-        this.taskService.update(this.task().id, { doneOn });
-      }
+      if (typeof doneOn === 'number') this.taskService.update(this.task().id, { doneOn });
     });
   }
 
   editCreated(): void {
     const dialogRef = this._matDialog.open(DialogSelectDateTimeComponent, {
-      data: {
-        dateTime: this.task().created,
-      },
+      data: { dateTime: this.task().created },
     });
-
     dialogRef.afterClosed().subscribe((created) => {
-      if (typeof created === 'number') {
+      if (typeof created === 'number')
         this.taskService.update(this.task().id, { created });
-      }
     });
   }
 
   onItemKeyPress(ev: KeyboardEvent): void {
     const itemEls = this.itemEls();
-    if (!itemEls) {
-      throw new Error();
-    }
-
+    if (!itemEls) throw new Error();
     const currentIndex = this.panelState.selectedItemIndex();
     if (ev.key === 'ArrowUp' && currentIndex > 0) {
       this.panelState.selectedItemIndex.set(currentIndex - 1);
@@ -846,10 +711,7 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
   focusItem(cmpInstance: TaskDetailItemComponent, timeoutDuration: number = 150): void {
     this._scheduleTaskGuardedFocus(timeoutDuration, () => {
       const itemEls = this.itemEls();
-      if (!itemEls) {
-        throw new Error();
-      }
-
+      if (!itemEls) throw new Error();
       const i = itemEls.findIndex((el) => el === cmpInstance);
       if (i === -1) {
         this.focusItem(cmpInstance);
@@ -860,46 +722,24 @@ export class TaskDetailPanelComponent implements OnInit, AfterViewInit, OnDestro
     });
   }
 
-  /**
-   * Schedules a deferred focus action, but only runs it if the panel still
-   * shows the same task when the timer fires. A focus scheduled for one task
-   * (e.g. the auto-focus on panel open) must not steal focus once the user has
-   * navigated the list to a different task (#6578). Capturing the id at
-   * schedule time — not at fire time — is what makes a late timer a no-op.
-   */
   private _scheduleTaskGuardedFocus(delayMs: number, focusFn: () => void): void {
     window.clearTimeout(this._focusTimeout);
     const scheduledForTaskId = this.task().id;
     this._focusTimeout = window.setTimeout(() => {
-      // Never steal focus from an open inline "add subtask" draft. The panel's
-      // on-open auto-focus runs behind delay(50) + 150ms timers; under load
-      // those can fire *after* the user already opened the draft. Focusing a
-      // panel item then blurs the draft input, whose blur handler closes the
-      // draft — leaving "Add subtask" silently broken (#8617/#8630).
-      if (this.isAddSubtaskInputVisible()) {
-        return;
-      }
-      if (this.task().id === scheduledForTaskId) {
-        focusFn();
-      }
+      if (this.isAddSubtaskInputVisible()) return;
+      if (this.task().id === scheduledForTaskId) focusFn();
     }, delayMs);
   }
 
   updateTaskTitleIfChanged(isChanged: boolean, newTitle: string): void {
-    if (isChanged) {
-      this.taskService.update(this.task().id, { title: newTitle });
-    }
+    if (isChanged) this.taskService.update(this.task().id, { title: newTitle });
   }
 
   private _focusFirst(): void {
     this._scheduleTaskGuardedFocus(150, () => {
       const itemEls = this.itemEls();
-      if (!itemEls) {
-        throw new Error('No items found');
-      }
-      if (itemEls.length && itemEls[0]) {
-        this.focusItem(itemEls[0], 0);
-      }
+      if (!itemEls) throw new Error('No items found');
+      if (itemEls.length && itemEls[0]) this.focusItem(itemEls[0], 0);
     });
   }
 }
