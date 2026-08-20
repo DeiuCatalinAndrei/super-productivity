@@ -365,6 +365,5 @@ export class LifeTaskMetaComponent {
   private _update(changes: Partial<Task>): void {
     const taskId = this.task().id;
     this._taskService.update(taskId, changes);
-    this._taskService.setSelectedId(taskId);
   }
 }
