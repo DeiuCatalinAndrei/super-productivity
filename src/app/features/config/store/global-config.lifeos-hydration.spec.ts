@@ -40,4 +40,27 @@ describe('LifeOS global config hydration', () => {
     expect(secondHydration.tasks).toEqual(firstHydration.tasks);
     expect(secondHydration.tasks.lifeOs).toEqual(DEFAULT_GLOBAL_CONFIG.tasks.lifeOs);
   });
+
+  it('preserves the synced weekly review completion timestamp', () => {
+    const lastWeeklyReviewAt = 1_777_000_000_000;
+    const config = {
+      ...initialGlobalConfigState,
+      tasks: {
+        ...initialGlobalConfigState.tasks,
+        lifeOs: {
+          ...DEFAULT_GLOBAL_CONFIG.tasks.lifeOs!,
+          lastWeeklyReviewAt,
+        },
+      },
+    };
+
+    const result = globalConfigReducer(
+      initialGlobalConfigState,
+      loadAllData({
+        appDataComplete: { globalConfig: config } as AppDataComplete,
+      }),
+    );
+
+    expect(result.tasks.lifeOs?.lastWeeklyReviewAt).toBe(lastWeeklyReviewAt);
+  });
 });
