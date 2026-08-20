@@ -66,4 +66,5 @@ export const DEFAULT_LIFE_OS_CONFIG: LifeOsConfig = {
     },
   ],
   weeklyReviewDay: 0,
+  lastWeeklyReviewAt: null,
 };
