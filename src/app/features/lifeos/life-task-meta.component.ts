@@ -33,9 +33,7 @@ import { LifeOsConfigService } from './life-os-config.service';
       <div class="meta-grid">
         <label>
           <span>Priority</span>
-          <select
-            (change)="update('lifePriorityId', $any($event.target).value || null)"
-          >
+          <select (change)="update('lifePriorityId', $any($event.target).value || null)">
             <option
               value=""
               [selected]="!(task().lifePriorityId || config().defaultPriorityId)"
@@ -60,7 +58,7 @@ import { LifeOsConfigService } from './life-os-config.service';
           <select (change)="updateNumber('lifeFocus', $any($event.target).value)">
             <option
               value=""
-              [selected]="task().lifeFocus == null"
+              [selected]="task().lifeFocus === null || task().lifeFocus === undefined"
             >
               Not set
             </option>
@@ -80,7 +78,7 @@ import { LifeOsConfigService } from './life-os-config.service';
           <select (change)="updateNumber('lifeEnergy', $any($event.target).value)">
             <option
               value=""
-              [selected]="task().lifeEnergy == null"
+              [selected]="task().lifeEnergy === null || task().lifeEnergy === undefined"
             >
               Not set
             </option>
