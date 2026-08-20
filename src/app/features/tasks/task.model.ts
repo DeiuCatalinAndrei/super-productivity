@@ -107,6 +107,8 @@ export interface TaskCopy
   lifeIsNextAction?: boolean;
   /** Person, response or event this task is waiting for. */
   lifeWaitingFor?: string | null;
+  /** Optional YYYY-MM-DD date when a waiting item should be followed up. */
+  lifeFollowUpDay?: string | null;
   /** Native TASK ids that must be completed before this task is unblocked. */
   lifeBlockedByTaskIds?: string[];
   /** Optional YYYY-MM-DD date when this task should surface in Review. */
@@ -258,11 +260,5 @@ export interface TaskState extends EntityState<Task> {
    * entries/year; non-recurring dismissals stay relevant forever). If growth ever
    * matters, record the dismissal day in the delete op payload and prune on replay.
    */
-  dismissedCalendarAutoImportEventIdsByProvider?: Record<string, string[]>;
+  deletedIcalEventIds?: string[];
 }
-
-export interface WorklogTask extends Task {
-  dateStr: string;
-}
-
-export type SubmitTrigger = 'blur' | 'escape' | 'enter' | 'modEnter';
