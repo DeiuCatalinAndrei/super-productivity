@@ -106,18 +106,14 @@ describe('LifeContextEngineService', () => {
     const office = task({ id: 'office', lifeLocationIds: ['office'] });
     const anywhere = task({ id: 'anywhere', lifeLocationIds: ['anywhere'] });
 
-    const ranked = service.rankTasks(
-      [home, office, anywhere],
-      DEFAULT_LIFE_OS_CONFIG,
-      {
-        day: '2026-08-20',
-        availableMinutes: null,
-        focus: null,
-        energy: null,
-        locationIds: ['office'],
-        requirementIds: [],
-      },
-    );
+    const ranked = service.rankTasks([home, office, anywhere], DEFAULT_LIFE_OS_CONFIG, {
+      day: '2026-08-20',
+      availableMinutes: null,
+      focus: null,
+      energy: null,
+      locationIds: ['office'],
+      requirementIds: [],
+    });
 
     expect(ranked.map((item) => item.task.id)).toContain('office');
     expect(ranked.map((item) => item.task.id)).toContain('anywhere');
