@@ -74,8 +74,9 @@ test.describe('Basic Navigation', () => {
     await expect(page).toHaveURL(/\/#\/config/);
     await expect(page.locator('.page-settings')).toBeVisible();
 
-    // Today in the native side navigation returns to the native Today work view.
-    await page.getByRole('menuitem', { name: 'Today', exact: true }).click();
+    // Target the native Today work-context item directly. LifeOS adds Today-adjacent
+    // controls and routes, so text-only selectors can become ambiguous over time.
+    await page.locator('magic-side-nav nav-item[data-tag-id="TODAY"] .nav-link').click();
     await page.waitForLoadState('networkidle');
     await expect(page).toHaveURL(/\/#\/tag\/TODAY\/tasks/);
     await expect(page.locator('task-list').first()).toBeVisible();
