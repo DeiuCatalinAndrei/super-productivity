@@ -54,6 +54,36 @@ const setTextField = async (field: Locator, value: string): Promise<void> => {
   }, value);
 };
 
+const setSelectField = async (
+  field: Locator,
+  value: string | string[],
+): Promise<void> => {
+  const values = Array.isArray(value) ? value : [value];
+  await field.evaluate((select, nextValues) => {
+    const element = select as HTMLSelectElement;
+    for (const option of Array.from(element.options)) {
+      option.selected = nextValues.includes(option.value);
+    }
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+  }, values);
+};
+
+const setSelectFieldByLabel = async (field: Locator, label: string): Promise<void> => {
+  await field.evaluate((select, nextLabel) => {
+    const element = select as HTMLSelectElement;
+    const option = Array.from(element.options).find(
+      (candidate) => candidate.textContent?.trim() === nextLabel,
+    );
+    if (!option) throw new Error(`Select option not found: ${nextLabel}`);
+    for (const candidate of Array.from(element.options)) {
+      candidate.selected = candidate === option;
+    }
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+  }, label);
+};
+
 const setGoalDate = async (
   page: Page,
   title: string,
@@ -124,9 +154,9 @@ test.describe('@supersync native Goals v2', () => {
       await expect(goalCard(clientA.page, goalTitle)).toContainText(directTaskTitle);
 
       const metaA = await openTaskMeta(clientA.page, goalTitle, directTaskTitle);
-      await metaA.getByLabel('Priority').selectOption('p1');
-      await metaA.getByLabel('Focus').selectOption('4');
-      await metaA.getByLabel('Energy').selectOption('2');
+      await setSelectField(metaA.getByLabel('Priority'), 'p1');
+      await setSelectField(metaA.getByLabel('Focus'), '4');
+      await setSelectField(metaA.getByLabel('Energy'), '2');
       await setDateField(metaA.getByLabel('Due date'), softDueDay);
 
       // Metadata updates keep the selected task open. Keep editing through the same
@@ -135,12 +165,12 @@ test.describe('@supersync native Goals v2', () => {
       await expect(metaA.getByLabel('Focus')).toHaveValue('4');
       await expect(metaA.getByLabel('Energy')).toHaveValue('2');
       await expect(metaA.getByLabel('Due date')).toHaveValue(softDueDay);
-      await metaA.getByLabel('Location').selectOption(['home']);
-      await metaA.getByLabel('Requires').selectOption(['computer']);
+      await setSelectField(metaA.getByLabel('Location'), ['home']);
+      await setSelectField(metaA.getByLabel('Requires'), ['computer']);
       await metaA.getByRole('checkbox', { name: /Next action/ }).check();
       await setTextField(metaA.getByLabel('Waiting for'), waitingA);
       await setDateField(metaA.getByLabel('Follow up'), followUpDay);
-      await metaA.getByLabel('Blocked by').selectOption({ label: blockerTitle });
+      await setSelectFieldByLabel(metaA.getByLabel('Blocked by'), blockerTitle);
       await setDateField(metaA.getByLabel('Review date'), reviewDay);
 
       await expect(taskRow(clientA.page, goalTitle, directTaskTitle)).toContainText('P1');
@@ -190,8 +220,8 @@ test.describe('@supersync native Goals v2', () => {
       );
       await expect(metaB.getByLabel('Review date')).toHaveValue(reviewDay);
 
-      await metaB.getByLabel('Focus').selectOption('5');
-      await metaB.getByLabel('Energy').selectOption('3');
+      await setSelectField(metaB.getByLabel('Focus'), '5');
+      await setSelectField(metaB.getByLabel('Energy'), '3');
       await setTextField(metaB.getByLabel('Waiting for'), waitingB);
       await setDateField(metaB.getByLabel('Follow up'), updatedFollowUpDay);
       await setGoalDate(clientB.page, goalTitle, 1, updatedDeadline);
