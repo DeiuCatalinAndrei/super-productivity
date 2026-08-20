@@ -82,6 +82,8 @@ test.describe('@supersync native Goals v2', () => {
     const updatedDeadline = '2030-07-05';
     const softDueDay = '2030-06-20';
     const reviewDay = '2030-06-10';
+    const followUpDay = '2030-06-11';
+    const updatedFollowUpDay = '2030-06-12';
     const waitingA = `Approval-${testRunId}`;
     const waitingB = `Vendor-${testRunId}`;
 
@@ -137,6 +139,7 @@ test.describe('@supersync native Goals v2', () => {
       await metaA.getByLabel('Requires').selectOption(['computer']);
       await metaA.getByRole('checkbox', { name: /Next action/ }).check();
       await setTextField(metaA.getByLabel('Waiting for'), waitingA);
+      await setDateField(metaA.getByLabel('Follow up'), followUpDay);
       await metaA.getByLabel('Blocked by').selectOption({ label: blockerTitle });
       await setDateField(metaA.getByLabel('Review date'), reviewDay);
 
@@ -181,6 +184,7 @@ test.describe('@supersync native Goals v2', () => {
       await expect(metaB.getByLabel('Requires')).toHaveValues(['computer']);
       await expect(metaB.getByRole('checkbox', { name: /Next action/ })).toBeChecked();
       await expect(metaB.getByLabel('Waiting for')).toHaveValue(waitingA);
+      await expect(metaB.getByLabel('Follow up')).toHaveValue(followUpDay);
       await expect(metaB.getByLabel('Blocked by').locator('option:checked')).toHaveText(
         blockerTitle,
       );
@@ -189,6 +193,7 @@ test.describe('@supersync native Goals v2', () => {
       await metaB.getByLabel('Focus').selectOption('5');
       await metaB.getByLabel('Energy').selectOption('3');
       await setTextField(metaB.getByLabel('Waiting for'), waitingB);
+      await setDateField(metaB.getByLabel('Follow up'), updatedFollowUpDay);
       await setGoalDate(clientB.page, goalTitle, 1, updatedDeadline);
       await clientB.sync.syncAndWait();
 
@@ -204,6 +209,7 @@ test.describe('@supersync native Goals v2', () => {
       await expect(roundTripMetaA.getByLabel('Focus')).toHaveValue('5');
       await expect(roundTripMetaA.getByLabel('Energy')).toHaveValue('3');
       await expect(roundTripMetaA.getByLabel('Waiting for')).toHaveValue(waitingB);
+      await expect(roundTripMetaA.getByLabel('Follow up')).toHaveValue(updatedFollowUpDay);
       await expect(roundTripMetaA.getByLabel('Due date')).toHaveValue(softDueDay);
       await expect(roundTripMetaA.getByLabel('Review date')).toHaveValue(reviewDay);
 
