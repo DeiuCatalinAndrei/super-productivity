@@ -121,15 +121,18 @@ test.describe('@supersync native Goals v2', () => {
       await savePrompt(clientA.page, directTaskTitle);
       await expect(goalCard(clientA.page, goalTitle)).toContainText(directTaskTitle);
 
-      let metaA = await openTaskMeta(clientA.page, goalTitle, directTaskTitle);
+      const metaA = await openTaskMeta(clientA.page, goalTitle, directTaskTitle);
       await metaA.getByLabel('Priority').selectOption('p1');
       await metaA.getByLabel('Focus').selectOption('4');
       await metaA.getByLabel('Energy').selectOption('2');
       await setDateField(metaA.getByLabel('Due date'), softDueDay);
 
-      // Updating a native date input may recreate the selected-task panel; reopen
-      // the task before continuing with the rest of its LifeOS metadata.
-      metaA = await openTaskMeta(clientA.page, goalTitle, directTaskTitle);
+      // Metadata updates keep the selected task open. Keep editing through the same
+      // locator so this test also guards against regressions that close/reset the panel.
+      await expect(metaA.getByLabel('Priority')).toHaveValue('p1');
+      await expect(metaA.getByLabel('Focus')).toHaveValue('4');
+      await expect(metaA.getByLabel('Energy')).toHaveValue('2');
+      await expect(metaA.getByLabel('Due date')).toHaveValue(softDueDay);
       await metaA.getByLabel('Location').selectOption(['home']);
       await metaA.getByLabel('Requires').selectOption(['computer']);
       await metaA.getByRole('checkbox', { name: /Next action/ }).check();
