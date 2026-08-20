@@ -209,7 +209,9 @@ test.describe('@supersync native Goals v2', () => {
       await expect(roundTripMetaA.getByLabel('Focus')).toHaveValue('5');
       await expect(roundTripMetaA.getByLabel('Energy')).toHaveValue('3');
       await expect(roundTripMetaA.getByLabel('Waiting for')).toHaveValue(waitingB);
-      await expect(roundTripMetaA.getByLabel('Follow up')).toHaveValue(updatedFollowUpDay);
+      await expect(roundTripMetaA.getByLabel('Follow up')).toHaveValue(
+        updatedFollowUpDay,
+      );
       await expect(roundTripMetaA.getByLabel('Due date')).toHaveValue(softDueDay);
       await expect(roundTripMetaA.getByLabel('Review date')).toHaveValue(reviewDay);
 
