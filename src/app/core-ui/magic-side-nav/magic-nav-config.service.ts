@@ -424,6 +424,14 @@ export class MagicNavConfigService {
 
     items.push({
       type: 'route',
+      id: 'smart-views',
+      label: 'Smart Views',
+      icon: 'filter_alt',
+      route: '/smart-views',
+    });
+
+    items.push({
+      type: 'route',
       id: 'goals',
       label: 'Goals',
       icon: 'flag',

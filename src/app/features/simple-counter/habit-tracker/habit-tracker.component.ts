@@ -150,11 +150,17 @@ export class HabitTrackerComponent {
 
     const currentValue = this.getVal(counter, date);
 
-    if (
+    if (this.isSimpleCompletion(counter)) {
+      // A simple habit is a real checkbox: click once to complete, click again to undo.
+      this._simpleCounterService.setCounterForDate(
+        counter.id,
+        date,
+        currentValue > 0 ? 0 : 1,
+      );
+    } else if (
       counter.type === SimpleCounterType.ClickCounter ||
       counter.type === SimpleCounterType.RepeatedCountdownReminder
     ) {
-      // Increment for ClickCounters on left click
       const newVal = currentValue + 1;
       this._simpleCounterService.setCounterForDate(counter.id, date, newVal);
     } else {

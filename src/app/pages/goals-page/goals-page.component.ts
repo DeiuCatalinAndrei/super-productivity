@@ -351,13 +351,25 @@ interface GoalNode {
                     <div class="task-empty">No direct tasks at this level.</div>
                   }
                   @for (task of node.directTasks; track task.id) {
-                    <button
+                    <div
                       class="task-row"
+                      role="button"
+                      tabindex="0"
                       (click)="openTask(task.id)"
+                      (keydown.enter)="openTask(task.id)"
                     >
-                      <mat-icon>{{
-                        task.isDone ? 'check_circle' : 'radio_button_unchecked'
-                      }}</mat-icon>
+                      <button
+                        class="task-toggle"
+                        type="button"
+                        [attr.aria-label]="
+                          task.isDone ? 'Mark task not done' : 'Mark task done'
+                        "
+                        (click)="toggleTaskDone(task, $event)"
+                      >
+                        <mat-icon>{{
+                          task.isDone ? 'check_circle' : 'radio_button_unchecked'
+                        }}</mat-icon>
+                      </button>
                       <span
                         class="task-title"
                         [class.done]="task.isDone"
@@ -378,7 +390,7 @@ interface GoalNode {
                       @if (task.lifeIsNextAction) {
                         <span class="chip next">Next</span>
                       }
-                    </button>
+                    </div>
                   }
                 </section>
 
@@ -447,12 +459,24 @@ interface GoalNode {
                 @if (node.directTasks.length) {
                   <div class="tree-tasks">
                     @for (task of node.directTasks; track task.id) {
-                      <button (click)="openTask(task.id)">
-                        <mat-icon>{{
-                          task.isDone ? 'check' : 'check_box_outline_blank'
-                        }}</mat-icon>
-                        {{ task.title }}
-                      </button>
+                      <div
+                        class="tree-task-row"
+                        (click)="openTask(task.id)"
+                      >
+                        <button
+                          class="task-toggle"
+                          type="button"
+                          (click)="toggleTaskDone(task, $event)"
+                          [attr.aria-label]="
+                            task.isDone ? 'Mark task not done' : 'Mark task done'
+                          "
+                        >
+                          <mat-icon>{{
+                            task.isDone ? 'check_box' : 'check_box_outline_blank'
+                          }}</mat-icon>
+                        </button>
+                        <span [class.done]="task.isDone">{{ task.title }}</span>
+                      </div>
                     }
                   </div>
                 }
@@ -608,8 +632,14 @@ interface GoalNode {
       select[multiple] {
         min-height: 76px;
       }
+      select {
+        color-scheme: light dark;
+        background: Canvas;
+        color: CanvasText;
+      }
       option {
-        color: initial;
+        background: Canvas;
+        color: CanvasText;
       }
       .defaults {
         margin-top: 12px;
@@ -658,6 +688,23 @@ interface GoalNode {
         height: 18px;
         font-size: 18px;
       }
+      .task-toggle {
+        flex: 0 0 auto;
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        padding: 0;
+      }
+      .task-toggle:hover {
+        background: rgba(127, 127, 127, 0.14);
+      }
       .task-title {
         flex: 1;
         min-width: 0;
@@ -696,16 +743,20 @@ interface GoalNode {
         display: flex;
         flex-direction: column;
       }
-      .tree-tasks button {
+      .tree-task-row {
         display: flex;
         align-items: center;
         gap: 6px;
-        border: 0;
-        background: transparent;
-        color: inherit;
-        padding: 5px;
-        text-align: left;
+        padding: 4px;
+        border-radius: 6px;
         cursor: pointer;
+      }
+      .tree-task-row:hover {
+        background: rgba(127, 127, 127, 0.1);
+      }
+      .tree-task-row .done {
+        text-decoration: line-through;
+        opacity: 0.58;
       }
       .tree-tasks mat-icon {
         width: 16px;
@@ -979,6 +1030,15 @@ export class GoalsPageComponent {
 
   openTask(id: string): void {
     this._taskService.setSelectedId(id);
+  }
+
+  toggleTaskDone(task: Task, event: Event): void {
+    event.stopPropagation();
+    if (task.isDone) {
+      this._taskService.setUnDone(task.id);
+    } else {
+      this._taskService.setDone(task.id);
+    }
   }
 
   complete(project: Project): void {
