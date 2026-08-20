@@ -1,5 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -58,8 +64,8 @@ interface ReviewOverdueItem {
             <div>
               <h2>Weekly Review</h2>
               <p class="hint">
-                Configured for <strong>{{ reviewDayLabel() }}</strong>. Work through every
-                step, then complete the review.
+                Configured review day: {{ reviewDayLabel() }}. Work through every step,
+                then complete the review.
               </p>
             </div>
             <div class="last-review">
@@ -282,7 +288,9 @@ interface ReviewOverdueItem {
               <h2>Active Goals</h2>
               <span>{{ activeGoals().length }}</span>
             </div>
-            <p class="hint">Every active goal should still deserve attention and action.</p>
+            <p class="hint">
+              Every active goal should still deserve attention and action.
+            </p>
           </mat-card-content>
         </mat-card>
       </section>
