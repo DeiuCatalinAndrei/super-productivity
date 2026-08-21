@@ -1,0 +1,71 @@
+name: Format LifeOS Native UI Once
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - '.github/workflows/lifeos-format-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.head_ref == 'agent/lifeos-native-ui-unification'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+
+      - name: Install packages
+        run: npm i
+
+      - name: Format changed LifeOS files
+        run: |
+          npx prettier --write \
+            src/app/features/lifeos/life-field-picker.component.ts \
+            src/app/features/lifeos/life-native-ui-smoke.spec.ts \
+            src/app/features/lifeos/life-task-fields.component.ts \
+            src/app/features/lifeos/life-task-meta.component.ts \
+            src/app/features/lifeos/life-ui.const.ts \
+            src/app/features/tasks/add-task-bar/add-task-bar.component.html \
+            src/app/features/tasks/add-task-bar/add-task-bar.component.scss \
+            src/app/features/tasks/add-task-bar/add-task-bar.component.ts \
+            src/app/pages/goals-page/goals-page.component.ts \
+            src/app/pages/life-settings-page/life-settings-page.component.ts \
+            src/app/pages/life-today-page/life-today-page.component.ts
+
+      - name: Validate whitespace
+        run: git diff --check
+
+      - name: Commit formatting
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No formatting changes.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- \
+            src/app/features/lifeos/life-field-picker.component.ts \
+            src/app/features/lifeos/life-native-ui-smoke.spec.ts \
+            src/app/features/lifeos/life-task-fields.component.ts \
+            src/app/features/lifeos/life-task-meta.component.ts \
+            src/app/features/lifeos/life-ui.const.ts \
+            src/app/features/tasks/add-task-bar/add-task-bar.component.html \
+            src/app/features/tasks/add-task-bar/add-task-bar.component.scss \
+            src/app/features/tasks/add-task-bar/add-task-bar.component.ts \
+            src/app/pages/goals-page/goals-page.component.ts \
+            src/app/pages/life-settings-page/life-settings-page.component.ts \
+            src/app/pages/life-today-page/life-today-page.component.ts
+          git commit -m 'style(lifeos): format native UI controls'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
