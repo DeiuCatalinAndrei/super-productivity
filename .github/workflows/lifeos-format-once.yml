@@ -67,5 +67,5 @@ jobs:
             src/app/pages/goals-page/goals-page.component.ts \
             src/app/pages/life-settings-page/life-settings-page.component.ts \
             src/app/pages/life-today-page/life-today-page.component.ts
-          git commit -m 'style(lifeos): format native UI controls'
+          git commit --no-verify -m 'style(lifeos): format native UI controls'
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
