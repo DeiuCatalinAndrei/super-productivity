@@ -398,7 +398,7 @@ import {
               defaultIcon="event_repeat"
               [allowEmpty]="false"
               [options]="weekDayOptions"
-              [value]="String(config().weeklyReviewDay)"
+              [value]="numberValue(config().weeklyReviewDay)"
               (valueChange)="setWeeklyReviewDay($event)"
             />
           </div>
