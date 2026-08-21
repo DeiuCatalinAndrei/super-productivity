@@ -1,0 +1,47 @@
+name: Apply LifeOS Native UI Patch
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'tools/lifeos_native_ui_patch.py'
+      - '.github/workflows/lifeos-native-ui-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-patch:
+    if: github.head_ref == 'agent/lifeos-native-ui-unification'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+
+      - name: Apply native UI migration
+        run: python tools/lifeos_native_ui_patch.py
+
+      - name: Validate patch whitespace
+        run: git diff --check
+
+      - name: Commit generated changes
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No generated changes.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- \
+            src/app/features/tasks/add-task-bar/add-task-bar.component.html \
+            src/app/features/tasks/add-task-bar/add-task-bar.component.ts \
+            src/app/features/tasks/add-task-bar/add-task-bar.component.scss \
+            src/app/pages/goals-page/goals-page.component.ts \
+            src/app/pages/life-today-page/life-today-page.component.ts \
+            src/app/pages/life-settings-page/life-settings-page.component.ts
+          git commit -m 'refactor(lifeos): unify native Super Productivity controls'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
