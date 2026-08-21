@@ -319,7 +319,6 @@ export type LifeTodayTab =
                 (valueChange)="currentRequirementId.set(singlePickerValue($event))"
               />
             </div>
-            </div>
           </div>
 
           <div class="recommendations-list">

@@ -237,15 +237,6 @@ export class LifeSettingsPageComponent {
     { id: '5', label: 'Friday', icon: 'event_repeat', color: '#ff9800' },
     { id: '6', label: 'Saturday', icon: 'event_repeat', color: '#ec407a' },
   ];
-  readonly weekDays = [
-    { value: 0, label: 'Sunday' },
-    { value: 1, label: 'Monday' },
-    { value: 2, label: 'Tuesday' },
-    { value: 3, label: 'Wednesday' },
-    { value: 4, label: 'Thursday' },
-    { value: 5, label: 'Friday' },
-    { value: 6, label: 'Saturday' },
-  ];
 
   addPriority(raw: string): void {
     const label = raw.trim();
