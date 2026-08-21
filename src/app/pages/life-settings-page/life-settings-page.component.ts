@@ -1,8 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { RouterModule } from '@angular/router';
 import { DEFAULT_LIFE_OS_CONFIG } from '../../features/lifeos/life-os.const';
 import { LifeOsConfigService } from '../../features/lifeos/life-os-config.service';
@@ -11,20 +14,35 @@ import {
   LifePriorityLevel,
   LifeSmartView,
 } from '../../features/lifeos/life-os.model';
+import { LifeFieldPickerComponent } from '../../features/lifeos/life-field-picker.component';
+import {
+  LIFE_ENERGY_OPTIONS,
+  LIFE_FOCUS_OPTIONS,
+  LifePickerOption,
+  lifeContextPickerOptions,
+  lifePriorityPickerOptions,
+} from '../../features/lifeos/life-ui.const';
 
 @Component({
   selector: 'life-settings-page',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatButtonModule, MatCardModule, MatIconModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatButtonModule,
+    MatCardModule,
+    MatIconModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatCheckboxModule,
+    LifeFieldPickerComponent,
+  ],
   template: `
     <main class="settings-page">
       <header class="page-head">
         <div>
           <h1>LifeOS Settings</h1>
-          <p>
-            These settings are stored in native Global Config and sync with your other
-            devices.
-          </p>
+          <p>Native Super Productivity controls, stored in synced Global Config.</p>
         </div>
         <a
           mat-button
@@ -37,15 +55,26 @@ import {
         <mat-card-content>
           <h2>Priority levels</h2>
           <p class="hint">
-            Default levels are P1, P2 and P3. Rename, reorder or add as many as you need.
+            Rename, reorder or add priority levels. Colors follow their order.
           </p>
           <div class="list-editor">
             @for (level of config().priorityLevels; track level.id; let i = $index) {
               <div class="edit-row">
-                <input
-                  [value]="level.label"
-                  (change)="renamePriority(level.id, $any($event.target).value)"
-                />
+                <span
+                  class="priority-dot"
+                  [style.background]="priorityOptions()[i]?.color"
+                ></span>
+                <mat-form-field
+                  class="grow"
+                  subscriptSizing="dynamic"
+                >
+                  <mat-label>Priority name</mat-label>
+                  <input
+                    matInput
+                    [value]="level.label"
+                    (change)="renamePriority(level.id, $any($event.target).value)"
+                  />
+                </mat-form-field>
                 <button
                   mat-icon-button
                   aria-label="Move priority up"
@@ -74,29 +103,35 @@ import {
             }
           </div>
           <div class="add-row">
-            <input
-              #priorityName
-              placeholder="New priority, e.g. P0 Critical"
-            />
+            <mat-form-field
+              class="grow"
+              subscriptSizing="dynamic"
+            >
+              <mat-label>New priority</mat-label>
+              <input
+                matInput
+                #priorityName
+                placeholder="P0 Critical"
+                (keydown.enter)="addPriority(priorityName.value); priorityName.value = ''"
+              />
+            </mat-form-field>
             <button
-              mat-button
+              mat-stroked-button
               (click)="addPriority(priorityName.value); priorityName.value = ''"
             >
               <mat-icon>add</mat-icon>Add priority
             </button>
           </div>
-          <label class="field">
-            <span>Default priority</span>
-            <select
+          <div class="single-field">
+            <life-field-picker
+              label="Default priority"
+              defaultIcon="priority_high"
+              emptyLabel="None"
+              [options]="priorityOptions()"
               [value]="config().defaultPriorityId || ''"
-              (change)="setDefaultPriority($any($event.target).value || null)"
-            >
-              <option value="">None</option>
-              @for (level of config().priorityLevels; track level.id) {
-                <option [value]="level.id">{{ level.label }}</option>
-              }
-            </select>
-          </label>
+              (valueChange)="setDefaultPriority(singleValue($event) || null)"
+            />
+          </div>
         </mat-card-content>
       </mat-card>
 
@@ -104,18 +139,25 @@ import {
         <mat-card-content>
           <h2>Locations</h2>
           <p class="hint">
-            Logical places, not GPS tracking. A task can have more than one location.
+            Logical places, not GPS tracking. Tasks can use multiple locations.
           </p>
           <div class="list-editor">
             @for (option of config().locations; track option.id) {
               <div class="edit-row">
-                <mat-icon>{{ option.icon || 'place' }}</mat-icon>
-                <input
-                  [value]="option.label"
-                  (change)="
-                    renameContext('locations', option.id, $any($event.target).value)
-                  "
-                />
+                <mat-icon class="context-icon">{{ option.icon || 'place' }}</mat-icon>
+                <mat-form-field
+                  class="grow"
+                  subscriptSizing="dynamic"
+                >
+                  <mat-label>Location</mat-label>
+                  <input
+                    matInput
+                    [value]="option.label"
+                    (change)="
+                      renameContext('locations', option.id, $any($event.target).value)
+                    "
+                  />
+                </mat-form-field>
                 <button
                   mat-icon-button
                   aria-label="Delete location"
@@ -127,12 +169,21 @@ import {
             }
           </div>
           <div class="add-row">
-            <input
-              #locationName
-              placeholder="New location"
-            />
+            <mat-form-field
+              class="grow"
+              subscriptSizing="dynamic"
+            >
+              <mat-label>New location</mat-label>
+              <input
+                matInput
+                #locationName
+                (keydown.enter)="
+                  addContext('locations', locationName.value); locationName.value = ''
+                "
+              />
+            </mat-form-field>
             <button
-              mat-button
+              mat-stroked-button
               (click)="
                 addContext('locations', locationName.value); locationName.value = ''
               "
@@ -147,19 +198,25 @@ import {
         <mat-card-content>
           <h2>Requires / device / tool</h2>
           <p class="hint">
-            Use this for Phone, Computer, Internet, Printer, Car, Headphones, or any tool
-            required by a task.
+            Phone, Computer, Internet, Printer, Car, Headphones or any required tool.
           </p>
           <div class="list-editor">
             @for (option of config().requirements; track option.id) {
               <div class="edit-row">
-                <mat-icon>{{ option.icon || 'build' }}</mat-icon>
-                <input
-                  [value]="option.label"
-                  (change)="
-                    renameContext('requirements', option.id, $any($event.target).value)
-                  "
-                />
+                <mat-icon class="context-icon">{{ option.icon || 'build' }}</mat-icon>
+                <mat-form-field
+                  class="grow"
+                  subscriptSizing="dynamic"
+                >
+                  <mat-label>Requirement</mat-label>
+                  <input
+                    matInput
+                    [value]="option.label"
+                    (change)="
+                      renameContext('requirements', option.id, $any($event.target).value)
+                    "
+                  />
+                </mat-form-field>
                 <button
                   mat-icon-button
                   aria-label="Delete requirement"
@@ -171,12 +228,22 @@ import {
             }
           </div>
           <div class="add-row">
-            <input
-              #requirementName
-              placeholder="New device or tool"
-            />
+            <mat-form-field
+              class="grow"
+              subscriptSizing="dynamic"
+            >
+              <mat-label>New device or tool</mat-label>
+              <input
+                matInput
+                #requirementName
+                (keydown.enter)="
+                  addContext('requirements', requirementName.value);
+                  requirementName.value = ''
+                "
+              />
+            </mat-form-field>
             <button
-              mat-button
+              mat-stroked-button
               (click)="
                 addContext('requirements', requirementName.value);
                 requirementName.value = ''
@@ -191,10 +258,7 @@ import {
       <mat-card>
         <mat-card-content>
           <h2>Smart Views</h2>
-          <p class="hint">
-            Saved filters power On the Go, Office, Quick Wins, Deep Work and your own
-            contexts.
-          </p>
+          <p class="hint">Saved filters use the same native pickers as task metadata.</p>
           <div class="smart-list">
             @for (view of config().smartViews; track view.id) {
               <details class="smart-card">
@@ -203,17 +267,18 @@ import {
                   ><strong>{{ view.label }}</strong>
                 </summary>
                 <div class="smart-grid">
-                  <label
-                    ><span>Name</span
-                    ><input
+                  <mat-form-field subscriptSizing="dynamic">
+                    <mat-label>Name</mat-label>
+                    <input
+                      matInput
                       [value]="view.label"
-                      (change)="
-                        updateView(view.id, { label: $any($event.target).value })
-                      "
-                  /></label>
-                  <label
-                    ><span>Max estimate (minutes)</span
-                    ><input
+                      (change)="updateView(view.id, { label: $any($event.target).value })"
+                    />
+                  </mat-form-field>
+                  <mat-form-field subscriptSizing="dynamic">
+                    <mat-label>Max estimate (minutes)</mat-label>
+                    <input
+                      matInput
                       type="number"
                       min="1"
                       [value]="view.maxEstimateMinutes || ''"
@@ -224,122 +289,74 @@ import {
                           $any($event.target).value
                         )
                       "
-                  /></label>
-                  <label
-                    ><span>Minimum focus</span
-                    ><select
-                      [value]="view.minFocus || ''"
-                      (change)="
-                        updateViewNumber(view.id, 'minFocus', $any($event.target).value)
-                      "
-                    >
-                      <option value="">Any</option>
-                      @for (n of scale; track n) {
-                        <option [value]="n">{{ n }}</option>
-                      }
-                    </select></label
-                  >
-                  <label
-                    ><span>Maximum focus</span
-                    ><select
-                      [value]="view.maxFocus || ''"
-                      (change)="
-                        updateViewNumber(view.id, 'maxFocus', $any($event.target).value)
-                      "
-                    >
-                      <option value="">Any</option>
-                      @for (n of scale; track n) {
-                        <option [value]="n">{{ n }}</option>
-                      }
-                    </select></label
-                  >
-                  <label
-                    ><span>Minimum energy</span
-                    ><select
-                      [value]="view.minEnergy || ''"
-                      (change)="
-                        updateViewNumber(view.id, 'minEnergy', $any($event.target).value)
-                      "
-                    >
-                      <option value="">Any</option>
-                      @for (n of scale; track n) {
-                        <option [value]="n">{{ n }}</option>
-                      }
-                    </select></label
-                  >
-                  <label
-                    ><span>Maximum energy</span
-                    ><select
-                      [value]="view.maxEnergy || ''"
-                      (change)="
-                        updateViewNumber(view.id, 'maxEnergy', $any($event.target).value)
-                      "
-                    >
-                      <option value="">Any</option>
-                      @for (n of scale; track n) {
-                        <option [value]="n">{{ n }}</option>
-                      }
-                    </select></label
-                  >
-                  <label
-                    ><span>Locations</span
-                    ><select
-                      multiple
-                      (change)="updateViewMulti(view.id, 'locationIds', $event)"
-                    >
-                      @for (option of config().locations; track option.id) {
-                        <option
-                          [value]="option.id"
-                          [selected]="(view.locationIds || []).includes(option.id)"
-                        >
-                          {{ option.label }}
-                        </option>
-                      }
-                    </select></label
-                  >
-                  <label
-                    ><span>Requires</span
-                    ><select
-                      multiple
-                      (change)="updateViewMulti(view.id, 'requirementIds', $event)"
-                    >
-                      @for (option of config().requirements; track option.id) {
-                        <option
-                          [value]="option.id"
-                          [selected]="(view.requirementIds || []).includes(option.id)"
-                        >
-                          {{ option.label }}
-                        </option>
-                      }
-                    </select></label
-                  >
-                  <label
-                    ><span>Priorities</span
-                    ><select
-                      multiple
-                      (change)="updateViewMulti(view.id, 'priorityIds', $event)"
-                    >
-                      @for (level of config().priorityLevels; track level.id) {
-                        <option
-                          [value]="level.id"
-                          [selected]="(view.priorityIds || []).includes(level.id)"
-                        >
-                          {{ level.label }}
-                        </option>
-                      }
-                    </select></label
-                  >
-                  <label class="check"
-                    ><input
-                      type="checkbox"
+                    />
+                  </mat-form-field>
+                  <life-field-picker
+                    label="Minimum focus"
+                    defaultIcon="psychology"
+                    emptyLabel="Any"
+                    [options]="focusOptions"
+                    [value]="numberValue(view.minFocus)"
+                    (valueChange)="updateViewNumber(view.id, 'minFocus', $event)"
+                  />
+                  <life-field-picker
+                    label="Maximum focus"
+                    defaultIcon="psychology"
+                    emptyLabel="Any"
+                    [options]="focusOptions"
+                    [value]="numberValue(view.maxFocus)"
+                    (valueChange)="updateViewNumber(view.id, 'maxFocus', $event)"
+                  />
+                  <life-field-picker
+                    label="Minimum energy"
+                    defaultIcon="bolt"
+                    emptyLabel="Any"
+                    [options]="energyOptions"
+                    [value]="numberValue(view.minEnergy)"
+                    (valueChange)="updateViewNumber(view.id, 'minEnergy', $event)"
+                  />
+                  <life-field-picker
+                    label="Maximum energy"
+                    defaultIcon="bolt"
+                    emptyLabel="Any"
+                    [options]="energyOptions"
+                    [value]="numberValue(view.maxEnergy)"
+                    (valueChange)="updateViewNumber(view.id, 'maxEnergy', $event)"
+                  />
+                  <life-field-picker
+                    label="Locations"
+                    defaultIcon="place"
+                    emptyLabel="Anywhere"
+                    [options]="locationOptions()"
+                    [values]="view.locationIds || []"
+                    [multiple]="true"
+                    (valueChange)="updateViewMulti(view.id, 'locationIds', $event)"
+                  />
+                  <life-field-picker
+                    label="Requires"
+                    defaultIcon="build"
+                    emptyLabel="Anything"
+                    [options]="requirementOptions()"
+                    [values]="view.requirementIds || []"
+                    [multiple]="true"
+                    (valueChange)="updateViewMulti(view.id, 'requirementIds', $event)"
+                  />
+                  <life-field-picker
+                    label="Priorities"
+                    defaultIcon="priority_high"
+                    emptyLabel="Any"
+                    [options]="priorityOptions()"
+                    [values]="view.priorityIds || []"
+                    [multiple]="true"
+                    (valueChange)="updateViewMulti(view.id, 'priorityIds', $event)"
+                  />
+                  <div class="checkbox-field">
+                    <mat-checkbox
                       [checked]="!!view.nextActionsOnly"
-                      (change)="
-                        updateView(view.id, {
-                          nextActionsOnly: $any($event.target).checked,
-                        })
-                      "
-                    /><span>Next actions only</span></label
-                  >
+                      (change)="updateView(view.id, { nextActionsOnly: $event.checked })"
+                      >Next actions only</mat-checkbox
+                    >
+                  </div>
                 </div>
                 <button
                   mat-button
@@ -351,12 +368,19 @@ import {
             }
           </div>
           <div class="add-row">
-            <input
-              #viewName
-              placeholder="New Smart View"
-            />
+            <mat-form-field
+              class="grow"
+              subscriptSizing="dynamic"
+            >
+              <mat-label>New Smart View</mat-label>
+              <input
+                matInput
+                #viewName
+                (keydown.enter)="addView(viewName.value); viewName.value = ''"
+              />
+            </mat-form-field>
             <button
-              mat-button
+              mat-stroked-button
               (click)="addView(viewName.value); viewName.value = ''"
             >
               <mat-icon>add</mat-icon>Add Smart View
@@ -368,17 +392,16 @@ import {
       <mat-card>
         <mat-card-content>
           <h2>Weekly Review</h2>
-          <label class="field">
-            <span>Review day</span>
-            <select
-              [value]="config().weeklyReviewDay"
-              (change)="setWeeklyReviewDay($any($event.target).value)"
-            >
-              @for (day of weekDays; track day.value) {
-                <option [value]="day.value">{{ day.label }}</option>
-              }
-            </select>
-          </label>
+          <div class="single-field">
+            <life-field-picker
+              label="Review day"
+              defaultIcon="event_repeat"
+              [allowEmpty]="false"
+              [options]="weekDayOptions"
+              [value]="numberValue(config().weeklyReviewDay)"
+              (valueChange)="setWeeklyReviewDay($event)"
+            />
+          </div>
         </mat-card-content>
       </mat-card>
 
@@ -418,7 +441,7 @@ import {
       .page-head p,
       .hint {
         margin: 0;
-        opacity: 0.68;
+        color: var(--text-color-muted);
       }
       h2 {
         margin: 0 0 5px;
@@ -428,100 +451,84 @@ import {
       .smart-list {
         display: flex;
         flex-direction: column;
-        gap: 6px;
-        margin-top: 12px;
+        gap: var(--s);
+        margin-top: var(--s2);
       }
-      .edit-row {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-      }
-      .edit-row input {
-        flex: 1;
-      }
+      .edit-row,
       .add-row {
         display: flex;
-        gap: 8px;
-        margin-top: 10px;
+        align-items: center;
+        gap: var(--s);
       }
-      .add-row input {
+      .add-row {
+        margin-top: var(--s2);
+      }
+      .grow {
         flex: 1;
+        min-width: 0;
       }
-      input,
-      select {
-        min-height: 42px;
-        border: 1px solid rgba(127, 127, 127, 0.35);
-        border-radius: 8px;
-        padding: 8px 10px;
-        background: transparent;
-        color: inherit;
-        font: inherit;
-        box-sizing: border-box;
+      .priority-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex: 0 0 auto;
       }
-      select[multiple] {
-        min-height: 88px;
+      .context-icon {
+        color: var(--brand);
       }
-      option {
-        color: initial;
-      }
-      .field {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-        margin-top: 12px;
+      .single-field {
         max-width: 360px;
-      }
-      .field > span,
-      .smart-grid label > span {
-        font-size: 0.76rem;
-        opacity: 0.7;
+        margin-top: var(--s2);
       }
       .smart-card {
-        border: 1px solid rgba(127, 127, 127, 0.25);
-        border-radius: 8px;
-        padding: 9px 10px;
+        border: 1px solid var(--divider-color);
+        border-radius: var(--card-border-radius);
+        padding: var(--s) var(--s2);
+        background: var(--bg-lighter);
       }
       .smart-card summary {
         display: flex;
         align-items: center;
-        gap: 7px;
+        gap: var(--s);
         cursor: pointer;
+      }
+      .smart-card summary mat-icon {
+        color: var(--brand);
       }
       .smart-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-        margin-top: 12px;
+        gap: var(--s2);
+        margin-top: var(--s2);
       }
-      .smart-grid label {
+      .checkbox-field {
         display: flex;
-        flex-direction: column;
-        gap: 5px;
-      }
-      .smart-grid .check {
-        flex-direction: row;
+        min-height: 42px;
         align-items: center;
       }
       .reset-row {
         display: flex;
         justify-content: flex-end;
       }
+      mat-form-field,
+      life-field-picker {
+        width: 100%;
+        min-width: 0;
+      }
       @media (max-width: 600px) {
         .settings-page {
           padding: 12px 9px 92px;
         }
-        .page-head {
+        .page-head,
+        .add-row {
           flex-direction: column;
+          align-items: stretch;
         }
         .smart-grid {
           grid-template-columns: 1fr;
         }
-        .add-row {
-          flex-direction: column;
-        }
-        input,
-        select {
-          min-height: 48px;
+        .edit-row {
+          align-items: center;
         }
       }
     `,
@@ -531,15 +538,23 @@ import {
 export class LifeSettingsPageComponent {
   private readonly _life = inject(LifeOsConfigService);
   readonly config = this._life.config;
-  readonly scale = [1, 2, 3, 4, 5] as const;
-  readonly weekDays = [
-    { value: 0, label: 'Sunday' },
-    { value: 1, label: 'Monday' },
-    { value: 2, label: 'Tuesday' },
-    { value: 3, label: 'Wednesday' },
-    { value: 4, label: 'Thursday' },
-    { value: 5, label: 'Friday' },
-    { value: 6, label: 'Saturday' },
+  readonly focusOptions = LIFE_FOCUS_OPTIONS;
+  readonly energyOptions = LIFE_ENERGY_OPTIONS;
+  readonly priorityOptions = computed(() => lifePriorityPickerOptions(this.config()));
+  readonly locationOptions = computed(() =>
+    lifeContextPickerOptions(this.config().locations, 'place'),
+  );
+  readonly requirementOptions = computed(() =>
+    lifeContextPickerOptions(this.config().requirements, 'build'),
+  );
+  readonly weekDayOptions: LifePickerOption[] = [
+    { id: '0', label: 'Sunday', icon: 'event_repeat', color: '#7e57c2' },
+    { id: '1', label: 'Monday', icon: 'event_repeat', color: '#42a5f5' },
+    { id: '2', label: 'Tuesday', icon: 'event_repeat', color: '#26a69a' },
+    { id: '3', label: 'Wednesday', icon: 'event_repeat', color: '#66bb6a' },
+    { id: '4', label: 'Thursday', icon: 'event_repeat', color: '#fbc02d' },
+    { id: '5', label: 'Friday', icon: 'event_repeat', color: '#ff9800' },
+    { id: '6', label: 'Saturday', icon: 'event_repeat', color: '#ec407a' },
   ];
 
   addPriority(raw: string): void {
@@ -619,23 +634,27 @@ export class LifeSettingsPageComponent {
   updateViewNumber(
     id: string,
     key: 'maxEstimateMinutes' | 'minFocus' | 'maxFocus' | 'minEnergy' | 'maxEnergy',
-    raw: string,
+    raw: string | string[],
   ): void {
-    const value = raw ? Number(raw) : null;
+    const rawValue = this.singleValue(raw);
+    const value = rawValue ? Number(rawValue) : null;
     this.updateView(id, { [key]: value });
   }
   updateViewMulti(
     id: string,
     key: 'locationIds' | 'requirementIds' | 'priorityIds',
-    event: Event,
+    raw: string | string[],
   ): void {
-    const select = event.target as HTMLSelectElement;
-    this.updateView(id, {
-      [key]: Array.from(select.selectedOptions).map((option) => option.value),
-    });
+    this.updateView(id, { [key]: Array.isArray(raw) ? raw : raw ? [raw] : [] });
   }
-  setWeeklyReviewDay(raw: string): void {
-    this._life.update({ weeklyReviewDay: Number(raw) });
+  singleValue(raw: string | string[]): string {
+    return Array.isArray(raw) ? raw[0] || '' : raw;
+  }
+  numberValue(value: number | null | undefined): string {
+    return value == null ? '' : String(value);
+  }
+  setWeeklyReviewDay(raw: string | string[]): void {
+    this._life.update({ weeklyReviewDay: Number(this.singleValue(raw)) });
   }
   resetDefaults(): void {
     this._life.update({ ...DEFAULT_LIFE_OS_CONFIG });

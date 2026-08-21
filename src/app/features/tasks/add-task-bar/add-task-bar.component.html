@@ -195,129 +195,15 @@
       <ng-container [ngTemplateOutlet]="inlineActionControls"></ng-container>
     </add-task-bar-actions>
 
-    <div class="lifeos-quick-fields">
-      <label>
-        <span>Priority</span>
-        <select
-          [value]="lifePriorityId()"
-          (change)="lifePriorityId.set($any($event.target).value)"
-        >
-          <option value="">None</option>
-          @for (level of lifeConfig().priorityLevels; track level.id) {
-            <option [value]="level.id">{{ level.label }}</option>
-          }
-        </select>
-      </label>
-      <label>
-        <span>Due</span>
-        <input
-          type="date"
-          [value]="lifeDueDay()"
-          (change)="lifeDueDay.set($any($event.target).value)"
-        />
-      </label>
-      <label>
-        <span>Focus</span>
-        <select
-          [value]="lifeFocus() || ''"
-          (change)="
-            lifeFocus.set($any($event.target).value ? +$any($event.target).value : null)
-          "
-        >
-          <option value="">Any</option>
-          @for (n of [1, 2, 3, 4, 5]; track n) {
-            <option [value]="n">{{ n }} / 5</option>
-          }
-        </select>
-      </label>
-      <label>
-        <span>Energy</span>
-        <select
-          [value]="lifeEnergy() || ''"
-          (change)="
-            lifeEnergy.set($any($event.target).value ? +$any($event.target).value : null)
-          "
-        >
-          <option value="">Any</option>
-          @for (n of [1, 2, 3, 4, 5]; track n) {
-            <option [value]="n">{{ n }} / 5</option>
-          }
-        </select>
-      </label>
-      <button
-        type="button"
-        class="lifeos-more-btn"
-        (click)="lifeMetaExpanded.set(!lifeMetaExpanded())"
-      >
-        <mat-icon>{{ lifeMetaExpanded() ? 'expand_less' : 'tune' }}</mat-icon>
-        {{ lifeMetaExpanded() ? 'Less' : 'More' }}
-      </button>
+    <div class="lifeos-fields">
+      <life-task-fields
+        [config]="lifeConfig()"
+        [value]="lifeMeta()"
+        [blockerSuggestions]="lifeBlockerSuggestions()"
+        [compact]="true"
+        (valueChange)="onLifeMetaChange($event)"
+      />
     </div>
-
-    @if (lifeMetaExpanded()) {
-      <div class="lifeos-more-fields">
-        <label>
-          <span>Location</span>
-          <select
-            [value]="lifeLocationId()"
-            (change)="lifeLocationId.set($any($event.target).value)"
-          >
-            <option value="">Anywhere</option>
-            @for (option of lifeConfig().locations; track option.id) {
-              <option [value]="option.id">{{ option.label }}</option>
-            }
-          </select>
-        </label>
-        <label>
-          <span>Requires</span>
-          <select
-            [value]="lifeRequirementId()"
-            (change)="lifeRequirementId.set($any($event.target).value)"
-          >
-            <option value="">Anything</option>
-            @for (option of lifeConfig().requirements; track option.id) {
-              <option [value]="option.id">{{ option.label }}</option>
-            }
-          </select>
-        </label>
-        <label class="lifeos-check">
-          <input
-            type="checkbox"
-            [checked]="lifeIsNextAction()"
-            (change)="lifeIsNextAction.set($any($event.target).checked)"
-          />
-          <span>Next Action</span>
-        </label>
-        <label
-          ><span>Waiting for</span
-          ><input
-            [value]="lifeWaitingFor()"
-            (input)="lifeWaitingFor.set($any($event.target).value)"
-            placeholder="Person / response / event"
-        /></label>
-        <label
-          ><span>Follow-up</span
-          ><input
-            type="date"
-            [value]="lifeFollowUpDay()"
-            (change)="lifeFollowUpDay.set($any($event.target).value)"
-        /></label>
-        <label
-          ><span>Review</span
-          ><input
-            type="date"
-            [value]="lifeReviewDay()"
-            (change)="lifeReviewDay.set($any($event.target).value)"
-        /></label>
-        <label class="lifeos-wide"
-          ><span>Blocked by task IDs</span
-          ><input
-            [value]="lifeBlockedByIds()"
-            (input)="lifeBlockedByIds.set($any($event.target).value)"
-            placeholder="task-id-1, task-id-2"
-        /></label>
-      </div>
-    }
 
     @if (stateService.isNoteExpanded()) {
       <div
