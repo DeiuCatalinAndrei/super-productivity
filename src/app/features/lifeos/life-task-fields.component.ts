@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckbox } from '@angular/material/checkbox';
@@ -307,10 +314,7 @@ export class LifeTaskFieldsComponent {
     this.patch({ [key]: value ? Number(value) : null });
   }
 
-  setMulti(
-    key: 'locationIds' | 'requirementIds',
-    raw: string | string[],
-  ): void {
+  setMulti(key: 'locationIds' | 'requirementIds', raw: string | string[]): void {
     this.patch({ [key]: Array.isArray(raw) ? raw : raw ? [raw] : [] });
   }
 

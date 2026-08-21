@@ -1,4 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { Store } from '@ngrx/store';
@@ -139,11 +145,7 @@ export class LifeTaskMetaComponent {
     const tasks = this._allTasks();
     const blockedByTaskIds = value.blockedByTaskIds.filter(
       (blockerId) =>
-        !this._contextEngine.wouldCreateDependencyCycle(
-          this.task().id,
-          blockerId,
-          tasks,
-        ),
+        !this._contextEngine.wouldCreateDependencyCycle(this.task().id, blockerId, tasks),
     );
 
     this._update({

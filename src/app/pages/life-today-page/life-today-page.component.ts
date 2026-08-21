@@ -83,7 +83,10 @@ export type LifeTodayTab =
             <input
               matInput
               #quickTitle
-              (keydown.enter)="quickAddFromUi(quickTitle.value, quickMinutes.value); quickTitle.value = ''"
+              (keydown.enter)="
+                quickAddFromUi(quickTitle.value, quickMinutes.value);
+                quickTitle.value = ''
+              "
             />
           </mat-form-field>
 
@@ -144,7 +147,9 @@ export type LifeTodayTab =
             mat-flat-button
             color="primary"
             class="quick-add-btn"
-            (click)="quickAddFromUi(quickTitle.value, quickMinutes.value); quickTitle.value = ''"
+            (click)="
+              quickAddFromUi(quickTitle.value, quickMinutes.value); quickTitle.value = ''
+            "
           >
             <mat-icon>add</mat-icon>Add
           </button>
