@@ -164,11 +164,16 @@ describe('AddTaskBarComponent', () => {
   const mockDateTimeFormatService = jasmine.createSpyObj('DateTimeFormatService', [
     'currentLocale',
     'textLocale',
+    'dateFormat',
     // Reached by the actions bar's date chip as soon as a state has a time on it
     'formatTime',
   ]);
   mockDateTimeFormatService.currentLocale.and.returnValue('en-US');
   mockDateTimeFormatService.textLocale.and.returnValue('en-US');
+  mockDateTimeFormatService.dateFormat.and.returnValue({
+    dateFormat: 'MM/DD/YYYY',
+    humanReadable: 'MM/DD/YYYY',
+  });
   mockDateTimeFormatService.formatTime.and.callFake((timestamp: number) =>
     new Date(timestamp).toLocaleTimeString('en-US', {
       hour: 'numeric',
@@ -557,7 +562,6 @@ describe('AddTaskBarComponent', () => {
         TestBed.inject(TaskRepeatCfgService),
         'addTaskRepeatCfgToTask',
       );
-
       component.stateService.updateInputTxt('Standup');
       component.stateService.updateCleanText('Standup');
       // 2026-03-28 is a Saturday, 2026-03-30 the Monday after it
@@ -699,7 +703,6 @@ describe('AddTaskBarComponent', () => {
         TestBed.inject(TaskRepeatCfgService),
         'addTaskRepeatCfgToTask',
       );
-
       component.stateService.updateInputTxt('Pay rent');
       component.stateService.updateCleanText('Pay rent');
       component.stateService.updateRepeatSetting({
@@ -1117,7 +1120,6 @@ describe('AddTaskBarComponent', () => {
       );
 
       const defaultProject = await component.defaultProject$.pipe(first()).toPromise();
-
       // Should return the project from context, not the configured default
       expect(defaultProject?.id).toBe('project-1');
       expect(defaultProject?.title).toBe('Project 1');
@@ -1257,7 +1259,6 @@ describe('AddTaskBarComponent', () => {
       (mockGlobalConfigService.misc$ as BehaviorSubject<MiscConfig>).next(
         configWithDefault,
       );
-
       const defaultProject = await componentEmptyProjects.defaultProject$
         .pipe(first())
         .toPromise();
@@ -1397,7 +1398,6 @@ describe('AddTaskBarComponent', () => {
       fixture.detectChanges();
       inputEl = fixture.debugElement.nativeElement.querySelector('.main-input');
     });
-
     it('shows the placeholder only while the field is empty', () => {
       expect(inputEl.getAttribute('placeholder')).toBeTruthy();
 
