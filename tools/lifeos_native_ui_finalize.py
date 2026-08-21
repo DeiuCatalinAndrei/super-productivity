@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -39,7 +40,7 @@ for rel in [
     'src/app/pages/life-settings-page/life-settings-page.component.ts',
 ]:
     content = (ROOT / rel).read_text(encoding='utf-8')
-    if '<select' in content:
+    if re.search(r'<select(?:\s|>)', content):
         raise RuntimeError(f'Browser-native select still present in {rel}')
     if 'type="date"' in content:
         raise RuntimeError(f'Browser-native date input still present in {rel}')
