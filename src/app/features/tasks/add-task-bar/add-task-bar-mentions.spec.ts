@@ -85,12 +85,11 @@ describe('AddTaskBarComponent Mentions Integration', () => {
       isEnableDeadline: true,
       isEnableProject: true,
     });
-    const taskServiceSpy = jasmine.createSpyObj('TaskService', [
-      'add',
-      'getByIdOnce$',
-      'scheduleTask',
-      'moveToCurrentWorkContext',
-    ]);
+    const taskServiceSpy = jasmine.createSpyObj(
+      'TaskService',
+      ['add', 'getByIdOnce$', 'scheduleTask', 'moveToCurrentWorkContext'],
+      { allTasks$: of([]) },
+    );
     const workContextServiceSpy = jasmine.createSpyObj('WorkContextService', [], {
       activeWorkContext$: of(null),
       activeWorkContextType: null,
