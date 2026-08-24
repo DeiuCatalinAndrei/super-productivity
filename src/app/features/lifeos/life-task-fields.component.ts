@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  HostBinding,
   input,
   output,
   signal,
@@ -78,9 +79,6 @@ export const createEmptyLifeTaskMeta = (
     LifeDateActionComponent,
   ],
   providers: [provideNativeDateAdapter()],
-  host: {
-    '[class.compact-host]': 'compact()',
-  },
   template: `
     @if (compact()) {
       <div class="life-action-bar">
@@ -540,6 +538,11 @@ export class LifeTaskFieldsComponent {
   readonly blockerSuggestions = input<LifeTaskPickerSuggestion[]>([]);
   readonly compact = input(false);
   readonly valueChange = output<LifeTaskMetaValue>();
+
+  @HostBinding('class.compact-host')
+  get isCompactHost(): boolean {
+    return this.compact();
+  }
 
   readonly expanded = signal(false);
   readonly focusOptions = LIFE_FOCUS_OPTIONS;
