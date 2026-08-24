@@ -1,27 +1,58 @@
-<mat-form-field class="w-full">
-  <mat-label>{{ label() }}</mat-label>
+@if (compact()) {
+  <div class="compact-wrap">
+    <input
+      class="compact-date-input"
+      matInput
+      [matDatepicker]="picker"
+      [ngModel]="innerValue()"
+      (dateChange)="onValueChange($event.value)"
+      [required]="required()"
+      [min]="formatDate(min())"
+      [max]="formatDate(max())"
+      tabindex="-1"
+      aria-hidden="true"
+      type="text"
+    />
 
-  <input
-    matInput
-    [matDatepicker]="picker"
-    [ngModel]="innerValue()"
-    (dateChange)="onValueChange($event.value)"
-    [placeholder]="dateTimeFormatService.dateFormat().humanReadable"
-    [required]="required()"
-    [min]="formatDate(min())"
-    [max]="formatDate(max())"
-    type="text"
-  />
+    <button
+      mat-button
+      type="button"
+      class="compact-date-btn"
+      [class.has-value]="!!innerValue()"
+      (click)="picker.open()"
+    >
+      <mat-icon>{{ compactIcon() }}</mat-icon>
+      <span>{{ compactDisplay() }}</span>
+    </button>
 
-  <mat-datepicker-toggle
-    matSuffix
-    [for]="picker"
-  />
+    <mat-datepicker #picker />
+  </div>
+} @else {
+  <mat-form-field class="w-full">
+    <mat-label>{{ label() }}</mat-label>
 
-  <mat-datepicker #picker />
+    <input
+      matInput
+      [matDatepicker]="picker"
+      [ngModel]="innerValue()"
+      (dateChange)="onValueChange($event.value)"
+      [placeholder]="dateTimeFormatService.dateFormat().humanReadable"
+      [required]="required()"
+      [min]="formatDate(min())"
+      [max]="formatDate(max())"
+      type="text"
+    />
 
-  <!-- If controlled by parent or internal validation -->
-  @if (isInvalid() === true || isInvalid() === undefined) {
-    <mat-error>{{ errorMessage() || (T.V.E_DATETIME | translate) }}</mat-error>
-  }
-</mat-form-field>
+    <mat-datepicker-toggle
+      matSuffix
+      [for]="picker"
+    />
+
+    <mat-datepicker #picker />
+
+    <!-- If controlled by parent or internal validation -->
+    @if (isInvalid() === true || isInvalid() === undefined) {
+      <mat-error>{{ errorMessage() || (T.V.E_DATETIME | translate) }}</mat-error>
+    }
+  </mat-form-field>
+}
