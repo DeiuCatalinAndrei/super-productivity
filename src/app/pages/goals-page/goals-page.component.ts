@@ -458,205 +458,315 @@ interface GoalNode {
         display: block;
         width: 100%;
       }
+
       .goals-page {
-        max-width: 1040px;
+        max-width: 920px;
         margin: 0 auto;
-        padding: 16px;
+        padding: 20px 22px 96px;
         box-sizing: border-box;
       }
+
       .page-head {
         display: flex;
-        gap: 16px;
-        align-items: flex-start;
+        gap: 18px;
+        align-items: center;
         justify-content: space-between;
-        margin-bottom: 14px;
+        margin-bottom: 12px;
       }
+
       .page-head h1 {
-        margin: 0 0 6px;
-        font-size: 1.75rem;
+        margin: 0 0 3px;
+        font-size: 1.48rem;
+        font-weight: 600;
+        letter-spacing: -0.015em;
       }
+
       .page-head p {
         margin: 0;
-        opacity: 0.72;
-        max-width: 720px;
+        max-width: 620px;
+        color: var(--text-color-muted);
+        font-size: 0.8rem;
+        line-height: 1.45;
       }
+
       .header-actions {
         display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-      .view-switch {
-        display: flex;
         gap: 4px;
-        overflow-x: auto;
-        margin: 0 0 14px;
-        padding-bottom: 4px;
+        flex-wrap: nowrap;
       }
-      .view-switch button {
+
+      .header-actions > * {
+        min-height: 36px;
         white-space: nowrap;
       }
-      .view-switch button.active {
-        background: rgba(127, 127, 127, 0.17);
+
+      .view-switch {
+        display: inline-flex;
+        gap: 2px;
+        max-width: 100%;
+        overflow-x: auto;
+        margin: 0 0 12px;
+        padding: 2px;
+        border: 1px solid var(--divider-color);
+        border-radius: var(--card-border-radius);
+        background: color-mix(in srgb, var(--bg-lighter) 80%, transparent);
       }
+
+      .view-switch button {
+        --mat-button-text-label-text-color: var(--text-color-muted);
+        min-width: 0;
+        min-height: 32px;
+        height: 32px;
+        padding-inline: 9px;
+        border-radius: calc(var(--card-border-radius) - 2px) !important;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .view-switch button mat-icon {
+        width: 17px;
+        height: 17px;
+        font-size: 17px;
+        margin-right: 5px;
+      }
+
+      .view-switch button.active {
+        --mat-button-text-label-text-color: var(--text-color-most-intense);
+        background: var(--state-selected);
+      }
+
       .goal-tree {
         display: flex;
         flex-direction: column;
-        gap: 9px;
+        gap: 4px;
       }
+
       .goal-card {
+        --mdc-elevated-card-container-color: transparent;
+        --mdc-elevated-card-container-elevation: none;
         overflow: hidden;
-        margin-left: calc(var(--goal-depth) * 18px);
+        margin-left: calc(var(--goal-depth) * 14px);
+        border: 1px solid color-mix(in srgb, var(--divider-color) 78%, transparent);
+        border-radius: var(--card-border-radius);
+        box-shadow: none !important;
+        background: transparent;
+        transition:
+          background-color var(--transition-fast),
+          border-color var(--transition-fast);
       }
+
+      .goal-card:hover {
+        border-color: color-mix(in srgb, var(--text-color-muted) 34%, transparent);
+        background: color-mix(in srgb, var(--state-hover) 46%, transparent);
+      }
+
       .goal-card.is-project {
-        border-inline-start: 3px solid currentColor;
+        border-inline-start: 1px solid
+          color-mix(in srgb, var(--brand) 45%, var(--divider-color));
       }
+
       .goal-topline {
         display: flex;
         align-items: center;
-        gap: 8px;
+        min-height: 36px;
+        gap: 4px;
       }
+
       .collapse-btn {
+        --mat-icon-button-icon-color: var(--text-color-muted);
         flex: 0 0 auto;
+        width: 32px;
+        height: 32px;
+        padding: 4px;
       }
+
+      .collapse-btn mat-icon {
+        width: 18px;
+        height: 18px;
+        font-size: 18px;
+      }
+
       .goal-title-wrap {
         display: flex;
         align-items: center;
-        gap: 9px;
+        gap: 7px;
         min-width: 0;
         flex: 1;
       }
+
+      .goal-title-wrap > mat-icon {
+        flex: 0 0 auto;
+        width: 18px;
+        height: 18px;
+        font-size: 18px;
+        color: var(--text-color-muted);
+        opacity: 0.82;
+      }
+
       .title-copy {
         min-width: 0;
       }
+
       .title {
         display: block;
-        font-size: 1.05rem;
-        font-weight: 650;
+        font-size: 0.94rem;
+        font-weight: 520;
         color: inherit;
         text-decoration: none;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+
       .kind {
-        font-size: 0.68rem;
-        opacity: 0.58;
+        font-size: 0.63rem;
+        color: var(--text-color-muted);
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.055em;
       }
+
       .progress-number {
-        font-size: 1rem;
-        font-weight: 750;
+        flex: 0 0 auto;
+        margin-inline-start: 6px;
+        padding: 2px 6px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--state-hover) 65%, transparent);
+        color: var(--text-color-muted);
+        font-size: 0.68rem;
+        font-weight: 600;
+        line-height: 1.4;
         white-space: nowrap;
       }
+
       mat-progress-bar {
-        margin-top: 10px;
+        margin-top: 8px;
       }
+
       .stats {
         display: flex;
         flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 10px;
-        font-size: 0.8rem;
-        opacity: 0.76;
+        gap: 10px;
+        margin-top: 9px;
+        color: var(--text-color-muted);
+        font-size: 0.76rem;
       }
+
       .stats span {
         display: inline-flex;
         gap: 4px;
         align-items: center;
       }
+
       .stats mat-icon {
-        width: 16px;
-        height: 16px;
-        font-size: 16px;
+        width: 15px;
+        height: 15px;
+        font-size: 15px;
       }
+
       .dates,
       .defaults-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-        margin-top: 12px;
+        gap: 8px;
+        margin-top: 10px;
       }
+
       label {
         display: flex;
         flex-direction: column;
         gap: 5px;
         font-size: 0.76rem;
       }
+
       input,
       select {
         color: inherit;
         background: transparent;
-        border: 1px solid rgba(127, 127, 127, 0.35);
-        border-radius: 8px;
-        padding: 9px;
+        border: 1px solid var(--divider-color);
+        border-radius: var(--card-border-radius);
+        padding: 8px;
         font: inherit;
-        min-height: 42px;
+        min-height: 40px;
         box-sizing: border-box;
       }
+
       select[multiple] {
-        min-height: 76px;
+        min-height: 72px;
       }
+
       select {
         color-scheme: light dark;
         background: Canvas;
         color: CanvasText;
       }
+
       option {
         background: Canvas;
         color: CanvasText;
       }
+
       .defaults {
-        margin-top: 12px;
-        border: 1px solid rgba(127, 127, 127, 0.22);
-        border-radius: 8px;
-        padding: 8px 10px;
+        margin-top: 10px;
+        border: 1px solid var(--divider-color);
+        border-radius: var(--card-border-radius);
+        padding: 7px 9px;
       }
+
       .defaults summary {
         cursor: pointer;
-        font-weight: 600;
+        color: var(--text-color-muted);
+        font-size: 0.78rem;
+        font-weight: 550;
       }
+
       .direct-tasks {
-        margin-top: 12px;
-        border-top: 1px solid rgba(127, 127, 127, 0.2);
-        padding-top: 8px;
+        margin-top: 10px;
+        border-top: 1px solid var(--divider-color);
+        padding-top: 7px;
       }
+
       .section-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 8px;
       }
+
       .task-empty {
-        padding: 8px 0;
-        opacity: 0.55;
-        font-size: 0.82rem;
+        padding: 7px 0;
+        color: var(--text-color-muted);
+        font-size: 0.78rem;
       }
+
       .task-row {
         width: 100%;
         display: flex;
-        gap: 7px;
+        gap: 6px;
         align-items: center;
         color: inherit;
         background: transparent;
         border: 0;
-        border-radius: 7px;
-        padding: 8px 6px;
+        border-radius: 6px;
+        padding: 6px 5px;
         text-align: left;
         cursor: pointer;
       }
+
       .task-row:hover {
-        background: rgba(127, 127, 127, 0.1);
+        background: var(--state-hover);
       }
+
       .task-row mat-icon {
-        width: 18px;
-        height: 18px;
-        font-size: 18px;
+        width: 17px;
+        height: 17px;
+        font-size: 17px;
       }
+
       .task-toggle {
+        --mat-icon-button-icon-color: var(--text-color-muted);
         flex: 0 0 auto;
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -667,9 +777,11 @@ interface GoalNode {
         cursor: pointer;
         padding: 0;
       }
+
       .task-toggle:hover {
-        background: rgba(127, 127, 127, 0.14);
+        background: var(--state-hover);
       }
+
       .task-title {
         flex: 1;
         min-width: 0;
@@ -677,99 +789,173 @@ interface GoalNode {
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+
       .task-title.done {
         text-decoration: line-through;
         opacity: 0.58;
       }
+
       .chip {
-        font-size: 0.67rem;
+        font-size: 0.64rem;
         padding: 2px 6px;
         border-radius: 999px;
-        background: rgba(127, 127, 127, 0.16);
+        background: var(--state-hover);
+        color: var(--text-color-muted);
         white-space: nowrap;
       }
+
       .chip.next {
-        font-weight: 700;
+        color: var(--text-color-most-intense);
+        font-weight: 600;
       }
+
       .actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 4px;
-        margin-top: 10px;
+        gap: 2px;
+        margin-top: 8px;
       }
+
+      .actions button {
+        min-height: 34px;
+        font-size: 12px;
+      }
+
       .title-only mat-card-content {
-        padding-block: 7px;
+        padding: 3px 7px;
       }
+
       .title-only .kind {
         display: none;
       }
+
       .tree-tasks {
-        margin: 5px 0 0 42px;
+        margin: 1px 0 4px 39px;
+        padding-inline-start: 6px;
         display: flex;
         flex-direction: column;
+        border-inline-start: 1px solid var(--divider-color);
       }
+
       .tree-task-row {
         display: flex;
         align-items: center;
-        gap: 6px;
-        padding: 4px;
-        border-radius: 6px;
+        gap: 5px;
+        min-height: 28px;
+        padding: 1px 4px;
+        border-radius: 5px;
+        color: var(--text-color-muted);
+        font-size: 0.84rem;
         cursor: pointer;
       }
+
       .tree-task-row:hover {
-        background: rgba(127, 127, 127, 0.1);
+        background: var(--state-hover);
+        color: var(--text-color-most-intense);
       }
+
       .tree-task-row .done {
         text-decoration: line-through;
         opacity: 0.58;
       }
+
       .tree-tasks mat-icon {
-        width: 16px;
-        height: 16px;
-        font-size: 16px;
+        width: 15px;
+        height: 15px;
+        font-size: 15px;
       }
+
+      .tree-task-row .task-toggle {
+        width: 24px;
+        height: 24px;
+      }
+
       .compact-view .goal-card {
         margin-left: 0;
       }
+
       .empty-card {
+        --mdc-elevated-card-container-elevation: none;
+        max-width: 520px;
+        margin: 28px auto 0;
+        padding: 20px;
         text-align: center;
-        padding: 22px;
+        border: 1px solid var(--divider-color);
+        box-shadow: none !important;
       }
+
       .empty-card mat-icon {
-        font-size: 42px;
-        width: 42px;
-        height: 42px;
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
+        color: var(--text-color-muted);
       }
+
+      .empty-card h2 {
+        margin-block: 8px 4px;
+        font-size: 1.05rem;
+        font-weight: 600;
+      }
+
+      .empty-card p {
+        color: var(--text-color-muted);
+        font-size: 0.82rem;
+      }
+
       @media (max-width: 600px) {
         .goals-page {
           padding: 12px 9px 92px;
         }
+
         .page-head {
           align-items: stretch;
           flex-direction: column;
+          gap: 10px;
         }
+
+        .page-head p {
+          font-size: 0.76rem;
+        }
+
         .header-actions > * {
-          min-height: 46px;
+          min-height: 40px;
           flex: 1;
         }
-        .goal-card {
-          margin-left: 0;
-          border-inline-start: calc(2px + min(var(--goal-depth), 3) * 2px) solid
-            rgba(127, 127, 127, 0.28);
+
+        .view-switch {
+          display: flex;
+          width: 100%;
+          box-sizing: border-box;
         }
+
+        .view-switch button {
+          flex: 1 0 auto;
+        }
+
+        .goal-card {
+          margin-left: calc(min(var(--goal-depth), 3) * 5px);
+        }
+
         .dates,
         .defaults-grid {
           grid-template-columns: 1fr;
         }
+
         .actions button,
         .actions a {
-          min-height: 44px;
+          min-height: 40px;
           min-width: 0;
-          padding-inline: 8px;
+          padding-inline: 7px;
         }
+
         .task-row {
-          min-height: 44px;
+          min-height: 40px;
         }
+
+        .tree-tasks {
+          margin-left: 32px;
+        }
+
         .chip:nth-of-type(n + 4) {
           display: none;
         }
@@ -784,7 +970,7 @@ export class GoalsPageComponent {
   private readonly _dialog = inject(MatDialog);
   private readonly _lifeConfigService = inject(LifeOsConfigService);
 
-  readonly viewMode = signal<LifeGoalViewMode>('full');
+  readonly viewMode = signal<LifeGoalViewMode>('tree');
   readonly collapsed = signal<Set<string>>(new Set());
   readonly scale = [1, 2, 3, 4, 5] as const;
   readonly lifeConfig = this._lifeConfigService.config;
