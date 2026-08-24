@@ -16,13 +16,20 @@ import { LifePickerOption } from './life-ui.const';
   standalone: true,
   imports: [MatButtonModule, MatIconModule, MatMenuModule, SelectOptionRowComponent],
   template: `
-    <div class="field-shell">
-      <span class="field-label">{{ label() }}</span>
+    <div
+      class="field-shell"
+      [class.compact]="compact()"
+    >
+      @if (!compact()) {
+        <span class="field-label">{{ label() }}</span>
+      }
       <button
+        #pickerTrigger="matMenuTrigger"
         mat-button
         type="button"
         class="picker-btn"
         [class.has-value]="selectedOptions().length > 0"
+        [class.menu-open]="pickerTrigger.menuOpen"
         [matMenuTriggerFor]="pickerMenu"
       >
         @if (selectedOptions()[0]; as selected) {
@@ -38,9 +45,15 @@ import { LifePickerOption } from './life-ui.const';
           }
         } @else {
           <mat-icon class="leading-icon">{{ defaultIcon() }}</mat-icon>
-          <span class="picker-value muted">{{ emptyLabel() }}</span>
+          <span
+            class="picker-value"
+            [class.muted]="!compact()"
+            >{{ compact() ? label() : emptyLabel() }}</span
+          >
         }
-        <mat-icon class="chevron">arrow_drop_down</mat-icon>
+        @if (!compact()) {
+          <mat-icon class="chevron">arrow_drop_down</mat-icon>
+        }
       </button>
     </div>
 
@@ -70,13 +83,12 @@ import { LifePickerOption } from './life-ui.const';
           <button
             mat-menu-item
             type="button"
+            [class.selected]="!value()"
             (click)="selectSingle('')"
           >
             <select-option-row
               [title]="emptyLabel()"
               [defaultIcon]="defaultIcon()"
-              [isSelected]="!value()"
-              [showCheckbox]="true"
             />
           </button>
         }
@@ -92,8 +104,6 @@ import { LifePickerOption } from './life-ui.const';
               [icon]="option.icon"
               [defaultIcon]="defaultIcon()"
               [color]="option.color"
-              [isSelected]="value() === option.id"
-              [showCheckbox]="true"
             />
           </button>
         }
@@ -192,9 +202,50 @@ import { LifePickerOption } from './life-ui.const';
         color: var(--text-color-muted);
       }
 
+      .field-shell.compact .picker-btn {
+        width: auto;
+        min-width: 70px !important;
+        min-height: 36px;
+        height: 36px;
+        padding: 0 var(--s) !important;
+        border: 0;
+        border-radius: var(--card-border-radius) !important;
+        background: transparent;
+        font-size: 13px;
+        flex-shrink: 0;
+      }
+
+      .field-shell.compact .picker-btn:hover,
+      .field-shell.compact .picker-btn:focus-visible {
+        background: var(--state-hover);
+        border-color: transparent;
+      }
+
+      .field-shell.compact .picker-btn.menu-open {
+        --mat-button-text-label-text-color: var(--text-color-most-intense);
+        background: var(--state-focus);
+      }
+
+      .field-shell.compact .picker-btn.has-value .leading-icon:not(.dot-icon) {
+        color: var(--brand);
+      }
+
+      .field-shell.compact .picker-value {
+        flex: 0 1 auto;
+        max-width: 140px;
+      }
+
+      .field-shell.compact .more-count {
+        margin-inline-start: var(--s-quarter);
+      }
+
       @media (max-width: 600px) {
-        .picker-btn {
+        .picker-btn:not(.field-shell.compact .picker-btn) {
           min-height: 48px;
+        }
+
+        .field-shell.compact .picker-btn {
+          font-size: 12px;
         }
       }
     `,
@@ -210,6 +261,7 @@ export class LifeFieldPickerComponent {
   readonly allowEmpty = input(true);
   readonly emptyLabel = input('Any');
   readonly defaultIcon = input('tune');
+  readonly compact = input(false);
   readonly valueChange = output<string | string[]>();
 
   readonly selectedOptions = computed(() => {
