@@ -26,7 +26,7 @@ import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import { LS } from '../../../core/persistence/storage-keys.const';
 import { blendInOutAnimation } from 'src/app/ui/animations/blend-in-out.ani';
 import { expandFadeAnimation } from '../../../ui/animations/expand.ani';
-import { TaskCopy, TaskReminderOptionId } from '../task.model';
+import { Task, TaskCopy, TaskReminderOptionId } from '../task.model';
 import { TaskService } from '../task.service';
 import { WorkContextService } from '../../work-context/work-context.service';
 import { WorkContext, WorkContextType } from '../../work-context/work-context.model';
@@ -90,6 +90,12 @@ import { DateService } from '../../../core/date/date.service';
 import { MenuTreeService } from '../../menu-tree/menu-tree.service';
 import { SelectOptionRowComponent } from '../../../ui/select-option-row/select-option-row.component';
 import { LifeOsConfigService } from '../../lifeos/life-os-config.service';
+import {
+  createEmptyLifeTaskMeta,
+  LifeTaskFieldsComponent,
+  LifeTaskMetaValue,
+  LifeTaskPickerSuggestion,
+} from '../../lifeos/life-task-fields.component';
 
 export interface TaskAddEvent {
   taskId: string;
@@ -122,6 +128,7 @@ export interface TaskAddEvent {
     AddTaskBarActionsComponent,
     TranslateModule,
     SelectOptionRowComponent,
+    LifeTaskFieldsComponent,
   ],
   providers: [AddTaskBarStateService, AddTaskBarParserService],
 })
@@ -147,18 +154,16 @@ export class AddTaskBarComponent implements AfterViewInit, OnInit, OnDestroy {
 
   T = T;
   readonly lifeConfig = this._lifeOsConfigService.config;
-  readonly lifeMetaExpanded = signal(false);
-  readonly lifePriorityId = signal('');
-  readonly lifeFocus = signal<number | null>(null);
-  readonly lifeEnergy = signal<number | null>(null);
-  readonly lifeDueDay = signal('');
-  readonly lifeLocationId = signal('');
-  readonly lifeRequirementId = signal('');
-  readonly lifeIsNextAction = signal(false);
-  readonly lifeWaitingFor = signal('');
-  readonly lifeFollowUpDay = signal('');
-  readonly lifeReviewDay = signal('');
-  readonly lifeBlockedByIds = signal('');
+  readonly lifeMeta = signal<LifeTaskMetaValue>(createEmptyLifeTaskMeta());
+  private readonly _allTasksForLife = toSignal(this._taskService.allTasks$, {
+    initialValue: [] as Task[],
+  });
+  readonly lifeBlockerSuggestions = computed<LifeTaskPickerSuggestion[]>(() =>
+    this._allTasksForLife()
+      .filter((task) => !task.isDone)
+      .map((task) => ({ id: task.id, title: task.title }))
+      .sort((a, b) => a.title.localeCompare(b.title)),
+  );
 
   // Inputs
   tabindex = input<number>(0);
@@ -354,7 +359,7 @@ export class AddTaskBarComponent implements AfterViewInit, OnInit, OnDestroy {
   private _defaultTagIds: string[] = [];
 
   ngOnInit(): void {
-    this.lifePriorityId.set(this.lifeConfig().defaultPriorityId || '');
+    this.lifeMeta.set(createEmptyLifeTaskMeta(this.lifeConfig().defaultPriorityId));
     this._setProjectInitially();
     this._setTagInitially();
     this._setupDefaultDate();
@@ -524,22 +529,18 @@ export class AddTaskBarComponent implements AfterViewInit, OnInit, OnDestroy {
             : additionalFields?.attachments || [],
       };
 
-      taskData.lifePriorityId = this.lifePriorityId() || null;
-      taskData.lifeFocus = this.lifeFocus();
-      taskData.lifeEnergy = this.lifeEnergy();
-      taskData.lifeDueDay = this.lifeDueDay() || null;
-      taskData.lifeLocationIds = this.lifeLocationId() ? [this.lifeLocationId()] : [];
-      taskData.lifeRequirementIds = this.lifeRequirementId()
-        ? [this.lifeRequirementId()]
-        : [];
-      taskData.lifeIsNextAction = this.lifeIsNextAction();
-      taskData.lifeWaitingFor = this.lifeWaitingFor().trim() || null;
-      taskData.lifeFollowUpDay = this.lifeFollowUpDay() || null;
-      taskData.lifeReviewDay = this.lifeReviewDay() || null;
-      taskData.lifeBlockedByTaskIds = this.lifeBlockedByIds()
-        .split(',')
-        .map((id) => id.trim())
-        .filter(Boolean);
+      const lifeMeta = this.lifeMeta();
+      taskData.lifePriorityId = lifeMeta.priorityId;
+      taskData.lifeFocus = lifeMeta.focus;
+      taskData.lifeEnergy = lifeMeta.energy;
+      taskData.lifeDueDay = lifeMeta.dueDay;
+      taskData.lifeLocationIds = lifeMeta.locationIds;
+      taskData.lifeRequirementIds = lifeMeta.requirementIds;
+      taskData.lifeIsNextAction = lifeMeta.isNextAction;
+      taskData.lifeWaitingFor = lifeMeta.waitingFor;
+      taskData.lifeFollowUpDay = lifeMeta.waitingFor ? lifeMeta.followUpDay : null;
+      taskData.lifeReviewDay = lifeMeta.reviewDay;
+      taskData.lifeBlockedByTaskIds = lifeMeta.blockedByTaskIds;
 
       const note = this.stateService.noteTxt().trim();
       if (note) {
@@ -700,18 +701,12 @@ export class AddTaskBarComponent implements AfterViewInit, OnInit, OnDestroy {
     }
   }
 
+  onLifeMetaChange(value: LifeTaskMetaValue): void {
+    this.lifeMeta.set(value);
+  }
+
   private _resetLifeMeta(): void {
-    this.lifePriorityId.set(this.lifeConfig().defaultPriorityId || '');
-    this.lifeFocus.set(null);
-    this.lifeEnergy.set(null);
-    this.lifeDueDay.set('');
-    this.lifeLocationId.set('');
-    this.lifeRequirementId.set('');
-    this.lifeIsNextAction.set(false);
-    this.lifeWaitingFor.set('');
-    this.lifeFollowUpDay.set('');
-    this.lifeReviewDay.set('');
-    this.lifeBlockedByIds.set('');
+    this.lifeMeta.set(createEmptyLifeTaskMeta(this.lifeConfig().defaultPriorityId));
   }
 
   onSubmitBtnClick(): void {

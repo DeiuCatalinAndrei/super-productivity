@@ -71,7 +71,7 @@ test.describe('Task detail', () => {
     const completedInfoText = await completedInfo.textContent();
     await completedInfo.click();
 
-    await page.locator('mat-datepicker-toggle button').first().click();
+    await page.getByRole('dialog').locator('mat-datepicker-toggle button').click();
     await page.getByRole('button', { name: 'Next month' }).click();
     // Picking the first day of the next month should guarantee a change
     await page.locator('mat-month-view button').first().click();

@@ -10,6 +10,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { Router, RouterModule } from '@angular/router';
 import { HabitTrackerComponent } from '../../features/simple-counter/habit-tracker/habit-tracker.component';
 import { SimpleCounterService } from '../../features/simple-counter/simple-counter.service';
@@ -21,6 +23,14 @@ import { TaskService } from '../../features/tasks/task.service';
 import { GlobalConfigService } from '../../features/config/global-config.service';
 import { INBOX_PROJECT } from '../../features/project/project.const';
 import { getDbDateStr } from '../../util/get-db-date-str';
+import { LifeFieldPickerComponent } from '../../features/lifeos/life-field-picker.component';
+import {
+  LIFE_ENERGY_OPTIONS,
+  LIFE_FOCUS_OPTIONS,
+  LifePickerOption,
+  lifeContextPickerOptions,
+  lifePriorityPickerOptions,
+} from '../../features/lifeos/life-ui.const';
 
 export type LifeTodayTab =
   | 'overview'
@@ -41,6 +51,9 @@ export type LifeTodayTab =
     MatButtonModule,
     MatCardModule,
     MatIconModule,
+    MatFormFieldModule,
+    MatInputModule,
+    LifeFieldPickerComponent,
     HabitTrackerComponent,
   ],
   template: `
@@ -62,78 +75,80 @@ export type LifeTodayTab =
           <mat-icon>add_circle</mat-icon><strong>Quick Capture</strong>
         </div>
         <div class="quick-grid">
-          <input
-            #quickTitle
+          <mat-form-field
             class="title-input"
-            placeholder="What needs to be done?"
-            (keydown.enter)="
-              quickAdd(
-                quickTitle.value,
-                quickPriority.value,
-                quickFocus.value,
-                quickEnergy.value,
-                quickMinutes.value,
-                quickLocation.value,
-                quickRequirement.value
-              );
-              quickTitle.value = ''
-            "
+            subscriptSizing="dynamic"
+          >
+            <mat-label>What needs to be done?</mat-label>
+            <input
+              matInput
+              #quickTitle
+              (keydown.enter)="
+                quickAddFromUi(quickTitle.value, quickMinutes.value);
+                quickTitle.value = ''
+              "
+            />
+          </mat-form-field>
+
+          <life-field-picker
+            label="Priority"
+            defaultIcon="priority_high"
+            emptyLabel="None"
+            [options]="priorityOptions()"
+            [value]="quickPriorityId()"
+            (valueChange)="quickPriorityId.set(singlePickerValue($event))"
           />
-          <select #quickPriority>
-            <option value="">Priority</option>
-            @for (level of config().priorityLevels; track level.id) {
-              <option
-                [value]="level.id"
-                [selected]="level.id === config().defaultPriorityId"
-              >
-                {{ level.label }}
-              </option>
-            }
-          </select>
-          <select #quickFocus>
-            <option value="">Focus</option>
-            @for (n of scale; track n) {
-              <option [value]="n">F{{ n }}</option>
-            }
-          </select>
-          <select #quickEnergy>
-            <option value="">Energy</option>
-            @for (n of scale; track n) {
-              <option [value]="n">E{{ n }}</option>
-            }
-          </select>
-          <input
-            #quickMinutes
-            type="number"
-            min="1"
-            placeholder="Minutes"
+          <life-field-picker
+            label="Focus"
+            defaultIcon="psychology"
+            emptyLabel="Any"
+            [options]="focusOptions"
+            [value]="numberPickerValue(quickFocus())"
+            (valueChange)="quickFocus.set(numberFromPicker($event))"
           />
-          <select #quickLocation>
-            <option value="">Location</option>
-            @for (option of config().locations; track option.id) {
-              <option [value]="option.id">{{ option.label }}</option>
-            }
-          </select>
-          <select #quickRequirement>
-            <option value="">Requires</option>
-            @for (option of config().requirements; track option.id) {
-              <option [value]="option.id">{{ option.label }}</option>
-            }
-          </select>
+          <life-field-picker
+            label="Energy"
+            defaultIcon="bolt"
+            emptyLabel="Any"
+            [options]="energyOptions"
+            [value]="numberPickerValue(quickEnergy())"
+            (valueChange)="quickEnergy.set(numberFromPicker($event))"
+          />
+
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>Estimate</mat-label>
+            <input
+              matInput
+              #quickMinutes
+              type="number"
+              min="1"
+              placeholder="Minutes"
+            />
+          </mat-form-field>
+
+          <life-field-picker
+            label="Location"
+            defaultIcon="place"
+            emptyLabel="Anywhere"
+            [options]="locationOptions()"
+            [value]="quickLocationId()"
+            (valueChange)="quickLocationId.set(singlePickerValue($event))"
+          />
+          <life-field-picker
+            label="Requires"
+            defaultIcon="build"
+            emptyLabel="Anything"
+            [options]="requirementOptions()"
+            [value]="quickRequirementId()"
+            (valueChange)="quickRequirementId.set(singlePickerValue($event))"
+          />
+
           <button
             mat-flat-button
             color="primary"
+            class="quick-add-btn"
             (click)="
-              quickAdd(
-                quickTitle.value,
-                quickPriority.value,
-                quickFocus.value,
-                quickEnergy.value,
-                quickMinutes.value,
-                quickLocation.value,
-                quickRequirement.value
-              );
-              quickTitle.value = ''
+              quickAddFromUi(quickTitle.value, quickMinutes.value); quickTitle.value = ''
             "
           >
             <mat-icon>add</mat-icon>Add
@@ -268,68 +283,46 @@ export type LifeTodayTab =
               <span>{{ bestNow().length }} recommendations</span>
             </div>
             <div class="now-controls">
-              <label>
-                <span>Available time</span>
-                <select
-                  [value]="availableMinutes() || ''"
-                  (change)="setAvailableMinutes($any($event.target).value)"
-                >
-                  <option value="">Any</option>
-                  <option value="10">10 minutes</option>
-                  <option value="15">15 minutes</option>
-                  <option value="30">30 minutes</option>
-                  <option value="45">45 minutes</option>
-                  <option value="60">1 hour</option>
-                  <option value="90">90 minutes</option>
-                  <option value="120">2 hours</option>
-                </select>
-              </label>
-              <label>
-                <span>Focus available</span>
-                <select
-                  [value]="currentFocus() || ''"
-                  (change)="setCurrentFocus($any($event.target).value)"
-                >
-                  <option value="">Any</option>
-                  @for (n of scale; track n) {
-                    <option [value]="n">{{ n }} / 5</option>
-                  }
-                </select>
-              </label>
-              <label>
-                <span>Energy available</span>
-                <select
-                  [value]="currentEnergy() || ''"
-                  (change)="setCurrentEnergy($any($event.target).value)"
-                >
-                  <option value="">Any</option>
-                  @for (n of scale; track n) {
-                    <option [value]="n">{{ n }} / 5</option>
-                  }
-                </select>
-              </label>
-              <label>
-                <span>Location</span>
-                <select
-                  [value]="currentLocationId()"
-                  (change)="currentLocationId.set($any($event.target).value)"
-                >
-                  @for (option of config().locations; track option.id) {
-                    <option [value]="option.id">{{ option.label }}</option>
-                  }
-                </select>
-              </label>
-              <label>
-                <span>Available tool / device</span>
-                <select
-                  [value]="currentRequirementId()"
-                  (change)="currentRequirementId.set($any($event.target).value)"
-                >
-                  @for (option of config().requirements; track option.id) {
-                    <option [value]="option.id">{{ option.label }}</option>
-                  }
-                </select>
-              </label>
+              <life-field-picker
+                label="Available time"
+                defaultIcon="schedule"
+                emptyLabel="Any"
+                [options]="availableTimeOptions"
+                [value]="numberPickerValue(availableMinutes())"
+                (valueChange)="setAvailableMinutes(singlePickerValue($event))"
+              />
+              <life-field-picker
+                label="Focus available"
+                defaultIcon="psychology"
+                emptyLabel="Any"
+                [options]="focusOptions"
+                [value]="numberPickerValue(currentFocus())"
+                (valueChange)="setCurrentFocus(singlePickerValue($event))"
+              />
+              <life-field-picker
+                label="Energy available"
+                defaultIcon="bolt"
+                emptyLabel="Any"
+                [options]="energyOptions"
+                [value]="numberPickerValue(currentEnergy())"
+                (valueChange)="setCurrentEnergy(singlePickerValue($event))"
+              />
+              <life-field-picker
+                label="Location"
+                defaultIcon="place"
+                emptyLabel="Anywhere"
+                [options]="locationOptions()"
+                [value]="currentLocationId()"
+                (valueChange)="currentLocationId.set(singlePickerValue($event))"
+              />
+              <life-field-picker
+                label="Available tool / device"
+                defaultIcon="build"
+                emptyLabel="Anything"
+                [options]="requirementOptions()"
+                [value]="currentRequirementId()"
+                (valueChange)="currentRequirementId.set(singlePickerValue($event))"
+              />
             </div>
           </div>
 
@@ -576,27 +569,6 @@ export type LifeTodayTab =
       .now-controls label > span {
         font-size: 0.72rem;
         opacity: 0.68;
-      }
-      input,
-      select {
-        min-height: 42px;
-        min-width: 0;
-        border: 1px solid rgba(127, 127, 127, 0.35);
-        border-radius: 8px;
-        padding: 8px;
-        background: transparent;
-        color: inherit;
-        font: inherit;
-        box-sizing: border-box;
-      }
-      select {
-        color-scheme: light dark;
-        background: Canvas;
-        color: CanvasText;
-      }
-      option {
-        background: Canvas;
-        color: CanvasText;
       }
       .tabs,
       .smart-buttons {
@@ -870,6 +842,24 @@ export class LifeTodayPageComponent {
   readonly tab = signal<LifeTodayTab>(this.isSmartViewsRoute ? 'context' : 'overview');
   readonly scale = [1, 2, 3, 4, 5] as const;
   readonly scaleDesc = [5, 4, 3, 2, 1] as const;
+  readonly focusOptions = LIFE_FOCUS_OPTIONS;
+  readonly energyOptions = LIFE_ENERGY_OPTIONS;
+  readonly availableTimeOptions: LifePickerOption[] = [
+    { id: '10', label: '10 minutes', icon: 'schedule', color: '#26a69a' },
+    { id: '15', label: '15 minutes', icon: 'schedule', color: '#42a5f5' },
+    { id: '30', label: '30 minutes', icon: 'schedule', color: '#5c6bc0' },
+    { id: '45', label: '45 minutes', icon: 'schedule', color: '#7e57c2' },
+    { id: '60', label: '1 hour', icon: 'schedule', color: '#ab47bc' },
+    { id: '90', label: '90 minutes', icon: 'schedule', color: '#ec407a' },
+    { id: '120', label: '2 hours', icon: 'schedule', color: '#ef5350' },
+  ];
+  readonly priorityOptions = computed(() => lifePriorityPickerOptions(this.config()));
+  readonly locationOptions = computed(() =>
+    lifeContextPickerOptions(this.config().locations, 'place'),
+  );
+  readonly requirementOptions = computed(() =>
+    lifeContextPickerOptions(this.config().requirements, 'build'),
+  );
   readonly tabs: { id: LifeTodayTab; label: string; icon: string }[] = [
     { id: 'overview', label: 'Overview', icon: 'dashboard' },
     { id: 'now', label: 'Now', icon: 'auto_awesome' },
@@ -885,6 +875,11 @@ export class LifeTodayPageComponent {
     initialValue: [] as Task[],
   });
   readonly selectedSmartViewId = signal<string>('on-the-go');
+  readonly quickPriorityId = signal<string>(this.config().defaultPriorityId || '');
+  readonly quickFocus = signal<number | null>(null);
+  readonly quickEnergy = signal<number | null>(null);
+  readonly quickLocationId = signal<string>('');
+  readonly quickRequirementId = signal<string>('');
   readonly availableMinutes = signal<number | null>(30);
   readonly currentFocus = signal<number | null>(3);
   readonly currentEnergy = signal<number | null>(3);
@@ -956,6 +951,31 @@ export class LifeTodayPageComponent {
           (a.lifeDueDay || '9999').localeCompare(b.lifeDueDay || '9999'),
       );
   });
+
+  singlePickerValue(raw: string | string[]): string {
+    return Array.isArray(raw) ? raw[0] || '' : raw;
+  }
+
+  numberPickerValue(value: number | null): string {
+    return value == null ? '' : String(value);
+  }
+
+  numberFromPicker(raw: string | string[]): number | null {
+    const value = this.singlePickerValue(raw);
+    return value ? Number(value) : null;
+  }
+
+  quickAddFromUi(title: string, minutes: string): void {
+    this.quickAdd(
+      title,
+      this.quickPriorityId(),
+      this.numberPickerValue(this.quickFocus()),
+      this.numberPickerValue(this.quickEnergy()),
+      minutes,
+      this.quickLocationId(),
+      this.quickRequirementId(),
+    );
+  }
 
   quickAdd(
     titleRaw: string,

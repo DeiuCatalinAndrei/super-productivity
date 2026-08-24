@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -32,6 +33,15 @@ import { Task } from '../../features/tasks/task.model';
 import { TaskService } from '../../features/tasks/task.service';
 import { LifeOsConfigService } from '../../features/lifeos/life-os-config.service';
 import { LifeGoalViewMode } from '../../features/lifeos/life-os.model';
+import { DatePickerInputComponent } from '../../ui/date-picker-input/date-picker-input.component';
+import { LifeFieldPickerComponent } from '../../features/lifeos/life-field-picker.component';
+import {
+  LIFE_ENERGY_OPTIONS,
+  LIFE_FOCUS_OPTIONS,
+  lifeContextPickerOptions,
+  lifePriorityPickerOptions,
+} from '../../features/lifeos/life-ui.const';
+import { getDbDateStr } from '../../util/get-db-date-str';
 
 interface GoalNode {
   project: Project;
@@ -47,12 +57,15 @@ interface GoalNode {
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     RouterModule,
     MatButtonModule,
     MatCardModule,
     MatDialogModule,
     MatIconModule,
     MatProgressBarModule,
+    DatePickerInputComponent,
+    LifeFieldPickerComponent,
   ],
   template: `
     <main class="goals-page">
@@ -194,145 +207,97 @@ interface GoalNode {
                 </div>
 
                 <div class="dates">
-                  <label>
-                    <span>Due date</span>
-                    <input
-                      type="date"
-                      [value]="node.project.goalTargetDay || ''"
-                      (change)="
-                        setGoalDate(
-                          node.project.id,
-                          'goalTargetDay',
-                          $any($event.target).value
-                        )
-                      "
-                    />
-                  </label>
-                  <label>
-                    <span>Deadline</span>
-                    <input
-                      type="date"
-                      [value]="node.project.goalDeadlineDay || ''"
-                      (change)="
-                        setGoalDate(
-                          node.project.id,
-                          'goalDeadlineDay',
-                          $any($event.target).value
-                        )
-                      "
-                    />
-                  </label>
+                  <date-picker-input
+                    label="Due date"
+                    [ngModel]="node.project.goalTargetDay"
+                    (ngModelChange)="
+                      setGoalDateFromPicker(node.project.id, 'goalTargetDay', $event)
+                    "
+                  />
+                  <date-picker-input
+                    label="Deadline"
+                    [ngModel]="node.project.goalDeadlineDay"
+                    (ngModelChange)="
+                      setGoalDateFromPicker(node.project.id, 'goalDeadlineDay', $event)
+                    "
+                  />
                 </div>
 
                 <details class="defaults">
                   <summary>Defaults for new tasks</summary>
                   <div class="defaults-grid">
-                    <label>
-                      <span>Priority</span>
-                      <select
-                        [value]="node.project.lifeDefaultPriorityId || ''"
-                        (change)="
-                          setProjectDefault(
-                            node.project.id,
-                            'lifeDefaultPriorityId',
-                            $any($event.target).value || null
-                          )
-                        "
-                      >
-                        <option value="">Use global default</option>
-                        @for (level of lifeConfig().priorityLevels; track level.id) {
-                          <option [value]="level.id">{{ level.label }}</option>
-                        }
-                      </select>
-                    </label>
-                    <label>
-                      <span>Focus</span>
-                      <select
-                        [value]="node.project.lifeDefaultFocus || ''"
-                        (change)="
-                          setProjectNumberDefault(
-                            node.project.id,
-                            'lifeDefaultFocus',
-                            $any($event.target).value
-                          )
-                        "
-                      >
-                        <option value="">Not set</option>
-                        @for (level of scale; track level) {
-                          <option [value]="level">{{ level }} / 5</option>
-                        }
-                      </select>
-                    </label>
-                    <label>
-                      <span>Energy</span>
-                      <select
-                        [value]="node.project.lifeDefaultEnergy || ''"
-                        (change)="
-                          setProjectNumberDefault(
-                            node.project.id,
-                            'lifeDefaultEnergy',
-                            $any($event.target).value
-                          )
-                        "
-                      >
-                        <option value="">Not set</option>
-                        @for (level of scale; track level) {
-                          <option [value]="level">{{ level }} / 5</option>
-                        }
-                      </select>
-                    </label>
-                    <label>
-                      <span>Location</span>
-                      <select
-                        multiple
-                        (change)="
-                          setProjectMultiDefault(
-                            node.project.id,
-                            'lifeDefaultLocationIds',
-                            $event
-                          )
-                        "
-                      >
-                        @for (option of lifeConfig().locations; track option.id) {
-                          <option
-                            [value]="option.id"
-                            [selected]="
-                              (node.project.lifeDefaultLocationIds || []).includes(
-                                option.id
-                              )
-                            "
-                          >
-                            {{ option.label }}
-                          </option>
-                        }
-                      </select>
-                    </label>
-                    <label>
-                      <span>Requires</span>
-                      <select
-                        multiple
-                        (change)="
-                          setProjectMultiDefault(
-                            node.project.id,
-                            'lifeDefaultRequirementIds',
-                            $event
-                          )
-                        "
-                      >
-                        @for (option of lifeConfig().requirements; track option.id) {
-                          <option
-                            [value]="option.id"
-                            [selected]="
-                              (node.project.lifeDefaultRequirementIds || []).includes(
-                                option.id
-                              )
-                            "
-                          >
-                            {{ option.label }}
-                          </option>
-                        }
-                      </select>
-                    </label>
+                    <life-field-picker
+                      label="Priority"
+                      defaultIcon="priority_high"
+                      emptyLabel="Use global default"
+                      [options]="priorityOptions()"
+                      [value]="node.project.lifeDefaultPriorityId || ''"
+                      (valueChange)="
+                        setProjectPickerDefault(
+                          node.project.id,
+                          'lifeDefaultPriorityId',
+                          $event
+                        )
+                      "
+                    />
+                    <life-field-picker
+                      label="Focus"
+                      defaultIcon="psychology"
+                      emptyLabel="Not set"
+                      [options]="focusOptions"
+                      [value]="numberPickerValue(node.project.lifeDefaultFocus)"
+                      (valueChange)="
+                        setProjectNumberPickerDefault(
+                          node.project.id,
+                          'lifeDefaultFocus',
+                          $event
+                        )
+                      "
+                    />
+                    <life-field-picker
+                      label="Energy"
+                      defaultIcon="bolt"
+                      emptyLabel="Not set"
+                      [options]="energyOptions"
+                      [value]="numberPickerValue(node.project.lifeDefaultEnergy)"
+                      (valueChange)="
+                        setProjectNumberPickerDefault(
+                          node.project.id,
+                          'lifeDefaultEnergy',
+                          $event
+                        )
+                      "
+                    />
+                    <life-field-picker
+                      label="Location"
+                      defaultIcon="place"
+                      emptyLabel="Anywhere"
+                      [options]="locationOptions()"
+                      [values]="node.project.lifeDefaultLocationIds || []"
+                      [multiple]="true"
+                      (valueChange)="
+                        setProjectMultiPickerDefault(
+                          node.project.id,
+                          'lifeDefaultLocationIds',
+                          $event
+                        )
+                      "
+                    />
+                    <life-field-picker
+                      label="Requires"
+                      defaultIcon="build"
+                      emptyLabel="Anything"
+                      [options]="requirementOptions()"
+                      [values]="node.project.lifeDefaultRequirementIds || []"
+                      [multiple]="true"
+                      (valueChange)="
+                        setProjectMultiPickerDefault(
+                          node.project.id,
+                          'lifeDefaultRequirementIds',
+                          $event
+                        )
+                      "
+                    />
                   </div>
                 </details>
 
@@ -823,6 +788,15 @@ export class GoalsPageComponent {
   readonly collapsed = signal<Set<string>>(new Set());
   readonly scale = [1, 2, 3, 4, 5] as const;
   readonly lifeConfig = this._lifeConfigService.config;
+  readonly focusOptions = LIFE_FOCUS_OPTIONS;
+  readonly energyOptions = LIFE_ENERGY_OPTIONS;
+  readonly priorityOptions = computed(() => lifePriorityPickerOptions(this.lifeConfig()));
+  readonly locationOptions = computed(() =>
+    lifeContextPickerOptions(this.lifeConfig().locations, 'place'),
+  );
+  readonly requirementOptions = computed(() =>
+    lifeContextPickerOptions(this.lifeConfig().requirements, 'build'),
+  );
   readonly viewModes: { id: LifeGoalViewMode; label: string; icon: string }[] = [
     { id: 'full', label: 'Full', icon: 'view_agenda' },
     { id: 'tree', label: 'Tree', icon: 'account_tree' },
@@ -1056,6 +1030,45 @@ export class GoalsPageComponent {
         updateProject({ project: { id: project.id, changes: { title } } }),
       );
     });
+  }
+
+  numberPickerValue(value: number | null | undefined): string {
+    return value == null ? '' : String(value);
+  }
+
+  setGoalDateFromPicker(
+    id: string,
+    key: 'goalTargetDay' | 'goalDeadlineDay',
+    value: Date | null,
+  ): void {
+    this.setGoalDate(id, key, value ? getDbDateStr(value) : '');
+  }
+
+  setProjectPickerDefault(
+    id: string,
+    key: 'lifeDefaultPriorityId',
+    raw: string | string[],
+  ): void {
+    const value = Array.isArray(raw) ? raw[0] || '' : raw;
+    this.setProjectDefault(id, key, value || null);
+  }
+
+  setProjectNumberPickerDefault(
+    id: string,
+    key: 'lifeDefaultFocus' | 'lifeDefaultEnergy',
+    raw: string | string[],
+  ): void {
+    const value = Array.isArray(raw) ? raw[0] || '' : raw;
+    this.setProjectNumberDefault(id, key, value);
+  }
+
+  setProjectMultiPickerDefault(
+    id: string,
+    key: 'lifeDefaultLocationIds' | 'lifeDefaultRequirementIds',
+    raw: string | string[],
+  ): void {
+    const values = Array.isArray(raw) ? raw : raw ? [raw] : [];
+    this._store.dispatch(updateProject({ project: { id, changes: { [key]: values } } }));
   }
 
   setGoalDate(id: string, key: 'goalTargetDay' | 'goalDeadlineDay', value: string): void {
