@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - build/lifeos-windows-20260824
+  pull_request:
+    branches:
+      - master
   workflow_dispatch:
 
 permissions:
@@ -62,6 +65,7 @@ jobs:
           retention-days: 14
 
       - name: Publish direct Windows installer release
+        if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228
         with:
           tag_name: lifeos-windows-${{ github.sha }}
