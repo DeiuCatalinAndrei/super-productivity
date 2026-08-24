@@ -1,6 +1,9 @@
 name: Build LifeOS Windows Installer
 
 on:
+  push:
+    branches:
+      - build/lifeos-windows-20260824
   workflow_dispatch:
 
 permissions:
