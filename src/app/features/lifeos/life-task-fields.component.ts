@@ -18,6 +18,7 @@ import { ChipListInputComponent } from '../../ui/chip-list-input/chip-list-input
 import { getDbDateStr } from '../../util/get-db-date-str';
 import { LifeOsConfig } from './life-os.model';
 import { LifeFieldPickerComponent } from './life-field-picker.component';
+import { LifeDateActionComponent } from './life-date-action.component';
 import {
   LIFE_ENERGY_OPTIONS,
   LIFE_FOCUS_OPTIONS,
@@ -74,8 +75,12 @@ export const createEmptyLifeTaskMeta = (
     DatePickerInputComponent,
     ChipListInputComponent,
     LifeFieldPickerComponent,
+    LifeDateActionComponent,
   ],
   providers: [provideNativeDateAdapter()],
+  host: {
+    '[class.compact-host]': 'compact()',
+  },
   template: `
     @if (compact()) {
       <div class="life-action-bar">
@@ -89,12 +94,11 @@ export const createEmptyLifeTaskMeta = (
           (valueChange)="setString('priorityId', $event)"
         />
 
-        <date-picker-input
+        <life-date-action
           label="Due"
-          compactIcon="event"
-          [compact]="true"
-          [ngModel]="value().dueDay"
-          (ngModelChange)="setDate('dueDay', $event)"
+          icon="event"
+          [value]="value().dueDay"
+          (valueChange)="setDate('dueDay', $event)"
         />
 
         <life-field-picker
@@ -175,20 +179,18 @@ export const createEmptyLifeTaskMeta = (
             />
           </label>
 
-          <date-picker-input
+          <life-date-action
             label="Follow-up"
-            compactIcon="notification_important"
-            [compact]="true"
-            [ngModel]="value().followUpDay"
-            (ngModelChange)="setDate('followUpDay', $event)"
+            icon="notification_important"
+            [value]="value().followUpDay"
+            (valueChange)="setDate('followUpDay', $event)"
           />
 
-          <date-picker-input
+          <life-date-action
             label="Review"
-            compactIcon="rate_review"
-            [compact]="true"
-            [ngModel]="value().reviewDay"
-            (ngModelChange)="setDate('reviewDay', $event)"
+            icon="rate_review"
+            [value]="value().reviewDay"
+            (valueChange)="setDate('reviewDay', $event)"
           />
         </div>
 
@@ -311,6 +313,14 @@ export const createEmptyLifeTaskMeta = (
         min-width: 0;
       }
 
+      :host.compact-host {
+        display: contents;
+      }
+
+      :host.compact-host .life-action-bar {
+        display: contents;
+      }
+
       .life-action-bar {
         position: relative;
         display: flex;
@@ -323,6 +333,10 @@ export const createEmptyLifeTaskMeta = (
 
       .life-action-bar.secondary {
         border-top: 1px solid var(--divider-color);
+      }
+
+      :host.compact-host .life-action-bar.secondary {
+        border-top: 0;
       }
 
       .life-action-bar > * {
@@ -366,10 +380,12 @@ export const createEmptyLifeTaskMeta = (
 
       .workflow-action {
         min-height: 36px;
+        height: 36px;
         padding-inline: var(--s-half);
         color: var(--text-color-muted);
         white-space: nowrap;
         border-radius: var(--card-border-radius);
+        flex: 0 0 auto;
       }
 
       .workflow-action:hover {
@@ -386,6 +402,7 @@ export const createEmptyLifeTaskMeta = (
         box-sizing: border-box;
         border-radius: var(--card-border-radius);
         color: var(--text-color-muted);
+        flex: 0 0 auto;
         transition:
           color var(--transition-fast),
           background-color var(--transition-fast);
@@ -428,6 +445,9 @@ export const createEmptyLifeTaskMeta = (
       }
 
       .compact-blocked-picker {
+        flex: 1 0 100%;
+        width: 100%;
+        box-sizing: border-box;
         padding: var(--s-half) var(--s) var(--s);
         border-top: 1px solid var(--divider-color);
       }
