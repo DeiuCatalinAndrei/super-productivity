@@ -8,12 +8,14 @@ import {
   signal,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
 import {
   MatFormField,
   MatLabel,
   MatError,
   MatSuffix,
 } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 import {
   MatDatepicker,
@@ -38,8 +40,10 @@ export const DATE_PICKER_MAX_DEFAULT = '2999-12-31';
   imports: [
     CommonModule,
     FormsModule,
+    MatButtonModule,
     MatFormField,
     MatLabel,
+    MatIconModule,
     MatInput,
     MatDatepickerInput,
     MatDatepickerToggle,
@@ -49,6 +53,71 @@ export const DATE_PICKER_MAX_DEFAULT = '2999-12-31';
     TranslatePipe,
   ],
   templateUrl: './date-picker-input.component.html',
+  styles: [
+    `
+      :host.compact-host,
+      .compact-wrap {
+        display: inline-flex;
+        min-width: 0;
+      }
+
+      .compact-date-input {
+        position: fixed;
+        inline-size: 1px;
+        block-size: 1px;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .compact-date-btn {
+        --mat-button-text-label-text-color: var(--text-color-muted);
+        min-width: 70px !important;
+        min-height: 36px;
+        height: 36px;
+        padding: 0 var(--s) !important;
+        border-radius: var(--card-border-radius) !important;
+        background: transparent;
+        font-size: 13px;
+        flex-shrink: 0;
+        transition:
+          color var(--transition-fast),
+          background-color var(--transition-fast);
+      }
+
+      .compact-date-btn:hover,
+      .compact-date-btn:focus-visible {
+        --mat-button-text-label-text-color: var(--text-color-most-intense);
+        background: var(--state-hover);
+      }
+
+      .compact-date-btn.has-value {
+        --mat-button-text-label-text-color: var(--text-color-most-intense);
+      }
+
+      .compact-date-btn.has-value mat-icon {
+        color: var(--brand);
+      }
+
+      .compact-date-btn mat-icon {
+        flex-shrink: 0;
+        margin-right: var(--s-half);
+      }
+
+      .compact-date-btn span {
+        min-width: 0;
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      @media (max-width: 600px) {
+        .compact-date-btn {
+          font-size: 12px;
+        }
+      }
+    `,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
     {
@@ -65,6 +134,8 @@ export class DatePickerInputComponent implements ControlValueAccessor {
   label = input<string>('');
   min = input<Date | string | undefined>(DATE_PICKER_MIN_DEFAULT);
   max = input<Date | string | undefined>(DATE_PICKER_MAX_DEFAULT);
+  compact = input(false);
+  compactIcon = input('event');
 
   required = input<boolean>(false);
   isInvalid = input<boolean | undefined>(undefined); // boolean - validation control by parent, undefined - internal validation
@@ -86,6 +157,11 @@ export class DatePickerInputComponent implements ControlValueAccessor {
   formatDate(value: Date | string | undefined): string {
     if (!value) return '';
     return getDbDateStr(this.toDate(value));
+  }
+
+  compactDisplay(): string {
+    const value = this.innerValue();
+    return value ? getDbDateStr(value) : this.label();
   }
 
   validateDate(value: Date): boolean {
