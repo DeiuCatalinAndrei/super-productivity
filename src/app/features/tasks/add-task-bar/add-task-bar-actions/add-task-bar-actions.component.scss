@@ -5,22 +5,6 @@
   display: block;
   min-width: 0;
   position: relative;
-
-  @include mq(xxs, max) {
-    &::after {
-      content: '';
-      position: absolute;
-      inset-block: 0;
-      inset-inline-end: 0;
-      width: var(--s3);
-      background: linear-gradient(to right, transparent, var(--bg-lighter));
-      pointer-events: none;
-    }
-  }
-}
-
-:host-context([dir='rtl'])::after {
-  background: linear-gradient(to left, transparent, var(--bg-lighter));
 }
 
 .clear-btn {
@@ -84,18 +68,14 @@
   position: relative;
   padding-top: 0;
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+  align-items: center;
   border-top: 1px solid var(--divider-color);
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: visible;
+  row-gap: 0;
 
   @include mq(xs) {
-    gap: var(--s-quarter);
-  }
-
-  @include mq(xxs, max) {
-    // Reserve enough scrollable room for the final action to clear the edge cue.
-    padding-inline-end: var(--s3);
+    column-gap: var(--s-quarter);
   }
 
   .action-btn {
@@ -107,8 +87,9 @@
     overflow: hidden;
     font-size: 13px;
     min-width: 70px !important;
+    min-height: 36px;
+    height: 36px;
     flex-shrink: 0;
-    // prevent dark theme being lighter than background
     background-color: transparent;
     transition:
       color var(--transition-fast),
@@ -119,12 +100,11 @@
       overflow: hidden;
     }
 
-    // Override mat-button padding to be more compact
     &.mat-mdc-button {
       padding: 0 var(--s);
 
       .mat-mdc-button-touch-target {
-        display: none; // Remove touch target that can affect layout
+        display: none;
       }
     }
 
@@ -132,7 +112,6 @@
       font-size: 12px;
     }
 
-    // Material button label wrapper
     .mdc-button__label {
       overflow: hidden;
       display: flex;
@@ -140,19 +119,17 @@
       min-width: 0;
     }
 
-    // Apply ellipsis to the text inside the button
-
     ::ng-deep > span,
     > span,
     .mdc-button__label > span {
       @include truncateText();
-      min-width: 0; // Allow span to shrink
-      display: inline-block; // Needed for ellipsis to work
-      max-width: 100%; // Ensure it doesn't exceed parent
+      min-width: 0;
+      display: inline-block;
+      max-width: 100%;
     }
 
     mat-icon {
-      flex-shrink: 0; // Prevent icon from shrinking
+      flex-shrink: 0;
       margin-right: var(--s-half);
 
       &.repeat-icon {
@@ -187,7 +164,6 @@
       }
     }
 
-    // Highlight when menu is open
     &.menu-open {
       --mat-button-text-label-text-color: var(--text-color-most-intense);
 
@@ -211,10 +187,9 @@
       gap: 6px;
       overflow: hidden;
       position: relative;
-      min-height: 20px; // Ensure consistent baseline height
-      line-height: 1; // Normalize line height
+      min-height: 20px;
+      line-height: 1;
 
-      // When nested in span, use inline-flex
       &:only-child {
         display: inline-flex;
         vertical-align: middle;
