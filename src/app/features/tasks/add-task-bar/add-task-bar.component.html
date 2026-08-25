@@ -192,18 +192,20 @@
       (refocus)="focusInput()"
       (scheduleDialogOpenChange)="onScheduleDialogOpenChange($event)"
     >
-      <ng-container [ngTemplateOutlet]="inlineActionControls"></ng-container>
-    </add-task-bar-actions>
+      <ng-container
+        action-prefix
+        [ngTemplateOutlet]="inlineActionControls"
+      ></ng-container>
 
-    <div class="lifeos-fields">
       <life-task-fields
+        action-suffix
         [config]="lifeConfig()"
         [value]="lifeMeta()"
         [blockerSuggestions]="lifeBlockerSuggestions()"
         [compact]="true"
         (valueChange)="onLifeMetaChange($event)"
       />
-    </div>
+    </add-task-bar-actions>
 
     @if (stateService.isNoteExpanded()) {
       <div
