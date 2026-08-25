@@ -15,26 +15,40 @@ jobs:
 
     steps:
       - name: Set timezone
-        uses: szenius/set-timezone@1f9716b0f7120e344f0c62bb7b1ee98819aefd42
-        with:
-          timezoneWindows: 'W. Europe Standard Time'
+        shell: pwsh
+        run: tzutil /s "W. Europe Standard Time"
 
       - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
 
       - name: Setup Electron build environment
         uses: ./.github/actions/setup-electron-build
 
+      - name: Match project npm version
+        shell: pwsh
+        run: npm.cmd install --global npm@11.18.0
+
       - name: Install npm packages
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 15
-          shell: bash
-          command: npm install @nx/nx-win32-x64-msvc && npm i
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            Write-Host "npm install attempt $attempt of 3"
+            npm.cmd install @nx/nx-win32-x64-msvc
+            if ($LASTEXITCODE -eq 0) {
+              npm.cmd install
+            }
+            if ($LASTEXITCODE -eq 0) {
+              exit 0
+            }
+            if ($attempt -lt 3) {
+              Start-Sleep -Seconds 15
+            }
+          }
+          Write-Error 'npm install failed after 3 attempts.'
+          exit 1
 
       - name: Build Windows x64 installer
         shell: bash

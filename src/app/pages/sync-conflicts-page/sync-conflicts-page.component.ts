@@ -19,7 +19,7 @@ import {
 } from '@angular/core';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { MatTab, MatTabGroup, MatTabLabel } from '@angular/material/tabs';
-import { MatButton, MatIconButton } from '@angular/material/button';
+import { MatButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { MatTooltip } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -56,7 +56,6 @@ import { CLIENT_ID_PROVIDER } from '../../op-log/util/client-id.provider';
     MatTab,
     MatTabLabel,
     MatButton,
-    MatIconButton,
     MatIcon,
     MatTooltip,
     TranslatePipe,
