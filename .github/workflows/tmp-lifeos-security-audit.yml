@@ -1,0 +1,29 @@
+name: Temporary LifeOS security audit
+
+on:
+  push:
+    branches:
+      - fix/release-hardening-20260825
+    paths:
+      - .github/workflows/tmp-lifeos-security-audit.yml
+      - package.json
+      - package-lock.json
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Runtime dependency audit
+        run: npm audit --omit=dev --json || true
+      - name: Full dependency audit
+        run: npm audit --json || true
+      - name: Safe audit-fix dry run
+        run: npm audit fix --package-lock-only --ignore-scripts --dry-run --json || true
