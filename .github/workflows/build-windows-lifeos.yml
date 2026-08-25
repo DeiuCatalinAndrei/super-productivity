@@ -2,6 +2,9 @@ name: Build LifeOS Windows Installer
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - fix/release-hardening-20260825
 
 permissions:
   contents: write
