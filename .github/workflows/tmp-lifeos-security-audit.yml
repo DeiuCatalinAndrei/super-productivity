@@ -51,8 +51,27 @@ jobs:
           p.overrides['node-gyp'] = { undici: '6.28.0' };
           fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');
           NODE
-      - name: Refresh lockfile without lifecycle scripts
-        run: npm install --package-lock-only --ignore-scripts
+      - name: Refresh targeted lockfile entries without lifecycle scripts
+        run: |
+          npm install --package-lock-only --ignore-scripts --save-dev \
+            @angular-devkit/build-angular@21.2.21 \
+            @angular/animations@21.2.21 \
+            @angular/cli@21.2.21 \
+            @angular/common@21.2.21 \
+            @angular/compiler@21.2.21 \
+            @angular/compiler-cli@21.2.21 \
+            @angular/core@21.2.21 \
+            @angular/forms@21.2.21 \
+            @angular/language-service@21.2.21 \
+            @angular/platform-browser@21.2.21 \
+            @angular/platform-browser-dynamic@21.2.21 \
+            @angular/platform-server@21.2.21 \
+            @angular/router@21.2.21 \
+            @angular/service-worker@21.2.21 \
+            @schematics/angular@21.2.21 \
+            @angular/cdk@21.2.14 \
+            @angular/material@21.2.14 \
+            electron-builder@26.15.3
       - name: Runtime dependency audit
         run: npm audit --omit=dev --json
       - name: Full dependency audit
