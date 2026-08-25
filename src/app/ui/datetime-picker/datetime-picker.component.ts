@@ -85,6 +85,7 @@ export class DateTimePickerComponent implements AfterViewInit {
   timeLabel = input<string>('Time');
   reminderLabel = input<string>(T.F.TASK.D_SCHEDULE_TASK.REMIND_AT);
   showQuickAccess = input<boolean>(true);
+  showTimeControls = input<boolean>(true);
   quickAccessTranslationPrefix = input<string>('F.TASK.D_SCHEDULE_TASK');
 
   // Outputs
