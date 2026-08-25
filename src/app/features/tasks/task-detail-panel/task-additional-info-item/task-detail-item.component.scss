@@ -171,15 +171,18 @@
   position: relative;
   display: flex;
   align-items: center;
+  min-width: 0;
   height: 48px;
   cursor: pointer;
   color: var(--text-color);
+  overflow: hidden;
 
   &.full-size {
     height: auto;
     min-height: 48px;
     align-items: flex-start;
     cursor: default;
+    overflow: visible;
   }
 
   &.--estimate {
@@ -196,12 +199,13 @@
 .input-item__title {
   display: flex;
   align-items: center;
-  margin: 0 var(--s3);
+  margin: 0 var(--s);
   @include truncateText();
-  min-width: 90px;
-  flex: 1;
+  min-width: 0;
+  flex: 1 1 45%;
 
   ::ng-deep mat-icon:first-of-type {
+    flex: 0 0 auto;
     margin-right: var(--s);
   }
 
@@ -217,7 +221,12 @@
   text-align: right;
   display: flex;
   align-items: center;
-  margin-right: var(--s3);
+  justify-content: flex-end;
+  gap: var(--s-quarter);
+  min-width: 0;
+  flex: 1 1 55%;
+  overflow: hidden;
+  margin-right: var(--s-half);
   color: var(--task-detail-value-color);
 
   &,
@@ -225,11 +234,19 @@
     @include truncateText();
   }
 
-  > * {
-    flex: 1;
+  // Text/value content may shrink and ellipsize. Action buttons must keep their
+  // intrinsic size; making buttons flex: 1 is what caused crowding/overlap.
+  > :not(button) {
+    flex: 1 1 auto;
+    min-width: 0;
     margin-left: auto;
     text-align: right;
     display: inline-block;
+  }
+
+  > button {
+    flex: 0 0 auto;
+    margin-left: var(--s-quarter);
   }
 
   .full-size & {
@@ -237,6 +254,7 @@
     flex: 1;
     padding: var(--s-half) 0;
     min-height: 48px;
+    overflow: visible;
 
     > * {
       display: block;
@@ -245,11 +263,47 @@
 }
 
 .input-item__edit-btn {
-  margin-left: calc(-1 * var(--s3));
-  margin-right: var(--s);
-  display: none !important;
+  // Reserve the button's width at all times so hover/focus cannot make the row
+  // reflow or push the value into neighbouring controls.
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  margin: 0 var(--s-half) 0 0;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-standard);
 
-  .input-item:hover & {
-    display: block !important;
+  .input-item:hover &,
+  .input-item:focus-within & {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+// On very narrow layouts keep both columns shrinkable and reduce horizontal
+// padding instead of allowing controls to overlap.
+@include mq(xs, max) {
+  .input-item,
+  .mat-expansion-panel {
+    margin-inline: var(--s-half);
+  }
+
+  .input-item__title {
+    flex-basis: 42%;
+    margin-inline: var(--s-half);
+  }
+
+  .input-item__value {
+    flex-basis: 58%;
+    margin-right: var(--s-quarter);
+  }
+
+  .input-item__edit-btn {
+    flex-basis: 36px;
+    width: 36px;
+    height: 36px;
+    margin-right: var(--s-quarter);
   }
 }
