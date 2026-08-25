@@ -73,6 +73,30 @@ import {
         color: var(--brand);
       }
 
+      /*
+       * The task detail panel can be much narrower than the browser viewport.
+       * Size these field groups from the panel's available width instead of
+       * relying on viewport breakpoints, so controls wrap before they overlap.
+       */
+      :host ::ng-deep life-task-fields .quick-grid,
+      :host ::ng-deep life-task-fields .more-grid {
+        gap: var(--s);
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 168px), 1fr));
+      }
+
+      :host ::ng-deep life-task-fields .more-grid {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+      }
+
+      :host ::ng-deep life-task-fields .quick-grid > *,
+      :host ::ng-deep life-task-fields .more-grid > * {
+        min-width: 0;
+      }
+
+      :host ::ng-deep life-task-fields .blocked-picker {
+        grid-column: 1 / -1;
+      }
+
       .legend {
         display: flex;
         flex-wrap: wrap;
