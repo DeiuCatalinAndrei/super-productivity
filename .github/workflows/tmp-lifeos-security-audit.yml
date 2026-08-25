@@ -52,9 +52,10 @@ jobs:
           fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');
           NODE
       - name: Refresh lockfile as a coordinated patch set
-        run: |
-          npm install --package-lock-only --ignore-scripts --legacy-peer-deps
-      - name: Validate lockfile with the normal resolver
+        run: npm install --package-lock-only --ignore-scripts --legacy-peer-deps
+      - name: Reconcile peer dependencies with the normal resolver
+        run: npm install --ignore-scripts
+      - name: Validate clean install with the normal resolver
         run: npm ci --ignore-scripts
       - name: Runtime dependency audit
         run: npm audit --omit=dev --json
