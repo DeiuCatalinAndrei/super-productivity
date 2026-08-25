@@ -39,12 +39,16 @@ import { LifePickerOption } from './life-ui.const';
             [style.color]="selected.color || null"
             >{{ selected.icon || defaultIcon() }}</mat-icon
           >
+        }
+        @if (!selectedOptions()[0]) {
+          <mat-icon class="leading-icon">{{ defaultIcon() }}</mat-icon>
+        }
+        @if (selectedOptions()[0]; as selected) {
           <span class="picker-value">{{ selected.label }}</span>
           @if (multiple() && selectedOptions().length > 1) {
             <span class="more-count">+{{ selectedOptions().length - 1 }}</span>
           }
         } @else {
-          <mat-icon class="leading-icon">{{ defaultIcon() }}</mat-icon>
           <span
             class="picker-value"
             [class.muted]="!compact()"
