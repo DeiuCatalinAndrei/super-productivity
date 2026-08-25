@@ -61,6 +61,9 @@ export class DialogDeadlineComponent implements AfterViewInit {
     targetDeadlineTime?: string;
     targetDeadlineRemindOption?: TaskReminderOptionId;
     isSelectDeadlineOnly?: boolean;
+    isDateOnly?: boolean;
+    selectDateLabel?: string;
+    minDate?: Date;
   }>(MAT_DIALOG_DATA);
   private _matDialogRef = inject<MatDialogRef<DialogDeadlineComponent>>(MatDialogRef);
   private _cd = inject(ChangeDetectorRef);
@@ -87,7 +90,7 @@ export class DialogDeadlineComponent implements AfterViewInit {
   selectedDate: Date | null = null;
   selectedTime: string | null = null;
   selectedReminderCfgId: TaskReminderOptionId = TaskReminderOptionId.DoNotRemind;
-  minDate = new Date();
+  minDate = this.data.minDate ?? new Date();
 
   hasExistingDeadline = false;
 

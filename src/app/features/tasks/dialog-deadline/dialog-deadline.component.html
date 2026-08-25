@@ -8,6 +8,7 @@
       [minDate]="minDate"
       [timeLabel]="T.F.TASK.D_DEADLINE.ADD_TIME | translate"
       [reminderLabel]="T.F.TASK.D_DEADLINE.REMIND_AT"
+      [showTimeControls]="!data.isDateOnly"
       [quickAccessTranslationPrefix]="'F.TASK.D_DEADLINE'"
       (dateSelected)="dateSelected($event)"
       (timeChanged)="selectedTime = $event"
@@ -48,7 +49,11 @@
       >
         <mat-icon>event_available</mat-icon>
         <span class="action-label">
-          {{ T.F.TASK.D_DEADLINE.SET_DEADLINE | translate }}
+          @if (data.selectDateLabel) {
+            {{ data.selectDateLabel }}
+          } @else {
+            {{ T.F.TASK.D_DEADLINE.SET_DEADLINE | translate }}
+          }
         </span>
       </button>
     </mat-dialog-actions>
