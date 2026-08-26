@@ -6,6 +6,7 @@ on:
     branches:
       - build/windows-pr21-exe-20260826
 
+# PR21 installer build trigger
 permissions:
   contents: read
 
