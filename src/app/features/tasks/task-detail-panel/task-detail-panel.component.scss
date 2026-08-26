@@ -38,7 +38,7 @@ progress-bar {
   align-items: center;
   z-index: var(--z-right-panel);
   border-radius: var(--card-border-radius);
-  margin: var(--s);
+  margin: var(--s2) var(--s) var(--s);
   border-bottom: 2px solid var(--c-primary) !important;
 
   ::ng-deep textarea {
