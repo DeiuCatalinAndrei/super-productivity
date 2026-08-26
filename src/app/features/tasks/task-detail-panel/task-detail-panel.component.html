@@ -24,6 +24,29 @@
     }
   </header>
 
+  <task-detail-item
+    #tagEditDetailItemElRef
+    (collapseParent)="collapseParent()"
+    (keyPress)="onItemKeyPress($event)"
+    (editActionTriggered)="tagEditElRef.focusInput()"
+    type="fullSizeInput"
+    class="input-item --estimate"
+  >
+    <ng-container input-title>
+      <mat-icon>label</mat-icon>
+    </ng-container>
+    <ng-container input-value>
+      <tag-edit
+        #tagEditElRef
+        [task]="task()"
+        [tagIds]="task().tagIds || []"
+        (escapePress)="tagEditDetailItemElRef.focusEl()"
+      ></tag-edit>
+    </ng-container>
+  </task-detail-item>
+
+  <life-task-meta [task]="task()"></life-task-meta>
+
   @if (isShowSubTasksPanel()) {
     <task-detail-item
       (collapseParent)="collapseParent()"
@@ -119,7 +142,6 @@
       </ng-container>
     </task-detail-item>
   }
-  <life-task-meta [task]="task()"></life-task-meta>
   @if (showTimeEstimate()) {
     <task-detail-item
       (collapseParent)="collapseParent()"
@@ -355,26 +377,6 @@
       <ng-container input-value></ng-container>
     </task-detail-item>
   }
-  <task-detail-item
-    #tagEditDetailItemElRef
-    (collapseParent)="collapseParent()"
-    (keyPress)="onItemKeyPress($event)"
-    (editActionTriggered)="tagEditElRef.focusInput()"
-    type="fullSizeInput"
-    class="input-item --estimate"
-  >
-    <ng-container input-title>
-      <mat-icon>label</mat-icon>
-    </ng-container>
-    <ng-container input-value>
-      <tag-edit
-        #tagEditElRef
-        [task]="task()"
-        [tagIds]="task().tagIds || []"
-        (escapePress)="tagEditDetailItemElRef.focusEl()"
-      ></tag-edit>
-    </ng-container>
-  </task-detail-item>
 
   <div class="date-info">
     <div
