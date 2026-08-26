@@ -56,7 +56,7 @@ type LifeTaskMetaSection = 'core' | 'dates';
     >
       @if (section() === 'core') {
         <task-detail-item
-          (editActionTriggered)="priorityTrigger.openMenu()"
+          [matMenuTriggerFor]="priorityMenu"
           [inputIcon]="task().lifePriorityId ? 'edit' : 'add'"
           class="input-item"
         >
@@ -65,12 +65,6 @@ type LifeTaskMetaSection = 'core' | 'dates';
             <span>Priority</span>
           </ng-container>
           <ng-container input-value>
-            <span
-              #priorityTrigger="matMenuTrigger"
-              [matMenuTriggerFor]="priorityMenu"
-              class="menu-anchor"
-              aria-hidden="true"
-            ></span>
             <span [class.empty-value]="!task().lifePriorityId">
               {{ priorityValue() }}
             </span>
@@ -79,7 +73,7 @@ type LifeTaskMetaSection = 'core' | 'dates';
 
         <div class="paired-row">
           <task-detail-item
-            (editActionTriggered)="energyTrigger.openMenu()"
+            [matMenuTriggerFor]="energyMenu"
             class="input-item paired-item"
           >
             <ng-container input-title>
@@ -87,12 +81,6 @@ type LifeTaskMetaSection = 'core' | 'dates';
               <span>Energy</span>
             </ng-container>
             <ng-container input-value>
-              <span
-                #energyTrigger="matMenuTrigger"
-                [matMenuTriggerFor]="energyMenu"
-                class="menu-anchor"
-                aria-hidden="true"
-              ></span>
               <span
                 [class.empty-value]="
                   task().lifeEnergy === null || task().lifeEnergy === undefined
@@ -104,7 +92,7 @@ type LifeTaskMetaSection = 'core' | 'dates';
           </task-detail-item>
 
           <task-detail-item
-            (editActionTriggered)="focusTrigger.openMenu()"
+            [matMenuTriggerFor]="focusMenu"
             class="input-item paired-item"
           >
             <ng-container input-title>
@@ -112,12 +100,6 @@ type LifeTaskMetaSection = 'core' | 'dates';
               <span>Focus</span>
             </ng-container>
             <ng-container input-value>
-              <span
-                #focusTrigger="matMenuTrigger"
-                [matMenuTriggerFor]="focusMenu"
-                class="menu-anchor"
-                aria-hidden="true"
-              ></span>
               <span
                 [class.empty-value]="
                   task().lifeFocus === null || task().lifeFocus === undefined
@@ -131,7 +113,7 @@ type LifeTaskMetaSection = 'core' | 'dates';
 
         <div class="paired-row">
           <task-detail-item
-            (editActionTriggered)="requiresTrigger.openMenu()"
+            [matMenuTriggerFor]="requiresMenu"
             class="input-item paired-item"
           >
             <ng-container input-title>
@@ -139,12 +121,6 @@ type LifeTaskMetaSection = 'core' | 'dates';
               <span>Requires</span>
             </ng-container>
             <ng-container input-value>
-              <span
-                #requiresTrigger="matMenuTrigger"
-                [matMenuTriggerFor]="requiresMenu"
-                class="menu-anchor"
-                aria-hidden="true"
-              ></span>
               <span [class.empty-value]="!task().lifeRequirementIds?.length">{{
                 requiresValue()
               }}</span>
@@ -152,7 +128,7 @@ type LifeTaskMetaSection = 'core' | 'dates';
           </task-detail-item>
 
           <task-detail-item
-            (editActionTriggered)="locationTrigger.openMenu()"
+            [matMenuTriggerFor]="locationMenu"
             class="input-item paired-item"
           >
             <ng-container input-title>
@@ -160,12 +136,6 @@ type LifeTaskMetaSection = 'core' | 'dates';
               <span>Location</span>
             </ng-container>
             <ng-container input-value>
-              <span
-                #locationTrigger="matMenuTrigger"
-                [matMenuTriggerFor]="locationMenu"
-                class="menu-anchor"
-                aria-hidden="true"
-              ></span>
               <span [class.empty-value]="!task().lifeLocationIds?.length">{{
                 locationValue()
               }}</span>
@@ -204,10 +174,7 @@ type LifeTaskMetaSection = 'core' | 'dates';
               }
             </ng-container>
           </task-detail-item>
-          <div class="field-help">
-            Target date when you want the task completed. It is flexible and is not a hard
-            deadline.
-          </div>
+          <div class="field-help">Target date when you want this task completed.</div>
         </div>
 
         <div class="date-field-group">
@@ -241,9 +208,7 @@ type LifeTaskMetaSection = 'core' | 'dates';
               }
             </ng-container>
           </task-detail-item>
-          <div class="field-help">
-            Date when you should check back, chase a response, or continue the task.
-          </div>
+          <div class="field-help">Date to check back on this task or a response.</div>
         </div>
 
         <div class="date-field-group">
@@ -277,14 +242,12 @@ type LifeTaskMetaSection = 'core' | 'dates';
               }
             </ng-container>
           </task-detail-item>
-          <div class="field-help">
-            Date when you want to revisit and reassess the task without changing its due
-            date.
-          </div>
+          <div class="field-help">Date to revisit and reassess this task.</div>
         </div>
 
         <task-detail-item
-          (editActionTriggered)="blockedTrigger.openMenu()"
+          [matMenuTriggerFor]="blockedMenu"
+          (menuClosed)="blockerQuery.set('')"
           [inputIcon]="task().lifeBlockedByTaskIds?.length ? 'edit' : 'add'"
           class="input-item blocked-row"
         >
@@ -293,13 +256,6 @@ type LifeTaskMetaSection = 'core' | 'dates';
             <span>Blocked by task</span>
           </ng-container>
           <ng-container input-value>
-            <span
-              #blockedTrigger="matMenuTrigger"
-              [matMenuTriggerFor]="blockedMenu"
-              (menuClosed)="blockerQuery.set('')"
-              class="menu-anchor"
-              aria-hidden="true"
-            ></span>
             <span [class.empty-value]="!task().lifeBlockedByTaskIds?.length">{{
               blockedByValue()
             }}</span>
@@ -492,7 +448,9 @@ type LifeTaskMetaSection = 'core' | 'dates';
       }
 
       .life-meta-native {
-        display: block;
+        display: flex;
+        flex-direction: column;
+        gap: var(--s2);
         min-width: 0;
       }
 
@@ -500,14 +458,19 @@ type LifeTaskMetaSection = 'core' | 'dates';
       .date-field-group,
       .blocked-row {
         display: block;
-        margin-block: var(--s-half);
+        margin: 0;
+      }
+
+      :host ::ng-deep .life-meta-native > task-detail-item > .input-item,
+      :host ::ng-deep .date-field-group > task-detail-item > .input-item {
+        margin: 0 var(--s);
       }
 
       .paired-row {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: var(--s);
-        margin: calc(var(--s) + var(--s-quarter)) var(--s);
+        margin: 0 var(--s);
       }
 
       :host ::ng-deep .paired-item .input-item {
@@ -529,12 +492,13 @@ type LifeTaskMetaSection = 'core' | 'dates';
       }
 
       .date-field-group {
-        margin-bottom: calc(var(--s) + var(--s-half));
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-half);
       }
 
       .field-help {
-        margin: 0 var(--s2);
-        padding: 0 var(--s-half);
+        margin: 0 calc(var(--s) + var(--s-half));
         color: var(--text-color-muted);
         font-size: 11px;
         line-height: 1.35;
@@ -548,16 +512,6 @@ type LifeTaskMetaSection = 'core' | 'dates';
 
       .quick-chip {
         margin-left: var(--s-quarter);
-      }
-
-      .menu-anchor {
-        position: absolute;
-        top: 50%;
-        right: var(--s2);
-        width: 1px;
-        height: 1px;
-        opacity: 0;
-        pointer-events: none;
       }
 
       .selected-mark {
@@ -645,6 +599,11 @@ type LifeTaskMetaSection = 'core' | 'dates';
       @media (max-width: 420px) {
         .paired-row {
           gap: var(--s-half);
+          margin-inline: var(--s-half);
+        }
+
+        :host ::ng-deep .life-meta-native > task-detail-item > .input-item,
+        :host ::ng-deep .date-field-group > task-detail-item > .input-item {
           margin-inline: var(--s-half);
         }
 
