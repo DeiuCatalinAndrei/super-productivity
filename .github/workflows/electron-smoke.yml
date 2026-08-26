@@ -130,3 +130,69 @@ jobs:
             .tmp/app-builds/builder-effective-config.yaml
           retention-days: 7
           if-no-files-found: ignore
+
+  windows-installer:
+    name: Windows x64 Installer
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: windows-latest
+    env:
+      UNSPLASH_KEY: ${{ secrets.UNSPLASH_KEY }}
+      UNSPLASH_CLIENT_ID: ${{ secrets.UNSPLASH_CLIENT_ID }}
+    steps:
+      - name: Set timezone
+        shell: pwsh
+        run: tzutil /s "W. Europe Standard Time"
+
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Setup Electron build environment
+        uses: ./.github/actions/setup-electron-build
+
+      - name: Match project npm version
+        shell: pwsh
+        run: npm.cmd install --global npm@11.18.0
+
+      - name: Install npm packages
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            Write-Host "npm install attempt $attempt of 3"
+            npm.cmd install @nx/nx-win32-x64-msvc
+            if ($LASTEXITCODE -eq 0) {
+              npm.cmd install
+            }
+            if ($LASTEXITCODE -eq 0) {
+              exit 0
+            }
+            if ($attempt -lt 3) {
+              Start-Sleep -Seconds 15
+            }
+          }
+          Write-Error 'npm install failed after 3 attempts.'
+          exit 1
+
+      - name: Build Windows x64 installer
+        shell: bash
+        run: npm run buildFrontend:prod:es6 && npm run electron:build && npx electron-builder --win nsis --x64 --publish never
+
+      - name: Verify x64 installer
+        shell: pwsh
+        run: |
+          $installer = '.tmp/app-builds/Super-Productivity-Setup-x64.exe'
+          if (!(Test-Path $installer)) {
+            Write-Error "Windows x64 installer not found: $installer"
+            Get-ChildItem '.tmp/app-builds' -Recurse | Select-Object FullName
+            exit 1
+          }
+
+      - name: Upload Windows installer artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: lifeos-windows-installer-${{ github.sha }}
+          path: .tmp/app-builds/Super-Productivity-Setup-x64.exe
+          if-no-files-found: error
+          retention-days: 14
