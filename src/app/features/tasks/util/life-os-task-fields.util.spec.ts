@@ -75,4 +75,8 @@ describe('LifeOS task field inheritance', () => {
     expect(next.lifeFollowUpDay).toBeNull();
     expect(next.lifeReviewDay).toBeNull();
   });
+
+  it('does not override task defaults for legacy templates without LifeOS fields', () => {
+    expect(applyLifeOsRepeatTemplateFields({}, '2026-04-30')).toEqual({});
+  });
 });
