@@ -442,24 +442,20 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
         margin: var(--s);
       }
 
-      :host ::ng-deep .paired-row task-detail-item .input-item {
+      :host ::ng-deep .paired-item .input-item {
         margin: 0;
       }
 
-      :host
-        ::ng-deep
-        .paired-row
-        task-detail-item
-        .input-item__title {
+      :host ::ng-deep .paired-item .input-item__title {
         margin-inline: var(--s-half);
         flex-basis: auto;
       }
 
-      :host ::ng-deep .paired-row task-detail-item .input-item__title mat-icon:first-of-type {
+      :host ::ng-deep .paired-item .input-item__title mat-icon:first-of-type {
         margin-right: var(--s-half);
       }
 
-      :host ::ng-deep .paired-row task-detail-item .input-item__value {
+      :host ::ng-deep .paired-item .input-item__value {
         flex: 0 1 auto;
         margin-right: var(--s-half);
       }
@@ -550,17 +546,13 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
           margin-inline: var(--s-half);
         }
 
-        :host
-          ::ng-deep
-          .paired-row
-          task-detail-item
-          .input-item__title,
-        :host ::ng-deep .paired-row task-detail-item .input-item__value {
+        :host ::ng-deep .paired-item .input-item__title,
+        :host ::ng-deep .paired-item .input-item__value {
           margin-inline: var(--s-quarter);
           font-size: 12px;
         }
 
-        :host ::ng-deep .paired-row task-detail-item .input-item__title mat-icon:first-of-type {
+        :host ::ng-deep .paired-item .input-item__title mat-icon:first-of-type {
           margin-right: var(--s-quarter);
           font-size: 18px;
           width: 18px;
