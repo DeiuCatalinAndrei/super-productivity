@@ -32,6 +32,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { DateTimeFormatService } from '../../../core/date-time-format/date-time-format.service';
 import { TaskService } from '../../tasks/task.service';
 import { LifeOsConfigService } from '../../lifeos/life-os-config.service';
+import { DEFAULT_LIFE_OS_CONFIG } from '../../lifeos/life-os.const';
 import {
   LIFE_ENERGY_OPTIONS,
   LIFE_FOCUS_OPTIONS,
@@ -55,8 +56,8 @@ export class TagListComponent {
   private readonly _pluginRegistry = inject(PluginIssueProviderRegistryService);
   private readonly _translateService = inject(TranslateService);
   private readonly _dateTimeFormatService = inject(DateTimeFormatService);
-  private readonly _taskService = inject(TaskService);
-  private readonly _lifeConfig = inject(LifeOsConfigService);
+  private readonly _taskService = inject(TaskService, { optional: true });
+  private readonly _lifeConfig = inject(LifeOsConfigService, { optional: true });
 
   task = input.required<Task>();
 
@@ -77,9 +78,12 @@ export class TagListComponent {
   repeatCfgState = toSignal(this._store.select(selectTaskRepeatCfgFeatureState), {
     initialValue: { ids: [], entities: {} } as TaskRepeatCfgState,
   });
-  private readonly _allTasks = toSignal(this._taskService.allTasks$ ?? of([] as Task[]), {
-    initialValue: [] as Task[],
-  });
+  private readonly _allTasks = toSignal(
+    this._taskService?.allTasks$ ?? of([] as Task[]),
+    {
+      initialValue: [] as Task[],
+    },
+  );
 
   tagIds = computed<string[]>(() => this.task().tagIds || []);
 
@@ -178,7 +182,7 @@ export class TagListComponent {
 
   lifeIndicatorChips = computed<TagComponentTag[]>(() => {
     const t = this.task();
-    const cfg = this._lifeConfig.config();
+    const cfg = this._lifeConfig?.config() ?? DEFAULT_LIFE_OS_CONFIG;
     const chips: TagComponentTag[] = [];
 
     if (t.lifePriorityId) {
@@ -229,7 +233,10 @@ export class TagListComponent {
     }
 
     if (t.lifeFollowUpDay) {
-      chips.push({ title: `Follow-up: ${t.lifeFollowUpDay}`, icon: 'notification_important' });
+      chips.push({
+        title: `Follow-up: ${t.lifeFollowUpDay}`,
+        icon: 'notification_important',
+      });
     }
 
     if (t.lifeReviewDay) {
