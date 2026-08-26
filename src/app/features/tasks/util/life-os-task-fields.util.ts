@@ -1,6 +1,5 @@
 import type { TaskCopy } from '../task.model';
-import { getDbDateStr, isValidDBDateStr } from '../../../util/get-db-date-str';
-import { dateStrToUtcDate } from '../../../util/date-str-to-utc-date';
+import { isValidDBDateStr } from '../../../util/get-db-date-str';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -22,8 +21,8 @@ const _toUtcDayNumber = (dateStr: string): number | null => {
   if (!isValidDBDateStr(dateStr)) {
     return null;
   }
-  const date = dateStrToUtcDate(dateStr);
-  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / MS_PER_DAY;
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return Date.UTC(year, month - 1, day) / MS_PER_DAY;
 };
 
 const _getRelativeDayOffset = (
@@ -51,13 +50,11 @@ const _applyRelativeDayOffset = (
   if (offset === undefined || !Number.isFinite(offset)) {
     return undefined;
   }
-  const anchor = dateStrToUtcDate(occurrenceDay);
-  if (Number.isNaN(anchor.getTime())) {
+  const anchor = _toUtcDayNumber(occurrenceDay);
+  if (anchor === null) {
     return undefined;
   }
-  const shifted = new Date(anchor);
-  shifted.setDate(shifted.getDate() + offset);
-  return getDbDateStr(shifted);
+  return new Date((anchor + offset) * MS_PER_DAY).toISOString().slice(0, 10);
 };
 
 export const getLifeOsFieldsForDuplicate = (task: TaskCopy): Partial<TaskCopy> => ({
