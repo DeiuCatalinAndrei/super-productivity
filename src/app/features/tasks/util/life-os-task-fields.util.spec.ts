@@ -10,6 +10,7 @@ describe('LifeOS task field inheritance', () => {
     ...DEFAULT_TASK,
     id: 'task-1',
     title: 'LifeOS task',
+    projectId: 'project-1',
     lifePriorityId: 'priority-high',
     lifeFocus: 3,
     lifeEnergy: 2,
