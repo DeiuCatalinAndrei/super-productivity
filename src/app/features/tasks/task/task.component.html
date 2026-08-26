@@ -44,7 +44,21 @@
             class="task-title"
           ></task-title>
 
-          @if (t.tagIds?.length || t.projectId || t.repeatCfgId || t.issueId) {
+          @if (
+            t.tagIds?.length ||
+            t.projectId ||
+            t.repeatCfgId ||
+            t.issueId ||
+            t.lifePriorityId ||
+            t.lifeEnergy != null ||
+            t.lifeFocus != null ||
+            t.lifeRequirementIds?.length ||
+            t.lifeLocationIds?.length ||
+            t.lifeDueDay ||
+            t.lifeFollowUpDay ||
+            t.lifeReviewDay ||
+            t.lifeBlockedByTaskIds?.length
+          ) {
             <tag-list
               [task]="t"
               [isShowProjectTagNever]="isInSubTaskList()"
