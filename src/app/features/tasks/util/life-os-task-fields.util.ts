@@ -1,4 +1,4 @@
-import { TaskCopy } from '../task.model';
+import type { TaskCopy } from '../task.model';
 import { getDbDateStr, isValidDBDateStr } from '../../../util/get-db-date-str';
 import { dateStrToUtcDate } from '../../../util/date-str-to-utc-date';
 
@@ -94,19 +94,43 @@ export const getLifeOsRepeatTemplateFields = (
 export const applyLifeOsRepeatTemplateFields = (
   template: LifeOsRepeatTemplateFields,
   occurrenceDay: string,
-): Partial<TaskCopy> => ({
-  lifePriorityId: template.lifePriorityId,
-  lifeFocus: template.lifeFocus,
-  lifeEnergy: template.lifeEnergy,
-  lifeDueDay: _applyRelativeDayOffset(occurrenceDay, template.lifeDueDayOffset),
-  lifeLocationIds: [...(template.lifeLocationIds ?? [])],
-  lifeRequirementIds: [...(template.lifeRequirementIds ?? [])],
-  lifeIsNextAction: template.lifeIsNextAction,
-  lifeWaitingFor: template.lifeWaitingFor,
-  lifeFollowUpDay: _applyRelativeDayOffset(
+): Partial<TaskCopy> => {
+  const lifeDueDay = _applyRelativeDayOffset(
+    occurrenceDay,
+    template.lifeDueDayOffset,
+  );
+  const lifeFollowUpDay = _applyRelativeDayOffset(
     occurrenceDay,
     template.lifeFollowUpDayOffset,
-  ),
-  lifeBlockedByTaskIds: [...(template.lifeBlockedByTaskIds ?? [])],
-  lifeReviewDay: _applyRelativeDayOffset(occurrenceDay, template.lifeReviewDayOffset),
-});
+  );
+  const lifeReviewDay = _applyRelativeDayOffset(
+    occurrenceDay,
+    template.lifeReviewDayOffset,
+  );
+
+  return {
+    ...(template.lifePriorityId !== undefined && {
+      lifePriorityId: template.lifePriorityId,
+    }),
+    ...(template.lifeFocus !== undefined && { lifeFocus: template.lifeFocus }),
+    ...(template.lifeEnergy !== undefined && { lifeEnergy: template.lifeEnergy }),
+    ...(lifeDueDay !== undefined && { lifeDueDay }),
+    ...(template.lifeLocationIds !== undefined && {
+      lifeLocationIds: [...template.lifeLocationIds],
+    }),
+    ...(template.lifeRequirementIds !== undefined && {
+      lifeRequirementIds: [...template.lifeRequirementIds],
+    }),
+    ...(template.lifeIsNextAction !== undefined && {
+      lifeIsNextAction: template.lifeIsNextAction,
+    }),
+    ...(template.lifeWaitingFor !== undefined && {
+      lifeWaitingFor: template.lifeWaitingFor,
+    }),
+    ...(lifeFollowUpDay !== undefined && { lifeFollowUpDay }),
+    ...(template.lifeBlockedByTaskIds !== undefined && {
+      lifeBlockedByTaskIds: [...template.lifeBlockedByTaskIds],
+    }),
+    ...(lifeReviewDay !== undefined && { lifeReviewDay }),
+  };
+};
