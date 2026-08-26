@@ -212,10 +212,14 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
           <div class="life-date-value">
             <span [class.empty-value]="!task().lifeReviewDay">
               {{
-                task().lifeReviewDay ? (task().lifeReviewDay | localDateStr: '') : 'Not set'
+                task().lifeReviewDay
+                  ? (task().lifeReviewDay | localDateStr: '')
+                  : 'Not set'
               }}
             </span>
-            <small>When to revisit and reassess the task without changing its due date.</small>
+            <small
+              >When to revisit and reassess the task without changing its due date.</small
+            >
           </div>
           @if (task().lifeReviewDay) {
             <button
@@ -264,7 +268,9 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
           type="button"
           (click)="setPriority(option.id)"
         >
-          <mat-icon [style.color]="option.color || null">{{ option.icon || 'circle' }}</mat-icon>
+          <mat-icon [style.color]="option.color || null">{{
+            option.icon || 'circle'
+          }}</mat-icon>
           <span>{{ option.label }}</span>
           @if (task().lifePriorityId === option.id) {
             <mat-icon class="selected-mark">check</mat-icon>
@@ -288,7 +294,9 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
           type="button"
           (click)="setFocus(+option.id)"
         >
-          <mat-icon [style.color]="option.color || null">{{ option.icon || 'psychology' }}</mat-icon>
+          <mat-icon [style.color]="option.color || null">{{
+            option.icon || 'psychology'
+          }}</mat-icon>
           <span>{{ option.label }}</span>
           @if (task().lifeFocus === +option.id) {
             <mat-icon class="selected-mark">check</mat-icon>
@@ -312,7 +320,9 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
           type="button"
           (click)="setEnergy(+option.id)"
         >
-          <mat-icon [style.color]="option.color || null">{{ option.icon || 'bolt' }}</mat-icon>
+          <mat-icon [style.color]="option.color || null">{{
+            option.icon || 'bolt'
+          }}</mat-icon>
           <span>{{ option.label }}</span>
           @if (task().lifeEnergy === +option.id) {
             <mat-icon class="selected-mark">check</mat-icon>
@@ -337,7 +347,9 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
             type="button"
             (click)="toggleMulti('lifeRequirementIds', option.id)"
           >
-            <mat-icon [style.color]="option.color || null">{{ option.icon || 'build' }}</mat-icon>
+            <mat-icon [style.color]="option.color || null">{{
+              option.icon || 'build'
+            }}</mat-icon>
             <span>{{ option.label }}</span>
             @if (task().lifeRequirementIds?.includes(option.id)) {
               <mat-icon class="selected-mark">check</mat-icon>
@@ -363,7 +375,9 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
             type="button"
             (click)="toggleMulti('lifeLocationIds', option.id)"
           >
-            <mat-icon [style.color]="option.color || null">{{ option.icon || 'place' }}</mat-icon>
+            <mat-icon [style.color]="option.color || null">{{
+              option.icon || 'place'
+            }}</mat-icon>
             <span>{{ option.label }}</span>
             @if (task().lifeLocationIds?.includes(option.id)) {
               <mat-icon class="selected-mark">check</mat-icon>
@@ -432,7 +446,11 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
         margin: 0;
       }
 
-      :host ::ng-deep .paired-row task-detail-item .input-item__title {
+      :host
+        ::ng-deep
+        .paired-row
+        task-detail-item
+        .input-item__title {
         margin-inline: var(--s-half);
         flex-basis: auto;
       }
@@ -532,7 +550,11 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
           margin-inline: var(--s-half);
         }
 
-        :host ::ng-deep .paired-row task-detail-item .input-item__title,
+        :host
+          ::ng-deep
+          .paired-row
+          task-detail-item
+          .input-item__title,
         :host ::ng-deep .paired-row task-detail-item .input-item__value {
           margin-inline: var(--s-quarter);
           font-size: 12px;
@@ -631,7 +653,11 @@ export class LifeTaskMetaComponent {
     ),
   );
   readonly locationValue = computed(() =>
-    this._multiLabel(this.locationOptions(), this.task().lifeLocationIds || [], 'Anywhere'),
+    this._multiLabel(
+      this.locationOptions(),
+      this.task().lifeLocationIds || [],
+      'Anywhere',
+    ),
   );
   readonly blockedByValue = computed(() => {
     const selected = new Set(this.task().lifeBlockedByTaskIds || []);
@@ -724,7 +750,9 @@ export class LifeTaskMetaComponent {
   ): string {
     if (!values.length) return emptyLabel;
     const selected = new Set(values);
-    const labels = options.filter((option) => selected.has(option.id)).map((option) => option.label);
+    const labels = options
+      .filter((option) => selected.has(option.id))
+      .map((option) => option.label);
     return labels.length ? labels.join(', ') : emptyLabel;
   }
 
