@@ -2,7 +2,7 @@ name: Build LifeOS Windows Installer
 
 on:
   workflow_dispatch:
-  # Temporary push trigger used only to build the Task Panel final installer.
+  # Temporary push trigger used only to build the verified Task Panel installer.
   push:
     branches:
       - master
