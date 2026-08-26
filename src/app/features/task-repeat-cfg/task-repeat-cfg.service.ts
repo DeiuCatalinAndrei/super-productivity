@@ -20,7 +20,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { T } from '../../t.const';
 import { first, take } from 'rxjs/operators';
 import { TaskService } from '../tasks/task.service';
-import { Task } from '../tasks/task.model';
+import { Task, TaskWithSubTasks } from '../tasks/task.model';
 import { TaskSharedActions } from '../../root-store/meta/task-shared.actions';
 import { addSubTask } from '../tasks/store/task.actions';
 import { WorkContextService } from '../work-context/work-context.service';
@@ -41,7 +41,10 @@ import {
 } from './store/task-repeat-cfg.selectors';
 import { getRepeatableTaskId } from './get-repeatable-task-id.util';
 import { getDeadlineAutoPlanFields } from '../tasks/util/get-deadline-auto-plan-fields';
-import { applyLifeOsRepeatTemplateFields } from '../tasks/util/life-os-task-fields.util';
+import {
+  applyLifeOsRepeatTemplateFields,
+  getLifeOsRepeatTemplateFields,
+} from '../tasks/util/life-os-task-fields.util';
 
 @Injectable({
   providedIn: 'root',
@@ -182,7 +185,7 @@ export class TaskRepeatCfgService {
   > {
     // NOTE: there might be multiple configs in case something went wrong
     // we want to move all of them to the archive
-    const existingTaskInstances: Task[] = await this._taskService
+    const existingTaskInstances: TaskWithSubTasks[] = await this._taskService
       .getTasksWithSubTasksByRepeatCfgId$(taskRepeatCfg.id as string)
       .pipe(take(1))
       .toPromise();
@@ -208,6 +211,23 @@ export class TaskRepeatCfgService {
     // Using Date.now() caused duplicates when generating overdue instances because "today"
     // differs from the repeat day we are about to create.
     const targetDateStr = getDbDateStr(targetCreated);
+
+    const newestLiveInstance = existingTaskInstances.length
+      ? existingTaskInstances.reduce((a, b) => (a.created > b.created ? a : b))
+      : undefined;
+    const newestOccurrenceDay = newestLiveInstance
+      ? getDbDateStr(newestLiveInstance.created)
+      : undefined;
+    const newestLifeOsFields =
+      newestLiveInstance && newestOccurrenceDay
+        ? getLifeOsRepeatTemplateFields(newestLiveInstance, newestOccurrenceDay)
+        : undefined;
+    // Existing repeat configs created before LifeOS template support do not have
+    // the new fields yet. Prefer the newest live instance when available, which
+    // also makes edits to its LifeOS metadata naturally flow to the next instance.
+    const effectiveTaskRepeatCfg: TaskRepeatCfg = newestLifeOsFields
+      ? ({ ...taskRepeatCfg, ...newestLifeOsFields } as TaskRepeatCfg)
+      : taskRepeatCfg;
 
     // Generate the deterministic ID that would be used for this task.
     // This ensures both local created-date check AND ID check prevent duplicates.
@@ -235,6 +255,7 @@ export class TaskRepeatCfgService {
             changes: {
               lastTaskCreation: targetCreated.getTime(),
               lastTaskCreationDay: targetDateStr,
+              ...(newestLifeOsFields ?? {}),
             },
           },
         }),
@@ -252,7 +273,7 @@ export class TaskRepeatCfgService {
       const archivedInstances = await this._taskService.getArchiveTasksForRepeatCfgId(
         taskRepeatCfg.id,
       );
-      const allInstances = [...existingTaskInstances, ...archivedInstances];
+      const allInstances: Task[] = [...existingTaskInstances, ...archivedInstances];
       const hasUncompletedInstances = allInstances.some((task) => !task.isDone);
       if (hasUncompletedInstances) {
         // Don't create the next task yet; wait for completion of the current instance
@@ -275,6 +296,7 @@ export class TaskRepeatCfgService {
             changes: {
               lastTaskCreation: targetCreated.getTime(),
               lastTaskCreationDay: targetDateStr,
+              ...(newestLifeOsFields ?? {}),
             },
           },
         }),
@@ -282,7 +304,7 @@ export class TaskRepeatCfgService {
     }
 
     const { task, isAddToBottom } = this._getTaskRepeatTemplate(
-      taskRepeatCfg,
+      effectiveTaskRepeatCfg,
       targetDateStr,
     );
     const taskWithTargetDates: Task = {
@@ -324,6 +346,7 @@ export class TaskRepeatCfgService {
           changes: {
             lastTaskCreation: targetCreated.getTime(),
             lastTaskCreationDay: getDbDateStr(targetCreated),
+            ...(newestLifeOsFields ?? {}),
           },
         },
       }),
@@ -353,7 +376,19 @@ export class TaskRepeatCfgService {
       taskRepeatCfg.subTaskTemplates &&
       taskRepeatCfg.subTaskTemplates.length > 0
     ) {
-      for (const subTask of taskRepeatCfg.subTaskTemplates) {
+      for (let i = 0; i < taskRepeatCfg.subTaskTemplates.length; i++) {
+        const subTask = taskRepeatCfg.subTaskTemplates[i];
+        const newestLiveSubTask = newestLiveInstance?.subTasks?.[i];
+        const effectiveSubTaskTemplate =
+          newestLiveSubTask && newestOccurrenceDay
+            ? {
+                ...subTask,
+                ...getLifeOsRepeatTemplateFields(
+                  newestLiveSubTask,
+                  newestOccurrenceDay,
+                ),
+              }
+            : subTask;
         const newSubTask = this._taskService.createNewTaskWithDefaults({
           title: subTask.title,
           additional: {
@@ -362,7 +397,10 @@ export class TaskRepeatCfgService {
             parentId: task.id,
             projectId: taskRepeatCfg.projectId || undefined,
             isDone: false, // Always start fresh
-            ...applyLifeOsRepeatTemplateFields(subTask, targetDateStr),
+            ...applyLifeOsRepeatTemplateFields(
+              effectiveSubTaskTemplate,
+              targetDateStr,
+            ),
           },
         });
 
