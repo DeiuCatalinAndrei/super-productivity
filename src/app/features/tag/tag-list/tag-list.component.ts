@@ -191,7 +191,7 @@ export class TagListComponent {
         t.lifePriorityId,
         t.lifePriorityId,
       );
-      chips.push({ title: `Priority: ${label}`, icon: 'priority_high' });
+      chips.push({ title: label, icon: 'priority_high' });
     }
 
     if (t.lifeEnergy != null) {
@@ -200,7 +200,7 @@ export class TagListComponent {
         String(t.lifeEnergy),
         String(t.lifeEnergy),
       );
-      chips.push({ title: `Energy: ${label}`, icon: 'bolt' });
+      chips.push({ title: label, icon: 'bolt' });
     }
 
     if (t.lifeFocus != null) {
@@ -209,7 +209,7 @@ export class TagListComponent {
         String(t.lifeFocus),
         String(t.lifeFocus),
       );
-      chips.push({ title: `Focus: ${label}`, icon: 'psychology' });
+      chips.push({ title: label, icon: 'psychology' });
     }
 
     if (t.lifeRequirementIds?.length) {
@@ -217,7 +217,7 @@ export class TagListComponent {
         lifeContextPickerOptions(cfg.requirements, 'build'),
         t.lifeRequirementIds,
       );
-      if (label) chips.push({ title: `Requires: ${label}`, icon: 'build' });
+      if (label) chips.push({ title: label, icon: 'build' });
     }
 
     if (t.lifeLocationIds?.length) {
@@ -225,7 +225,7 @@ export class TagListComponent {
         lifeContextPickerOptions(cfg.locations, 'place'),
         t.lifeLocationIds,
       );
-      if (label) chips.push({ title: `Location: ${label}`, icon: 'place' });
+      if (label) chips.push({ title: label, icon: 'place' });
     }
 
     if (t.lifeDueDay) {
