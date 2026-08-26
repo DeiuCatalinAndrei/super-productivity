@@ -45,6 +45,31 @@ progress-bar {
   margin-block: var(--s-quarter);
 }
 
+.life-due-only,
+.life-dates-without-due {
+  display: block;
+  margin-block: var(--s-quarter);
+}
+
+// Reuse the native LifeOS date editor for Due in its requested position while
+// keeping Follow-up, Review and Blocked-by in their original metadata section.
+:host ::ng-deep .life-due-only life-task-meta .date-field-group:not(:first-of-type),
+:host ::ng-deep .life-due-only life-task-meta .blocked-row {
+  display: none;
+}
+
+:host ::ng-deep .life-dates-without-due life-task-meta .date-field-group:first-of-type {
+  display: none;
+}
+
+.panel-field-help {
+  margin: calc(-1 * var(--s-half)) calc(var(--s) + var(--s-half)) var(--s);
+  color: var(--text-color-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: left;
+}
+
 .task-title-wrapper {
   min-height: var(--bar-height);
   display: flex;
