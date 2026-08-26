@@ -12,7 +12,6 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltip } from '@angular/material/tooltip';
-import { Store } from '@ngrx/store';
 import { of } from 'rxjs';
 import { LocalDateStrPipe } from '../../ui/pipes/local-date-str.pipe';
 import { getDbDateStr } from '../../util/get-db-date-str';
@@ -20,7 +19,6 @@ import { DialogScheduleTaskComponent } from '../planner/dialog-schedule-task/dia
 import { Task } from '../tasks/task.model';
 import { TaskDetailItemComponent } from '../tasks/task-detail-panel/task-additional-info-item/task-detail-item.component';
 import { TaskService } from '../tasks/task.service';
-import { setSelectedTask } from '../tasks/store/task.actions';
 import { LifeContextEngineService } from './life-context-engine.service';
 import { LifeOsConfigService } from './life-os-config.service';
 import {
@@ -38,6 +36,7 @@ export interface LifeTaskPickerSuggestion {
 
 type LifeDateField = 'lifeDueDay' | 'lifeFollowUpDay' | 'lifeReviewDay';
 type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
+type LifeTaskMetaSection = 'core' | 'dates';
 
 @Component({
   selector: 'life-task-meta',
@@ -55,202 +54,258 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
       class="life-meta-native"
       aria-label="Task intelligence"
     >
-      <task-detail-item
-        #priorityTrigger="matMenuTrigger"
-        [matMenuTriggerFor]="priorityMenu"
-        (editActionTriggered)="priorityTrigger.openMenu()"
-        [inputIcon]="task().lifePriorityId ? 'edit' : 'add'"
-        class="input-item"
-      >
-        <ng-container input-title>
-          <mat-icon>priority_high</mat-icon>
-          <span>Priority</span>
-        </ng-container>
-        <ng-container input-value>
-          <span [class.empty-value]="!priorityValue()">{{ priorityValue() }}</span>
-        </ng-container>
-      </task-detail-item>
-
-      <div class="paired-row">
+      @if (section() === 'core') {
         <task-detail-item
-          #focusTrigger="matMenuTrigger"
-          [matMenuTriggerFor]="focusMenu"
-          (editActionTriggered)="focusTrigger.openMenu()"
-          class="input-item paired-item"
+          (editActionTriggered)="priorityTrigger.openMenu()"
+          [inputIcon]="task().lifePriorityId ? 'edit' : 'add'"
+          class="input-item"
         >
           <ng-container input-title>
-            <mat-icon>psychology</mat-icon>
-            <span>Focus</span>
+            <mat-icon>priority_high</mat-icon>
+            <span>Priority</span>
           </ng-container>
           <ng-container input-value>
-            <span [class.empty-value]="!focusValue()">{{ focusValue() }}</span>
-          </ng-container>
-        </task-detail-item>
-
-        <task-detail-item
-          #energyTrigger="matMenuTrigger"
-          [matMenuTriggerFor]="energyMenu"
-          (editActionTriggered)="energyTrigger.openMenu()"
-          class="input-item paired-item"
-        >
-          <ng-container input-title>
-            <mat-icon>bolt</mat-icon>
-            <span>Energy</span>
-          </ng-container>
-          <ng-container input-value>
-            <span [class.empty-value]="!energyValue()">{{ energyValue() }}</span>
-          </ng-container>
-        </task-detail-item>
-      </div>
-
-      <div class="paired-row">
-        <task-detail-item
-          #requiresTrigger="matMenuTrigger"
-          [matMenuTriggerFor]="requiresMenu"
-          (editActionTriggered)="requiresTrigger.openMenu()"
-          class="input-item paired-item"
-        >
-          <ng-container input-title>
-            <mat-icon>build</mat-icon>
-            <span>Requires</span>
-          </ng-container>
-          <ng-container input-value>
-            <span [class.empty-value]="!requiresValue()">{{ requiresValue() }}</span>
-          </ng-container>
-        </task-detail-item>
-
-        <task-detail-item
-          #locationTrigger="matMenuTrigger"
-          [matMenuTriggerFor]="locationMenu"
-          (editActionTriggered)="locationTrigger.openMenu()"
-          class="input-item paired-item"
-        >
-          <ng-container input-title>
-            <mat-icon>place</mat-icon>
-            <span>Location</span>
-          </ng-container>
-          <ng-container input-value>
-            <span [class.empty-value]="!locationValue()">{{ locationValue() }}</span>
-          </ng-container>
-        </task-detail-item>
-      </div>
-
-      <task-detail-item
-        (editActionTriggered)="openLifeDate('lifeDueDay')"
-        [inputIcon]="task().lifeDueDay ? 'edit' : 'add'"
-        class="input-item life-date-row"
-      >
-        <ng-container input-title>
-          <mat-icon>event</mat-icon>
-          <span>Due</span>
-        </ng-container>
-        <ng-container input-value>
-          <div class="life-date-value">
-            <span [class.empty-value]="!task().lifeDueDay">
-              {{ task().lifeDueDay ? (task().lifeDueDay | localDateStr: '') : 'Not set' }}
+            <span
+              #priorityTrigger="matMenuTrigger"
+              [matMenuTriggerFor]="priorityMenu"
+              class="menu-anchor"
+              aria-hidden="true"
+            ></span>
+            <span [class.empty-value]="!task().lifePriorityId">
+              {{ priorityValue() }}
             </span>
-            <small>Target completion date; a flexible target, not a hard deadline.</small>
-          </div>
-          @if (task().lifeDueDay) {
-            <button
-              mat-icon-button
-              class="quick-chip"
-              type="button"
-              matTooltip="Clear Due"
-              (click)="clearLifeDate('lifeDueDay', $event)"
-            >
-              <mat-icon>close</mat-icon>
-            </button>
-          }
-        </ng-container>
-      </task-detail-item>
+          </ng-container>
+        </task-detail-item>
 
-      <task-detail-item
-        (editActionTriggered)="openLifeDate('lifeFollowUpDay')"
-        [inputIcon]="task().lifeFollowUpDay ? 'edit' : 'add'"
-        class="input-item life-date-row"
-      >
-        <ng-container input-title>
-          <mat-icon>notification_important</mat-icon>
-          <span>Follow-up</span>
-        </ng-container>
-        <ng-container input-value>
-          <div class="life-date-value">
-            <span [class.empty-value]="!task().lifeFollowUpDay">
-              {{
-                task().lifeFollowUpDay
-                  ? (task().lifeFollowUpDay | localDateStr: '')
-                  : 'Not set'
-              }}
-            </span>
-            <small>When to check back, chase a response, or continue this task.</small>
-          </div>
-          @if (task().lifeFollowUpDay) {
-            <button
-              mat-icon-button
-              class="quick-chip"
-              type="button"
-              matTooltip="Clear Follow-up"
-              (click)="clearLifeDate('lifeFollowUpDay', $event)"
-            >
-              <mat-icon>close</mat-icon>
-            </button>
-          }
-        </ng-container>
-      </task-detail-item>
+        <div class="paired-row">
+          <task-detail-item
+            (editActionTriggered)="energyTrigger.openMenu()"
+            class="input-item paired-item"
+          >
+            <ng-container input-title>
+              <mat-icon>bolt</mat-icon>
+              <span>Energy</span>
+            </ng-container>
+            <ng-container input-value>
+              <span
+                #energyTrigger="matMenuTrigger"
+                [matMenuTriggerFor]="energyMenu"
+                class="menu-anchor"
+                aria-hidden="true"
+              ></span>
+              <span
+                [class.empty-value]="
+                  task().lifeEnergy === null || task().lifeEnergy === undefined
+                "
+              >
+                {{ energyValue() }}
+              </span>
+            </ng-container>
+          </task-detail-item>
 
-      <task-detail-item
-        (editActionTriggered)="openLifeDate('lifeReviewDay')"
-        [inputIcon]="task().lifeReviewDay ? 'edit' : 'add'"
-        class="input-item life-date-row"
-      >
-        <ng-container input-title>
-          <mat-icon>rate_review</mat-icon>
-          <span>Review</span>
-        </ng-container>
-        <ng-container input-value>
-          <div class="life-date-value">
-            <span [class.empty-value]="!task().lifeReviewDay">
-              {{
-                task().lifeReviewDay
-                  ? (task().lifeReviewDay | localDateStr: '')
-                  : 'Not set'
-              }}
-            </span>
-            <small
-              >When to revisit and reassess the task without changing its due date.</small
-            >
-          </div>
-          @if (task().lifeReviewDay) {
-            <button
-              mat-icon-button
-              class="quick-chip"
-              type="button"
-              matTooltip="Clear Review"
-              (click)="clearLifeDate('lifeReviewDay', $event)"
-            >
-              <mat-icon>close</mat-icon>
-            </button>
-          }
-        </ng-container>
-      </task-detail-item>
+          <task-detail-item
+            (editActionTriggered)="focusTrigger.openMenu()"
+            class="input-item paired-item"
+          >
+            <ng-container input-title>
+              <mat-icon>psychology</mat-icon>
+              <span>Focus</span>
+            </ng-container>
+            <ng-container input-value>
+              <span
+                #focusTrigger="matMenuTrigger"
+                [matMenuTriggerFor]="focusMenu"
+                class="menu-anchor"
+                aria-hidden="true"
+              ></span>
+              <span
+                [class.empty-value]="
+                  task().lifeFocus === null || task().lifeFocus === undefined
+                "
+              >
+                {{ focusValue() }}
+              </span>
+            </ng-container>
+          </task-detail-item>
+        </div>
 
-      <task-detail-item
-        #blockedTrigger="matMenuTrigger"
-        [matMenuTriggerFor]="blockedMenu"
-        (editActionTriggered)="blockedTrigger.openMenu()"
-        (menuClosed)="blockerQuery.set('')"
-        [inputIcon]="task().lifeBlockedByTaskIds?.length ? 'edit' : 'add'"
-        class="input-item"
-      >
-        <ng-container input-title>
-          <mat-icon>account_tree</mat-icon>
-          <span>Blocked by task</span>
-        </ng-container>
-        <ng-container input-value>
-          <span [class.empty-value]="!blockedByValue()">{{ blockedByValue() }}</span>
-        </ng-container>
-      </task-detail-item>
+        <div class="paired-row">
+          <task-detail-item
+            (editActionTriggered)="requiresTrigger.openMenu()"
+            class="input-item paired-item"
+          >
+            <ng-container input-title>
+              <mat-icon>build</mat-icon>
+              <span>Requires</span>
+            </ng-container>
+            <ng-container input-value>
+              <span
+                #requiresTrigger="matMenuTrigger"
+                [matMenuTriggerFor]="requiresMenu"
+                class="menu-anchor"
+                aria-hidden="true"
+              ></span>
+              <span [class.empty-value]="!task().lifeRequirementIds?.length">{{
+                requiresValue()
+              }}</span>
+            </ng-container>
+          </task-detail-item>
+
+          <task-detail-item
+            (editActionTriggered)="locationTrigger.openMenu()"
+            class="input-item paired-item"
+          >
+            <ng-container input-title>
+              <mat-icon>place</mat-icon>
+              <span>Location</span>
+            </ng-container>
+            <ng-container input-value>
+              <span
+                #locationTrigger="matMenuTrigger"
+                [matMenuTriggerFor]="locationMenu"
+                class="menu-anchor"
+                aria-hidden="true"
+              ></span>
+              <span [class.empty-value]="!task().lifeLocationIds?.length">{{
+                locationValue()
+              }}</span>
+            </ng-container>
+          </task-detail-item>
+        </div>
+      }
+
+      @if (section() === 'dates') {
+        <div class="date-field-group">
+          <task-detail-item
+            (editActionTriggered)="openLifeDate('lifeDueDay')"
+            [inputIcon]="task().lifeDueDay ? 'edit' : 'add'"
+            class="input-item"
+          >
+            <ng-container input-title>
+              <mat-icon>event</mat-icon>
+              <span>Due</span>
+            </ng-container>
+            <ng-container input-value>
+              <span [class.empty-value]="!task().lifeDueDay">
+                {{
+                  task().lifeDueDay ? (task().lifeDueDay | localDateStr: '') : 'Not set'
+                }}
+              </span>
+              @if (task().lifeDueDay) {
+                <button
+                  mat-icon-button
+                  class="quick-chip"
+                  type="button"
+                  matTooltip="Clear Due"
+                  (click)="clearLifeDate('lifeDueDay', $event)"
+                >
+                  <mat-icon>close</mat-icon>
+                </button>
+              }
+            </ng-container>
+          </task-detail-item>
+          <div class="field-help">
+            Target date when you want the task completed. It is flexible and is not a hard
+            deadline.
+          </div>
+        </div>
+
+        <div class="date-field-group">
+          <task-detail-item
+            (editActionTriggered)="openLifeDate('lifeFollowUpDay')"
+            [inputIcon]="task().lifeFollowUpDay ? 'edit' : 'add'"
+            class="input-item"
+          >
+            <ng-container input-title>
+              <mat-icon>notification_important</mat-icon>
+              <span>Follow-up</span>
+            </ng-container>
+            <ng-container input-value>
+              <span [class.empty-value]="!task().lifeFollowUpDay">
+                {{
+                  task().lifeFollowUpDay
+                    ? (task().lifeFollowUpDay | localDateStr: '')
+                    : 'Not set'
+                }}
+              </span>
+              @if (task().lifeFollowUpDay) {
+                <button
+                  mat-icon-button
+                  class="quick-chip"
+                  type="button"
+                  matTooltip="Clear Follow-up"
+                  (click)="clearLifeDate('lifeFollowUpDay', $event)"
+                >
+                  <mat-icon>close</mat-icon>
+                </button>
+              }
+            </ng-container>
+          </task-detail-item>
+          <div class="field-help">
+            Date when you should check back, chase a response, or continue the task.
+          </div>
+        </div>
+
+        <div class="date-field-group">
+          <task-detail-item
+            (editActionTriggered)="openLifeDate('lifeReviewDay')"
+            [inputIcon]="task().lifeReviewDay ? 'edit' : 'add'"
+            class="input-item"
+          >
+            <ng-container input-title>
+              <mat-icon>rate_review</mat-icon>
+              <span>Review</span>
+            </ng-container>
+            <ng-container input-value>
+              <span [class.empty-value]="!task().lifeReviewDay">
+                {{
+                  task().lifeReviewDay
+                    ? (task().lifeReviewDay | localDateStr: '')
+                    : 'Not set'
+                }}
+              </span>
+              @if (task().lifeReviewDay) {
+                <button
+                  mat-icon-button
+                  class="quick-chip"
+                  type="button"
+                  matTooltip="Clear Review"
+                  (click)="clearLifeDate('lifeReviewDay', $event)"
+                >
+                  <mat-icon>close</mat-icon>
+                </button>
+              }
+            </ng-container>
+          </task-detail-item>
+          <div class="field-help">
+            Date when you want to revisit and reassess the task without changing its due
+            date.
+          </div>
+        </div>
+
+        <task-detail-item
+          (editActionTriggered)="blockedTrigger.openMenu()"
+          [inputIcon]="task().lifeBlockedByTaskIds?.length ? 'edit' : 'add'"
+          class="input-item blocked-row"
+        >
+          <ng-container input-title>
+            <mat-icon>account_tree</mat-icon>
+            <span>Blocked by task</span>
+          </ng-container>
+          <ng-container input-value>
+            <span
+              #blockedTrigger="matMenuTrigger"
+              [matMenuTriggerFor]="blockedMenu"
+              (menuClosed)="blockerQuery.set('')"
+              class="menu-anchor"
+              aria-hidden="true"
+            ></span>
+            <span [class.empty-value]="!task().lifeBlockedByTaskIds?.length">{{
+              blockedByValue()
+            }}</span>
+          </ng-container>
+        </task-detail-item>
+      }
     </section>
 
     <mat-menu #priorityMenu="matMenu">
@@ -273,32 +328,6 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
           }}</mat-icon>
           <span>{{ option.label }}</span>
           @if (task().lifePriorityId === option.id) {
-            <mat-icon class="selected-mark">check</mat-icon>
-          }
-        </button>
-      }
-    </mat-menu>
-
-    <mat-menu #focusMenu="matMenu">
-      <button
-        mat-menu-item
-        type="button"
-        (click)="setFocus(null)"
-      >
-        <mat-icon>remove_circle_outline</mat-icon>
-        <span>Not set</span>
-      </button>
-      @for (option of focusOptions; track option.id) {
-        <button
-          mat-menu-item
-          type="button"
-          (click)="setFocus(+option.id)"
-        >
-          <mat-icon [style.color]="option.color || null">{{
-            option.icon || 'psychology'
-          }}</mat-icon>
-          <span>{{ option.label }}</span>
-          @if (task().lifeFocus === +option.id) {
             <mat-icon class="selected-mark">check</mat-icon>
           }
         </button>
@@ -331,10 +360,39 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
       }
     </mat-menu>
 
-    <mat-menu #requiresMenu="matMenu">
-      <div (click)="$event.stopPropagation()">
+    <mat-menu #focusMenu="matMenu">
+      <button
+        mat-menu-item
+        type="button"
+        (click)="setFocus(null)"
+      >
+        <mat-icon>remove_circle_outline</mat-icon>
+        <span>Not set</span>
+      </button>
+      @for (option of focusOptions; track option.id) {
         <button
           mat-menu-item
+          type="button"
+          (click)="setFocus(+option.id)"
+        >
+          <mat-icon [style.color]="option.color || null">{{
+            option.icon || 'psychology'
+          }}</mat-icon>
+          <span>{{ option.label }}</span>
+          @if (task().lifeFocus === +option.id) {
+            <mat-icon class="selected-mark">check</mat-icon>
+          }
+        </button>
+      }
+    </mat-menu>
+
+    <mat-menu #requiresMenu="matMenu">
+      <div
+        class="persistent-menu"
+        (click)="$event.stopPropagation()"
+      >
+        <button
+          class="persistent-menu-item"
           type="button"
           (click)="clearMulti('lifeRequirementIds')"
         >
@@ -343,7 +401,7 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
         </button>
         @for (option of requirementOptions(); track option.id) {
           <button
-            mat-menu-item
+            class="persistent-menu-item"
             type="button"
             (click)="toggleMulti('lifeRequirementIds', option.id)"
           >
@@ -360,9 +418,12 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
     </mat-menu>
 
     <mat-menu #locationMenu="matMenu">
-      <div (click)="$event.stopPropagation()">
+      <div
+        class="persistent-menu"
+        (click)="$event.stopPropagation()"
+      >
         <button
-          mat-menu-item
+          class="persistent-menu-item"
           type="button"
           (click)="clearMulti('lifeLocationIds')"
         >
@@ -371,7 +432,7 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
         </button>
         @for (option of locationOptions(); track option.id) {
           <button
-            mat-menu-item
+            class="persistent-menu-item"
             type="button"
             (click)="toggleMulti('lifeLocationIds', option.id)"
           >
@@ -408,7 +469,7 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
         }
         @for (candidate of filteredBlockerCandidates(); track candidate.id) {
           <button
-            mat-menu-item
+            class="persistent-menu-item"
             type="button"
             (click)="toggleBlocker(candidate.id)"
           >
@@ -435,11 +496,18 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
         min-width: 0;
       }
 
+      .life-meta-native > task-detail-item,
+      .date-field-group,
+      .blocked-row {
+        display: block;
+        margin-block: var(--s-half);
+      }
+
       .paired-row {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: var(--s);
-        margin: var(--s);
+        margin: calc(var(--s) + var(--s-quarter)) var(--s);
       }
 
       :host ::ng-deep .paired-item .input-item {
@@ -460,30 +528,17 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
         margin-right: var(--s-half);
       }
 
-      .life-date-value {
-        display: flex !important;
-        flex-direction: column;
-        align-items: flex-end;
-        justify-content: center;
-        min-width: 0;
-        overflow: hidden;
-        line-height: 1.15;
+      .date-field-group {
+        margin-bottom: calc(var(--s) + var(--s-half));
       }
 
-      .life-date-value > span,
-      .life-date-value small {
-        display: block;
-        max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .life-date-value small {
-        margin-top: 2px;
+      .field-help {
+        margin: 0 var(--s2);
+        padding: 0 var(--s-half);
         color: var(--text-color-muted);
-        font-size: 10px;
-        font-weight: 400;
+        font-size: 11px;
+        line-height: 1.35;
+        text-align: left;
       }
 
       .empty-value {
@@ -495,16 +550,63 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
         margin-left: var(--s-quarter);
       }
 
+      .menu-anchor {
+        position: absolute;
+        top: 50%;
+        right: var(--s2);
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
+      }
+
       .selected-mark {
         margin-left: auto;
         color: var(--c-accent);
+      }
+
+      .persistent-menu {
+        min-width: 220px;
+        padding-block: var(--s-half);
+      }
+
+      .persistent-menu-item {
+        display: flex;
+        align-items: center;
+        gap: var(--s);
+        width: 100%;
+        min-height: 48px;
+        padding: 0 var(--s2);
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--text-color);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .persistent-menu-item:hover,
+      .persistent-menu-item:focus-visible {
+        background: var(--task-detail-bg-hover);
+      }
+
+      .persistent-menu-item > mat-icon {
+        flex: 0 0 auto;
+      }
+
+      .persistent-menu-item > span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .blocker-menu-body {
         width: min(360px, calc(100vw - 32px));
         max-height: 420px;
         overflow: auto;
-        padding-top: var(--s-half);
+        padding-block: var(--s-half);
       }
 
       .blocker-search {
@@ -558,6 +660,10 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
           width: 18px;
           height: 18px;
         }
+
+        .field-help {
+          margin-inline: var(--s);
+        }
       }
     `,
   ],
@@ -565,9 +671,9 @@ type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
 })
 export class LifeTaskMetaComponent {
   readonly task = input.required<Task>();
+  readonly section = input<LifeTaskMetaSection>('core');
 
   private readonly _taskService = inject(TaskService);
-  private readonly _store = inject(Store);
   private readonly _lifeConfig = inject(LifeOsConfigService);
   private readonly _contextEngine = inject(LifeContextEngineService);
   private readonly _matDialog = inject(MatDialog);
@@ -617,11 +723,7 @@ export class LifeTaskMetaComponent {
   });
 
   readonly priorityValue = computed(() =>
-    this._singleLabel(
-      this.priorityOptions(),
-      this.task().lifePriorityId || this.config().defaultPriorityId || null,
-      'None',
-    ),
+    this._singleLabel(this.priorityOptions(), this.task().lifePriorityId || null, 'None'),
   );
   readonly focusValue = computed(() =>
     this._singleLabel(
@@ -653,7 +755,7 @@ export class LifeTaskMetaComponent {
   );
   readonly blockedByValue = computed(() => {
     const selected = new Set(this.task().lifeBlockedByTaskIds || []);
-    const labels = this.blockerCandidates()
+    const labels = this._allTasks()
       .filter((candidate) => selected.has(candidate.id))
       .map((candidate) => candidate.title);
     return labels.length ? labels.join(', ') : 'None';
@@ -749,13 +851,6 @@ export class LifeTaskMetaComponent {
   }
 
   private _update(changes: Partial<Task>): void {
-    const taskId = this.task().id;
-    this._taskService.update(taskId, changes);
-    this._store.dispatch(
-      setSelectedTask({
-        id: taskId,
-        isSkipToggle: true,
-      }),
-    );
+    this._taskService.update(this.task().id, changes);
   }
 }

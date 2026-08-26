@@ -32,13 +32,26 @@ progress-bar {
   }
 }
 
+// Keep the right-side panel readable without changing the native card design.
+// The task-detail-item component already has its own card margin; this adds a
+// small amount of breathing room between consecutive panel controls/sections.
+:host ::ng-deep .wrapper > task-detail-item > .input-item,
+:host ::ng-deep .wrapper > task-detail-item > .mat-expansion-panel {
+  margin-block: calc(var(--s) + var(--s-quarter));
+}
+
+:host ::ng-deep .wrapper > life-task-meta {
+  display: block;
+  margin-block: var(--s-quarter);
+}
+
 .task-title-wrapper {
   min-height: var(--bar-height);
   display: flex;
   align-items: center;
   z-index: var(--z-right-panel);
   border-radius: var(--card-border-radius);
-  margin: var(--s2) var(--s) var(--s);
+  margin: calc(var(--s2) + var(--s-half)) var(--s) var(--s);
   border-bottom: 2px solid var(--c-primary) !important;
 
   ::ng-deep textarea {
@@ -167,16 +180,4 @@ progress-bar {
 
 .local-attachments-heading {
   margin-bottom: 0;
-}
-
-// Keep the requested Task Intelligence order in the right-side panel:
-// Energy first, then Focus, while preserving the existing 50/50 layout.
-:host ::ng-deep life-task-meta .life-meta-native > .paired-row:first-of-type {
-  > task-detail-item:first-child {
-    order: 2;
-  }
-
-  > task-detail-item:last-child {
-    order: 1;
-  }
 }

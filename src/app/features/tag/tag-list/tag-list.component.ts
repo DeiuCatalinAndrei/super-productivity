@@ -30,6 +30,17 @@ import { TaskRepeatCfgState } from '../../task-repeat-cfg/task-repeat-cfg.model'
 import { getTaskRepeatInfoText } from '../../tasks/task-detail-panel/get-task-repeat-info-text.util';
 import { TranslateService } from '@ngx-translate/core';
 import { DateTimeFormatService } from '../../../core/date-time-format/date-time-format.service';
+import { TaskService } from '../../tasks/task.service';
+import { LifeOsConfigService } from '../../lifeos/life-os-config.service';
+import { DEFAULT_LIFE_OS_CONFIG } from '../../lifeos/life-os.const';
+import {
+  LIFE_ENERGY_OPTIONS,
+  LIFE_FOCUS_OPTIONS,
+  LifePickerOption,
+  lifeContextPickerOptions,
+  lifePriorityPickerOptions,
+} from '../../lifeos/life-ui.const';
+import { of } from 'rxjs';
 
 @Component({
   selector: 'tag-list',
@@ -45,6 +56,8 @@ export class TagListComponent {
   private readonly _pluginRegistry = inject(PluginIssueProviderRegistryService);
   private readonly _translateService = inject(TranslateService);
   private readonly _dateTimeFormatService = inject(DateTimeFormatService);
+  private readonly _taskService = inject(TaskService, { optional: true });
+  private readonly _lifeConfig = inject(LifeOsConfigService, { optional: true });
 
   task = input.required<Task>();
 
@@ -65,6 +78,12 @@ export class TagListComponent {
   repeatCfgState = toSignal(this._store.select(selectTaskRepeatCfgFeatureState), {
     initialValue: { ids: [], entities: {} } as TaskRepeatCfgState,
   });
+  private readonly _allTasks = toSignal(
+    this._taskService?.allTasks$ ?? of([] as Task[]),
+    {
+      initialValue: [] as Task[],
+    },
+  );
 
   tagIds = computed<string[]>(() => this.task().tagIds || []);
 
@@ -160,4 +179,97 @@ export class TagListComponent {
 
     return chips;
   });
+
+  lifeIndicatorChips = computed<TagComponentTag[]>(() => {
+    const t = this.task();
+    const cfg = this._lifeConfig?.config() ?? DEFAULT_LIFE_OS_CONFIG;
+    const chips: TagComponentTag[] = [];
+
+    if (t.lifePriorityId) {
+      const label = this._singleLabel(
+        lifePriorityPickerOptions(cfg),
+        t.lifePriorityId,
+        t.lifePriorityId,
+      );
+      chips.push({ title: `Priority: ${label}`, icon: 'priority_high' });
+    }
+
+    if (t.lifeEnergy != null) {
+      const label = this._singleLabel(
+        LIFE_ENERGY_OPTIONS,
+        String(t.lifeEnergy),
+        String(t.lifeEnergy),
+      );
+      chips.push({ title: `Energy: ${label}`, icon: 'bolt' });
+    }
+
+    if (t.lifeFocus != null) {
+      const label = this._singleLabel(
+        LIFE_FOCUS_OPTIONS,
+        String(t.lifeFocus),
+        String(t.lifeFocus),
+      );
+      chips.push({ title: `Focus: ${label}`, icon: 'psychology' });
+    }
+
+    if (t.lifeRequirementIds?.length) {
+      const label = this._multiLabel(
+        lifeContextPickerOptions(cfg.requirements, 'build'),
+        t.lifeRequirementIds,
+      );
+      if (label) chips.push({ title: `Requires: ${label}`, icon: 'build' });
+    }
+
+    if (t.lifeLocationIds?.length) {
+      const label = this._multiLabel(
+        lifeContextPickerOptions(cfg.locations, 'place'),
+        t.lifeLocationIds,
+      );
+      if (label) chips.push({ title: `Location: ${label}`, icon: 'place' });
+    }
+
+    if (t.lifeDueDay) {
+      chips.push({ title: `Due: ${t.lifeDueDay}`, icon: 'event' });
+    }
+
+    if (t.lifeFollowUpDay) {
+      chips.push({
+        title: `Follow-up: ${t.lifeFollowUpDay}`,
+        icon: 'notification_important',
+      });
+    }
+
+    if (t.lifeReviewDay) {
+      chips.push({ title: `Review: ${t.lifeReviewDay}`, icon: 'rate_review' });
+    }
+
+    if (t.lifeBlockedByTaskIds?.length) {
+      const selected = new Set(t.lifeBlockedByTaskIds);
+      const titles = this._allTasks()
+        .filter((candidate) => selected.has(candidate.id))
+        .map((candidate) => candidate.title);
+      chips.push({
+        title: `Blocked by: ${titles.length ? titles.join(', ') : t.lifeBlockedByTaskIds.length}`,
+        icon: 'account_tree',
+      });
+    }
+
+    return chips;
+  });
+
+  private _singleLabel(
+    options: LifePickerOption[],
+    value: string,
+    fallback: string,
+  ): string {
+    return options.find((option) => option.id === value)?.label || fallback;
+  }
+
+  private _multiLabel(options: LifePickerOption[], values: string[]): string {
+    const selected = new Set(values);
+    return options
+      .filter((option) => selected.has(option.id))
+      .map((option) => option.label)
+      .join(', ');
+  }
 }

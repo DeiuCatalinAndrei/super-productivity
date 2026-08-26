@@ -1,4 +1,6 @@
-@if (tags()?.length > 0 || indicatorChips().length > 0) {
+@if (
+  tags()?.length > 0 || indicatorChips().length > 0 || lifeIndicatorChips().length > 0
+) {
   <div class="tags-container">
     <div class="tags">
       @for (chip of indicatorChips(); track $index) {
@@ -6,6 +8,9 @@
       }
       @for (tag of tags(); track tag.id) {
         <tag [tag]="tag"></tag>
+      }
+      @for (chip of lifeIndicatorChips(); track $index) {
+        <tag [tag]="chip"></tag>
       }
     </div>
   </div>
