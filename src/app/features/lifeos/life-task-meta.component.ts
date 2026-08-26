@@ -71,7 +71,9 @@ type LifeTaskMetaSection = 'core' | 'dates';
               class="menu-anchor"
               aria-hidden="true"
             ></span>
-            <span [class.empty-value]="!task().lifePriorityId">{{ priorityValue() }}</span>
+            <span [class.empty-value]="!task().lifePriorityId">
+              {{ priorityValue() }}
+            </span>
           </ng-container>
         </task-detail-item>
 
@@ -91,7 +93,13 @@ type LifeTaskMetaSection = 'core' | 'dates';
                 class="menu-anchor"
                 aria-hidden="true"
               ></span>
-              <span [class.empty-value]="task().lifeEnergy == null">{{ energyValue() }}</span>
+              <span
+                [class.empty-value]="
+                  task().lifeEnergy === null || task().lifeEnergy === undefined
+                "
+              >
+                {{ energyValue() }}
+              </span>
             </ng-container>
           </task-detail-item>
 
@@ -110,7 +118,13 @@ type LifeTaskMetaSection = 'core' | 'dates';
                 class="menu-anchor"
                 aria-hidden="true"
               ></span>
-              <span [class.empty-value]="task().lifeFocus == null">{{ focusValue() }}</span>
+              <span
+                [class.empty-value]="
+                  task().lifeFocus === null || task().lifeFocus === undefined
+                "
+              >
+                {{ focusValue() }}
+              </span>
             </ng-container>
           </task-detail-item>
         </div>
@@ -173,7 +187,9 @@ type LifeTaskMetaSection = 'core' | 'dates';
             </ng-container>
             <ng-container input-value>
               <span [class.empty-value]="!task().lifeDueDay">
-                {{ task().lifeDueDay ? (task().lifeDueDay | localDateStr: '') : 'Not set' }}
+                {{
+                  task().lifeDueDay ? (task().lifeDueDay | localDateStr: '') : 'Not set'
+                }}
               </span>
               @if (task().lifeDueDay) {
                 <button
@@ -333,7 +349,9 @@ type LifeTaskMetaSection = 'core' | 'dates';
           type="button"
           (click)="setEnergy(+option.id)"
         >
-          <mat-icon [style.color]="option.color || null">{{ option.icon || 'bolt' }}</mat-icon>
+          <mat-icon [style.color]="option.color || null">{{
+            option.icon || 'bolt'
+          }}</mat-icon>
           <span>{{ option.label }}</span>
           @if (task().lifeEnergy === +option.id) {
             <mat-icon class="selected-mark">check</mat-icon>
@@ -387,7 +405,9 @@ type LifeTaskMetaSection = 'core' | 'dates';
             type="button"
             (click)="toggleMulti('lifeRequirementIds', option.id)"
           >
-            <mat-icon [style.color]="option.color || null">{{ option.icon || 'build' }}</mat-icon>
+            <mat-icon [style.color]="option.color || null">{{
+              option.icon || 'build'
+            }}</mat-icon>
             <span>{{ option.label }}</span>
             @if (task().lifeRequirementIds?.includes(option.id)) {
               <mat-icon class="selected-mark">check</mat-icon>
@@ -416,7 +436,9 @@ type LifeTaskMetaSection = 'core' | 'dates';
             type="button"
             (click)="toggleMulti('lifeLocationIds', option.id)"
           >
-            <mat-icon [style.color]="option.color || null">{{ option.icon || 'place' }}</mat-icon>
+            <mat-icon [style.color]="option.color || null">{{
+              option.icon || 'place'
+            }}</mat-icon>
             <span>{{ option.label }}</span>
             @if (task().lifeLocationIds?.includes(option.id)) {
               <mat-icon class="selected-mark">check</mat-icon>
@@ -701,11 +723,7 @@ export class LifeTaskMetaComponent {
   });
 
   readonly priorityValue = computed(() =>
-    this._singleLabel(
-      this.priorityOptions(),
-      this.task().lifePriorityId || null,
-      'None',
-    ),
+    this._singleLabel(this.priorityOptions(), this.task().lifePriorityId || null, 'None'),
   );
   readonly focusValue = computed(() =>
     this._singleLabel(
