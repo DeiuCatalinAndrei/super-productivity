@@ -1,6 +1,7 @@
 import { EntityState } from '@ngrx/entity';
 import { TaskReminderOptionId } from '../tasks/task.model';
 import { getDbDateStr } from '../../util/get-db-date-str';
+import { LifeOsRepeatTemplateFields } from '../tasks/util/life-os-task-fields.util';
 
 export const TASK_REPEAT_WEEKDAY_MAP: (keyof TaskRepeatCfg)[] = [
   'sunday',
@@ -32,7 +33,7 @@ export type MonthlyWeekOfMonth = 1 | 2 | 3 | 4 | -1;
 // 0 = Sunday … 6 = Saturday (matches Date.getDay() and TASK_REPEAT_WEEKDAY_MAP)
 export type MonthlyWeekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
-export interface TaskRepeatCfgCopy {
+export interface TaskRepeatCfgCopy extends LifeOsRepeatTemplateFields {
   id: string;
   projectId: string | null;
   // TODO remove at some point
@@ -90,11 +91,11 @@ export interface TaskRepeatCfgCopy {
   waitForCompletion?: boolean;
   // new UX: disable auto update checkbox (auto-update is default)
   disableAutoUpdateSubtasks?: boolean;
-  subTaskTemplates?: {
+  subTaskTemplates?: (LifeOsRepeatTemplateFields & {
     title: string;
     timeEstimate?: number;
     notes?: string;
-  }[];
+  })[];
   // Exception list for deleted instances (ISO date strings YYYY-MM-DD)
   deletedInstanceDates?: string[];
   // When true, missed/overdue instances are silently skipped instead of being created
