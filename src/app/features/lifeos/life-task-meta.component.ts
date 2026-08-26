@@ -4,111 +4,545 @@ import {
   computed,
   inject,
   input,
+  signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { MatIconModule } from '@angular/material/icon';
+import { MatIconButton } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
+import { MatIcon } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltip } from '@angular/material/tooltip';
 import { Store } from '@ngrx/store';
 import { of } from 'rxjs';
+import { LocalDateStrPipe } from '../../ui/pipes/local-date-str.pipe';
+import { getDbDateStr } from '../../util/get-db-date-str';
+import { DialogScheduleTaskComponent } from '../planner/dialog-schedule-task/dialog-schedule-task.component';
 import { Task } from '../tasks/task.model';
+import { TaskDetailItemComponent } from '../tasks/task-detail-panel/task-additional-info-item/task-detail-item.component';
 import { TaskService } from '../tasks/task.service';
 import { setSelectedTask } from '../tasks/store/task.actions';
 import { LifeContextEngineService } from './life-context-engine.service';
 import { LifeOsConfigService } from './life-os-config.service';
 import {
-  LifeTaskFieldsComponent,
-  LifeTaskMetaValue,
-  LifeTaskPickerSuggestion,
-} from './life-task-fields.component';
+  LIFE_ENERGY_OPTIONS,
+  LIFE_FOCUS_OPTIONS,
+  LifePickerOption,
+  lifeContextPickerOptions,
+  lifePriorityPickerOptions,
+} from './life-ui.const';
+
+export interface LifeTaskPickerSuggestion {
+  id: string;
+  title: string;
+}
+
+type LifeDateField = 'lifeDueDay' | 'lifeFollowUpDay' | 'lifeReviewDay';
+type LifeMultiField = 'lifeLocationIds' | 'lifeRequirementIds';
 
 @Component({
   selector: 'life-task-meta',
   standalone: true,
-  imports: [MatIconModule, LifeTaskFieldsComponent],
+  imports: [
+    MatIcon,
+    MatIconButton,
+    MatMenuModule,
+    MatTooltip,
+    LocalDateStrPipe,
+    TaskDetailItemComponent,
+  ],
   template: `
     <section
-      class="life-meta"
+      class="life-meta-native"
       aria-label="Task intelligence"
     >
-      <header>
-        <mat-icon>tune</mat-icon>
-        <strong>Task intelligence</strong>
-      </header>
+      <task-detail-item
+        #priorityTrigger="matMenuTrigger"
+        [matMenuTriggerFor]="priorityMenu"
+        (editActionTriggered)="priorityTrigger.openMenu()"
+        [inputIcon]="task().lifePriorityId ? 'edit' : 'add'"
+        class="input-item"
+      >
+        <ng-container input-title>
+          <mat-icon>priority_high</mat-icon>
+          <span>Priority</span>
+        </ng-container>
+        <ng-container input-value>
+          <span [class.empty-value]="!priorityValue()">{{ priorityValue() }}</span>
+        </ng-container>
+      </task-detail-item>
 
-      <life-task-fields
-        [config]="config()"
-        [value]="metaValue()"
-        [blockerSuggestions]="blockerCandidates()"
-        (valueChange)="onValueChange($event)"
-      />
+      <div class="paired-row">
+        <task-detail-item
+          #focusTrigger="matMenuTrigger"
+          [matMenuTriggerFor]="focusMenu"
+          (editActionTriggered)="focusTrigger.openMenu()"
+          class="input-item paired-item"
+        >
+          <ng-container input-title>
+            <mat-icon>psychology</mat-icon>
+            <span>Focus</span>
+          </ng-container>
+          <ng-container input-value>
+            <span [class.empty-value]="!focusValue()">{{ focusValue() }}</span>
+          </ng-container>
+        </task-detail-item>
 
-      <div class="legend">
-        <span><strong>Focus</strong>: concentration required</span>
-        <span><strong>Energy</strong>: effort required</span>
-        <span><strong>Due</strong>: desired completion</span>
-        <span><strong>Deadline</strong>: hard limit in the native Deadline field</span>
+        <task-detail-item
+          #energyTrigger="matMenuTrigger"
+          [matMenuTriggerFor]="energyMenu"
+          (editActionTriggered)="energyTrigger.openMenu()"
+          class="input-item paired-item"
+        >
+          <ng-container input-title>
+            <mat-icon>bolt</mat-icon>
+            <span>Energy</span>
+          </ng-container>
+          <ng-container input-value>
+            <span [class.empty-value]="!energyValue()">{{ energyValue() }}</span>
+          </ng-container>
+        </task-detail-item>
       </div>
+
+      <div class="paired-row">
+        <task-detail-item
+          #requiresTrigger="matMenuTrigger"
+          [matMenuTriggerFor]="requiresMenu"
+          (editActionTriggered)="requiresTrigger.openMenu()"
+          class="input-item paired-item"
+        >
+          <ng-container input-title>
+            <mat-icon>build</mat-icon>
+            <span>Requires</span>
+          </ng-container>
+          <ng-container input-value>
+            <span [class.empty-value]="!requiresValue()">{{ requiresValue() }}</span>
+          </ng-container>
+        </task-detail-item>
+
+        <task-detail-item
+          #locationTrigger="matMenuTrigger"
+          [matMenuTriggerFor]="locationMenu"
+          (editActionTriggered)="locationTrigger.openMenu()"
+          class="input-item paired-item"
+        >
+          <ng-container input-title>
+            <mat-icon>place</mat-icon>
+            <span>Location</span>
+          </ng-container>
+          <ng-container input-value>
+            <span [class.empty-value]="!locationValue()">{{ locationValue() }}</span>
+          </ng-container>
+        </task-detail-item>
+      </div>
+
+      <task-detail-item
+        (editActionTriggered)="openLifeDate('lifeDueDay')"
+        [inputIcon]="task().lifeDueDay ? 'edit' : 'add'"
+        class="input-item life-date-row"
+      >
+        <ng-container input-title>
+          <mat-icon>event</mat-icon>
+          <span>Due</span>
+        </ng-container>
+        <ng-container input-value>
+          <div class="life-date-value">
+            <span [class.empty-value]="!task().lifeDueDay">
+              {{ task().lifeDueDay ? (task().lifeDueDay | localDateStr: '') : 'Not set' }}
+            </span>
+            <small>Target completion date; a flexible target, not a hard deadline.</small>
+          </div>
+          @if (task().lifeDueDay) {
+            <button
+              mat-icon-button
+              class="quick-chip"
+              type="button"
+              matTooltip="Clear Due"
+              (click)="clearLifeDate('lifeDueDay', $event)"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </ng-container>
+      </task-detail-item>
+
+      <task-detail-item
+        (editActionTriggered)="openLifeDate('lifeFollowUpDay')"
+        [inputIcon]="task().lifeFollowUpDay ? 'edit' : 'add'"
+        class="input-item life-date-row"
+      >
+        <ng-container input-title>
+          <mat-icon>notification_important</mat-icon>
+          <span>Follow-up</span>
+        </ng-container>
+        <ng-container input-value>
+          <div class="life-date-value">
+            <span [class.empty-value]="!task().lifeFollowUpDay">
+              {{
+                task().lifeFollowUpDay
+                  ? (task().lifeFollowUpDay | localDateStr: '')
+                  : 'Not set'
+              }}
+            </span>
+            <small>When to check back, chase a response, or continue this task.</small>
+          </div>
+          @if (task().lifeFollowUpDay) {
+            <button
+              mat-icon-button
+              class="quick-chip"
+              type="button"
+              matTooltip="Clear Follow-up"
+              (click)="clearLifeDate('lifeFollowUpDay', $event)"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </ng-container>
+      </task-detail-item>
+
+      <task-detail-item
+        (editActionTriggered)="openLifeDate('lifeReviewDay')"
+        [inputIcon]="task().lifeReviewDay ? 'edit' : 'add'"
+        class="input-item life-date-row"
+      >
+        <ng-container input-title>
+          <mat-icon>rate_review</mat-icon>
+          <span>Review</span>
+        </ng-container>
+        <ng-container input-value>
+          <div class="life-date-value">
+            <span [class.empty-value]="!task().lifeReviewDay">
+              {{
+                task().lifeReviewDay ? (task().lifeReviewDay | localDateStr: '') : 'Not set'
+              }}
+            </span>
+            <small>When to revisit and reassess the task without changing its due date.</small>
+          </div>
+          @if (task().lifeReviewDay) {
+            <button
+              mat-icon-button
+              class="quick-chip"
+              type="button"
+              matTooltip="Clear Review"
+              (click)="clearLifeDate('lifeReviewDay', $event)"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </ng-container>
+      </task-detail-item>
+
+      <task-detail-item
+        #blockedTrigger="matMenuTrigger"
+        [matMenuTriggerFor]="blockedMenu"
+        (editActionTriggered)="blockedTrigger.openMenu()"
+        (menuClosed)="blockerQuery.set('')"
+        [inputIcon]="task().lifeBlockedByTaskIds?.length ? 'edit' : 'add'"
+        class="input-item"
+      >
+        <ng-container input-title>
+          <mat-icon>account_tree</mat-icon>
+          <span>Blocked by task</span>
+        </ng-container>
+        <ng-container input-value>
+          <span [class.empty-value]="!blockedByValue()">{{ blockedByValue() }}</span>
+        </ng-container>
+      </task-detail-item>
     </section>
+
+    <mat-menu #priorityMenu="matMenu">
+      <button
+        mat-menu-item
+        type="button"
+        (click)="setPriority(null)"
+      >
+        <mat-icon>remove_circle_outline</mat-icon>
+        <span>None</span>
+      </button>
+      @for (option of priorityOptions(); track option.id) {
+        <button
+          mat-menu-item
+          type="button"
+          (click)="setPriority(option.id)"
+        >
+          <mat-icon [style.color]="option.color || null">{{ option.icon || 'circle' }}</mat-icon>
+          <span>{{ option.label }}</span>
+          @if (task().lifePriorityId === option.id) {
+            <mat-icon class="selected-mark">check</mat-icon>
+          }
+        </button>
+      }
+    </mat-menu>
+
+    <mat-menu #focusMenu="matMenu">
+      <button
+        mat-menu-item
+        type="button"
+        (click)="setFocus(null)"
+      >
+        <mat-icon>remove_circle_outline</mat-icon>
+        <span>Not set</span>
+      </button>
+      @for (option of focusOptions; track option.id) {
+        <button
+          mat-menu-item
+          type="button"
+          (click)="setFocus(+option.id)"
+        >
+          <mat-icon [style.color]="option.color || null">{{ option.icon || 'psychology' }}</mat-icon>
+          <span>{{ option.label }}</span>
+          @if (task().lifeFocus === +option.id) {
+            <mat-icon class="selected-mark">check</mat-icon>
+          }
+        </button>
+      }
+    </mat-menu>
+
+    <mat-menu #energyMenu="matMenu">
+      <button
+        mat-menu-item
+        type="button"
+        (click)="setEnergy(null)"
+      >
+        <mat-icon>remove_circle_outline</mat-icon>
+        <span>Not set</span>
+      </button>
+      @for (option of energyOptions; track option.id) {
+        <button
+          mat-menu-item
+          type="button"
+          (click)="setEnergy(+option.id)"
+        >
+          <mat-icon [style.color]="option.color || null">{{ option.icon || 'bolt' }}</mat-icon>
+          <span>{{ option.label }}</span>
+          @if (task().lifeEnergy === +option.id) {
+            <mat-icon class="selected-mark">check</mat-icon>
+          }
+        </button>
+      }
+    </mat-menu>
+
+    <mat-menu #requiresMenu="matMenu">
+      <div (click)="$event.stopPropagation()">
+        <button
+          mat-menu-item
+          type="button"
+          (click)="clearMulti('lifeRequirementIds')"
+        >
+          <mat-icon>clear_all</mat-icon>
+          <span>Anything</span>
+        </button>
+        @for (option of requirementOptions(); track option.id) {
+          <button
+            mat-menu-item
+            type="button"
+            (click)="toggleMulti('lifeRequirementIds', option.id)"
+          >
+            <mat-icon [style.color]="option.color || null">{{ option.icon || 'build' }}</mat-icon>
+            <span>{{ option.label }}</span>
+            @if (task().lifeRequirementIds?.includes(option.id)) {
+              <mat-icon class="selected-mark">check</mat-icon>
+            }
+          </button>
+        }
+      </div>
+    </mat-menu>
+
+    <mat-menu #locationMenu="matMenu">
+      <div (click)="$event.stopPropagation()">
+        <button
+          mat-menu-item
+          type="button"
+          (click)="clearMulti('lifeLocationIds')"
+        >
+          <mat-icon>clear_all</mat-icon>
+          <span>Anywhere</span>
+        </button>
+        @for (option of locationOptions(); track option.id) {
+          <button
+            mat-menu-item
+            type="button"
+            (click)="toggleMulti('lifeLocationIds', option.id)"
+          >
+            <mat-icon [style.color]="option.color || null">{{ option.icon || 'place' }}</mat-icon>
+            <span>{{ option.label }}</span>
+            @if (task().lifeLocationIds?.includes(option.id)) {
+              <mat-icon class="selected-mark">check</mat-icon>
+            }
+          </button>
+        }
+      </div>
+    </mat-menu>
+
+    <mat-menu #blockedMenu="matMenu">
+      <div
+        class="blocker-menu-body"
+        (click)="$event.stopPropagation()"
+      >
+        <label class="blocker-search">
+          <mat-icon>search</mat-icon>
+          <input
+            type="search"
+            placeholder="Search tasks"
+            aria-label="Search tasks"
+            [value]="blockerQuery()"
+            (input)="blockerQuery.set($any($event.target).value)"
+            (keydown)="$event.stopPropagation()"
+          />
+        </label>
+        @if (!filteredBlockerCandidates().length) {
+          <div class="empty-menu-message">No matching tasks</div>
+        }
+        @for (candidate of filteredBlockerCandidates(); track candidate.id) {
+          <button
+            mat-menu-item
+            type="button"
+            (click)="toggleBlocker(candidate.id)"
+          >
+            <mat-icon>task_alt</mat-icon>
+            <span>{{ candidate.title }}</span>
+            @if (task().lifeBlockedByTaskIds?.includes(candidate.id)) {
+              <mat-icon class="selected-mark">check</mat-icon>
+            }
+          </button>
+        }
+      </div>
+    </mat-menu>
   `,
   styles: [
     `
       :host {
         display: block;
         width: 100%;
-      }
-
-      .life-meta {
-        border-top: 1px solid var(--divider-color);
-        border-bottom: 1px solid var(--divider-color);
-        padding: 14px 16px;
-      }
-
-      header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 12px;
-      }
-
-      header mat-icon {
-        color: var(--brand);
-      }
-
-      /*
-       * The task detail panel can be much narrower than the browser viewport.
-       * Size these field groups from the panel's available width instead of
-       * relying on viewport breakpoints, so controls wrap before they overlap.
-       */
-      :host ::ng-deep life-task-fields .quick-grid,
-      :host ::ng-deep life-task-fields .more-grid {
-        gap: var(--s);
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 168px), 1fr));
-      }
-
-      :host ::ng-deep life-task-fields .more-grid {
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
-      }
-
-      :host ::ng-deep life-task-fields .quick-grid > *,
-      :host ::ng-deep life-task-fields .more-grid > * {
         min-width: 0;
       }
 
-      :host ::ng-deep life-task-fields .blocked-picker {
-        grid-column: 1 / -1;
+      .life-meta-native {
+        display: block;
+        min-width: 0;
       }
 
-      .legend {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px 16px;
-        margin-top: 12px;
+      .paired-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--s);
+        margin: var(--s);
+      }
+
+      :host ::ng-deep .paired-row task-detail-item .input-item {
+        margin: 0;
+      }
+
+      :host ::ng-deep .paired-row task-detail-item .input-item__title {
+        margin-inline: var(--s-half);
+        flex-basis: auto;
+      }
+
+      :host ::ng-deep .paired-row task-detail-item .input-item__title mat-icon:first-of-type {
+        margin-right: var(--s-half);
+      }
+
+      :host ::ng-deep .paired-row task-detail-item .input-item__value {
+        flex: 0 1 auto;
+        margin-right: var(--s-half);
+      }
+
+      .life-date-value {
+        display: flex !important;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: center;
+        min-width: 0;
+        overflow: hidden;
+        line-height: 1.15;
+      }
+
+      .life-date-value > span,
+      .life-date-value small {
+        display: block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .life-date-value small {
+        margin-top: 2px;
         color: var(--text-color-muted);
-        font-size: 0.72rem;
+        font-size: 10px;
+        font-weight: 400;
       }
 
-      @media (max-width: 600px) {
-        .life-meta {
-          padding-inline: 12px;
+      .empty-value {
+        color: var(--text-color-muted);
+        font-weight: 400;
+      }
+
+      .quick-chip {
+        margin-left: var(--s-quarter);
+      }
+
+      .selected-mark {
+        margin-left: auto;
+        color: var(--c-accent);
+      }
+
+      .blocker-menu-body {
+        width: min(360px, calc(100vw - 32px));
+        max-height: 420px;
+        overflow: auto;
+        padding-top: var(--s-half);
+      }
+
+      .blocker-search {
+        display: flex;
+        align-items: center;
+        gap: var(--s-half);
+        margin: 0 var(--s) var(--s-half);
+        padding: 0 var(--s-half);
+        min-height: 38px;
+        border: 1px solid var(--divider-color);
+        border-radius: var(--card-border-radius);
+        background: var(--bg-lighter);
+      }
+
+      .blocker-search mat-icon {
+        flex: 0 0 auto;
+        color: var(--text-color-muted);
+      }
+
+      .blocker-search input {
+        width: 100%;
+        min-width: 0;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--text-color);
+        font: inherit;
+      }
+
+      .empty-menu-message {
+        padding: var(--s) var(--s2);
+        color: var(--text-color-muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 420px) {
+        .paired-row {
+          gap: var(--s-half);
+          margin-inline: var(--s-half);
+        }
+
+        :host ::ng-deep .paired-row task-detail-item .input-item__title,
+        :host ::ng-deep .paired-row task-detail-item .input-item__value {
+          margin-inline: var(--s-quarter);
+          font-size: 12px;
+        }
+
+        :host ::ng-deep .paired-row task-detail-item .input-item__title mat-icon:first-of-type {
+          margin-right: var(--s-quarter);
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
         }
       }
     `,
@@ -122,28 +556,23 @@ export class LifeTaskMetaComponent {
   private readonly _store = inject(Store);
   private readonly _lifeConfig = inject(LifeOsConfigService);
   private readonly _contextEngine = inject(LifeContextEngineService);
+  private readonly _matDialog = inject(MatDialog);
   private readonly _allTasks = toSignal(this._taskService.allTasks$ ?? of([] as Task[]), {
     initialValue: [] as Task[],
   });
 
   readonly config = this._lifeConfig.config;
+  readonly focusOptions = LIFE_FOCUS_OPTIONS;
+  readonly energyOptions = LIFE_ENERGY_OPTIONS;
+  readonly blockerQuery = signal('');
 
-  readonly metaValue = computed<LifeTaskMetaValue>(() => {
-    const task = this.task();
-    return {
-      priorityId: task.lifePriorityId || this.config().defaultPriorityId || null,
-      focus: task.lifeFocus ?? null,
-      energy: task.lifeEnergy ?? null,
-      dueDay: task.lifeDueDay || null,
-      locationIds: task.lifeLocationIds || [],
-      requirementIds: task.lifeRequirementIds || [],
-      isNextAction: !!task.lifeIsNextAction,
-      waitingFor: task.lifeWaitingFor || null,
-      followUpDay: task.lifeFollowUpDay || null,
-      reviewDay: task.lifeReviewDay || null,
-      blockedByTaskIds: task.lifeBlockedByTaskIds || [],
-    };
-  });
+  readonly priorityOptions = computed(() => lifePriorityPickerOptions(this.config()));
+  readonly locationOptions = computed(() =>
+    lifeContextPickerOptions(this.config().locations, 'place'),
+  );
+  readonly requirementOptions = computed(() =>
+    lifeContextPickerOptions(this.config().requirements, 'build'),
+  );
 
   readonly blockerCandidates = computed<LifeTaskPickerSuggestion[]>(() => {
     const current = this.task();
@@ -165,26 +594,138 @@ export class LifeTaskMetaComponent {
       .sort((a, b) => a.title.localeCompare(b.title));
   });
 
-  onValueChange(value: LifeTaskMetaValue): void {
-    const tasks = this._allTasks();
-    const blockedByTaskIds = value.blockedByTaskIds.filter(
-      (blockerId) =>
-        !this._contextEngine.wouldCreateDependencyCycle(this.task().id, blockerId, tasks),
+  readonly filteredBlockerCandidates = computed(() => {
+    const query = this.blockerQuery().trim().toLocaleLowerCase();
+    if (!query) return this.blockerCandidates();
+    return this.blockerCandidates().filter((candidate) =>
+      candidate.title.toLocaleLowerCase().includes(query),
     );
+  });
 
-    this._update({
-      lifePriorityId: value.priorityId,
-      lifeFocus: value.focus,
-      lifeEnergy: value.energy,
-      lifeDueDay: value.dueDay,
-      lifeLocationIds: value.locationIds,
-      lifeRequirementIds: value.requirementIds,
-      lifeIsNextAction: value.isNextAction,
-      lifeWaitingFor: value.waitingFor,
-      lifeFollowUpDay: value.waitingFor ? value.followUpDay : null,
-      lifeReviewDay: value.reviewDay,
-      lifeBlockedByTaskIds: blockedByTaskIds,
-    });
+  readonly priorityValue = computed(() =>
+    this._singleLabel(
+      this.priorityOptions(),
+      this.task().lifePriorityId || this.config().defaultPriorityId || null,
+      'None',
+    ),
+  );
+  readonly focusValue = computed(() =>
+    this._singleLabel(
+      this.focusOptions,
+      this.task().lifeFocus == null ? null : String(this.task().lifeFocus),
+      'Not set',
+    ),
+  );
+  readonly energyValue = computed(() =>
+    this._singleLabel(
+      this.energyOptions,
+      this.task().lifeEnergy == null ? null : String(this.task().lifeEnergy),
+      'Not set',
+    ),
+  );
+  readonly requiresValue = computed(() =>
+    this._multiLabel(
+      this.requirementOptions(),
+      this.task().lifeRequirementIds || [],
+      'Anything',
+    ),
+  );
+  readonly locationValue = computed(() =>
+    this._multiLabel(this.locationOptions(), this.task().lifeLocationIds || [], 'Anywhere'),
+  );
+  readonly blockedByValue = computed(() => {
+    const selected = new Set(this.task().lifeBlockedByTaskIds || []);
+    const labels = this.blockerCandidates()
+      .filter((candidate) => selected.has(candidate.id))
+      .map((candidate) => candidate.title);
+    return labels.length ? labels.join(', ') : 'None';
+  });
+
+  setPriority(priorityId: string | null): void {
+    this._update({ lifePriorityId: priorityId });
+  }
+
+  setFocus(focus: number | null): void {
+    this._update({ lifeFocus: focus });
+  }
+
+  setEnergy(energy: number | null): void {
+    this._update({ lifeEnergy: energy });
+  }
+
+  toggleMulti(field: LifeMultiField, id: string): void {
+    const current = this.task()[field] || [];
+    const next = current.includes(id)
+      ? current.filter((value) => value !== id)
+      : [...current, id];
+    this._update({ [field]: next } as Partial<Task>);
+  }
+
+  clearMulti(field: LifeMultiField): void {
+    this._update({ [field]: [] } as Partial<Task>);
+  }
+
+  toggleBlocker(blockerId: string): void {
+    const current = this.task().lifeBlockedByTaskIds || [];
+    const next = current.includes(blockerId)
+      ? current.filter((id) => id !== blockerId)
+      : [...current, blockerId];
+    const tasks = this._allTasks();
+    const safeNext = next.filter(
+      (id) => !this._contextEngine.wouldCreateDependencyCycle(this.task().id, id, tasks),
+    );
+    this._update({ lifeBlockedByTaskIds: safeNext });
+  }
+
+  openLifeDate(field: LifeDateField): void {
+    const currentDay = this.task()[field] || null;
+    this._matDialog
+      .open(DialogScheduleTaskComponent, {
+        autoFocus: false,
+        restoreFocus: true,
+        data: {
+          targetDay: currentDay || undefined,
+          isSelectDueOnly: true,
+          showQuickAccess: true,
+          minDate: null,
+        },
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (
+          result &&
+          typeof result === 'object' &&
+          'date' in result &&
+          result.date instanceof Date
+        ) {
+          this._update({ [field]: getDbDateStr(result.date) } as Partial<Task>);
+        }
+      });
+  }
+
+  clearLifeDate(field: LifeDateField, event: Event): void {
+    event.stopPropagation();
+    this._update({ [field]: null } as Partial<Task>);
+  }
+
+  private _singleLabel(
+    options: LifePickerOption[],
+    value: string | null,
+    emptyLabel: string,
+  ): string {
+    if (!value) return emptyLabel;
+    return options.find((option) => option.id === value)?.label || emptyLabel;
+  }
+
+  private _multiLabel(
+    options: LifePickerOption[],
+    values: string[],
+    emptyLabel: string,
+  ): string {
+    if (!values.length) return emptyLabel;
+    const selected = new Set(values);
+    const labels = options.filter((option) => selected.has(option.id)).map((option) => option.label);
+    return labels.length ? labels.join(', ') : emptyLabel;
   }
 
   private _update(changes: Partial<Task>): void {
