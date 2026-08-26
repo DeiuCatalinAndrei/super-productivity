@@ -2,6 +2,9 @@ name: Build LifeOS Windows Installer
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - windows-pr21-exe-20260826
 
 permissions:
   contents: read
