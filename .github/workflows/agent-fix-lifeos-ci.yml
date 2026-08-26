@@ -1,0 +1,55 @@
+name: Agent Fix LifeOS CI
+
+on:
+  push:
+    branches:
+      - fix/lifeos-duplicate-repeat
+
+permissions:
+  contents: write
+
+jobs:
+  fix-lint:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/lifeos-duplicate-repeat
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install formatter dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Apply targeted lint fixes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/app/features/tasks/task/task.component.html')
+          s = p.read_text()
+          s = s.replace(' != ', ' !== ')
+          p.write_text(s)
+          PY
+          npx prettier --write \
+            src/app/features/task-repeat-cfg/store/task-repeat-cfg.effects.ts \
+            src/app/features/task-repeat-cfg/task-repeat-cfg.service.ts \
+            src/app/features/tasks/util/life-os-task-fields.util.ts \
+            src/app/features/tasks/task/task.component.html
+      - name: Commit fixes
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No lint fixes needed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            src/app/features/task-repeat-cfg/store/task-repeat-cfg.effects.ts \
+            src/app/features/task-repeat-cfg/task-repeat-cfg.service.ts \
+            src/app/features/tasks/util/life-os-task-fields.util.ts \
+            src/app/features/tasks/task/task.component.html
+          git commit -m 'fix: satisfy lint for LifeOS duplicate and repeat changes'
+          git push origin HEAD:fix/lifeos-duplicate-repeat
