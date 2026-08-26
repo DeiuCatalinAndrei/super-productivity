@@ -95,10 +95,7 @@ export const applyLifeOsRepeatTemplateFields = (
   template: LifeOsRepeatTemplateFields,
   occurrenceDay: string,
 ): Partial<TaskCopy> => {
-  const lifeDueDay = _applyRelativeDayOffset(
-    occurrenceDay,
-    template.lifeDueDayOffset,
-  );
+  const lifeDueDay = _applyRelativeDayOffset(occurrenceDay, template.lifeDueDayOffset);
   const lifeFollowUpDay = _applyRelativeDayOffset(
     occurrenceDay,
     template.lifeFollowUpDayOffset,

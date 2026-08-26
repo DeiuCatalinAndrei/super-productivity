@@ -383,10 +383,7 @@ export class TaskRepeatCfgService {
           newestLiveSubTask && newestOccurrenceDay
             ? {
                 ...subTask,
-                ...getLifeOsRepeatTemplateFields(
-                  newestLiveSubTask,
-                  newestOccurrenceDay,
-                ),
+                ...getLifeOsRepeatTemplateFields(newestLiveSubTask, newestOccurrenceDay),
               }
             : subTask;
         const newSubTask = this._taskService.createNewTaskWithDefaults({
@@ -397,10 +394,7 @@ export class TaskRepeatCfgService {
             parentId: task.id,
             projectId: taskRepeatCfg.projectId || undefined,
             isDone: false, // Always start fresh
-            ...applyLifeOsRepeatTemplateFields(
-              effectiveSubTaskTemplate,
-              targetDateStr,
-            ),
+            ...applyLifeOsRepeatTemplateFields(effectiveSubTaskTemplate, targetDateStr),
           },
         });
 

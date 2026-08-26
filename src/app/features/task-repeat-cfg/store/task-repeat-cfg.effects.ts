@@ -592,7 +592,8 @@ export class TaskRepeatCfgEffects {
                       return rxOf({
                         cfg,
                         subs: [] as Task[],
-                        occurrenceDay: cfg.lastTaskCreationDay || this._dateService.todayStr(),
+                        occurrenceDay:
+                          cfg.lastTaskCreationDay || this._dateService.todayStr(),
                       });
                     }
                     const newest = arch.reduce((a, b) => (a.created > b.created ? a : b));
@@ -612,10 +613,7 @@ export class TaskRepeatCfgEffects {
                 );
               }),
               mergeMap(({ cfg: config, subs, occurrenceDay }) => {
-                const newTemplates = this._toSubTaskTemplates(
-                  subs || [],
-                  occurrenceDay,
-                );
+                const newTemplates = this._toSubTaskTemplates(subs || [], occurrenceDay);
                 if (this._templatesEqual(config.subTaskTemplates, newTemplates)) {
                   return EMPTY;
                 }
