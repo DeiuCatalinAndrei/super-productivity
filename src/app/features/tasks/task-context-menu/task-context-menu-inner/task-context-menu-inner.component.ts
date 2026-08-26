@@ -83,6 +83,7 @@ import { DEFAULT_GLOBAL_CONFIG } from 'src/app/features/config/default-global-co
 import { MenuTreeService } from '../../../menu-tree/menu-tree.service';
 import { SelectOptionRowComponent } from '../../../../ui/select-option-row/select-option-row.component';
 import { AddSubtaskInputService } from '../../add-subtask-input/add-subtask-input.service';
+import { getLifeOsFieldsForDuplicate } from '../../util/life-os-task-fields.util';
 
 @Component({
   selector: 'task-context-menu-inner',
@@ -499,8 +500,9 @@ export class TaskContextMenuInnerComponent implements AfterViewInit, OnDestroy {
     const taskData = {
       isDone: false,
       projectId: this.task.projectId || undefined,
-      tagIds: this.task.tagIds || [],
+      tagIds: [...(this.task.tagIds || [])],
       ...(this.task.notes && { notes: this.task.notes }),
+      ...getLifeOsFieldsForDuplicate(this.task),
     };
     const timeData = {
       ...(this.task.dueDay && { dueDay: this.task.dueDay }),
@@ -521,6 +523,7 @@ export class TaskContextMenuInnerComponent implements AfterViewInit, OnDestroy {
           projectId: subTask.projectId,
           timeEstimate: subTask.timeEstimate,
           notes: subTask.notes,
+          ...getLifeOsFieldsForDuplicate(subTask),
         };
         const subTaskObj = this._taskService.createNewTaskWithDefaults({
           title: subTask.title,

@@ -65,13 +65,41 @@ jobs:
         #  if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm i
 
-      - name: Decode Keystore
+      - name: Check Android signing credentials
+        id: signing
         env:
+          RELEASE_KEYSTORE_BASE_64: ${{ secrets.DROID_KEYSTORE_BASE_64 }}
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.DROID_KEYSTORE_PASSWORD }}
           RELEASE_KEYSTORE_ALIAS: ${{ secrets.DROID_KEYSTORE_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.DROID_KEY_PASSWORD }}
+        shell: bash
         run: |
-          echo "${{ secrets.DROID_KEYSTORE_BASE_64 }}" | base64 --decode > keystore.jks
+          set -euo pipefail
+          missing=()
+          [[ -n "$RELEASE_KEYSTORE_BASE_64" ]] || missing+=(DROID_KEYSTORE_BASE_64)
+          [[ -n "$RELEASE_KEYSTORE_PASSWORD" ]] || missing+=(DROID_KEYSTORE_PASSWORD)
+          [[ -n "$RELEASE_KEYSTORE_ALIAS" ]] || missing+=(DROID_KEYSTORE_ALIAS)
+          [[ -n "$RELEASE_KEY_PASSWORD" ]] || missing+=(DROID_KEY_PASSWORD)
+
+          if (( ${#missing[@]} > 0 )); then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+              echo "::error::Android release signing secrets are missing: ${missing[*]}"
+              exit 1
+            fi
+            echo "::notice::Android signing secrets are not configured (${missing[*]}). Skipping the signed dev APK build."
+            exit 0
+          fi
+
+          echo "available=true" >> "$GITHUB_OUTPUT"
+
+      - name: Decode Keystore
+        if: steps.signing.outputs.available == 'true'
+        env:
+          RELEASE_KEYSTORE_BASE_64: ${{ secrets.DROID_KEYSTORE_BASE_64 }}
+        run: |
+          printf '%s' "$RELEASE_KEYSTORE_BASE_64" | base64 --decode > keystore.jks
+          test -s keystore.jks || { echo "::error::Decoded Android keystore is empty"; exit 1; }
 
       # --- Per-push dev build (non-tag master pushes only) --------------------
       # On plain master pushes the release-signed APK is otherwise artifact-only;
@@ -85,7 +113,7 @@ jobs:
         # Dev distribution must never redden the release-critical build; on any
         # failure the downstream gates read '' and simply skip.
         continue-on-error: true
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/master' && steps.signing.outputs.available == 'true'
         run: node tools/android-dev-version-code.js
       - name: Apply dev versionCode
         id: applyvc
@@ -93,7 +121,7 @@ jobs:
         # release-critical build; on failure `applied` stays unset and the Play
         # upload below is skipped (the artifact build still succeeds).
         continue-on-error: true
-        if: github.ref == 'refs/heads/master' && steps.devvc.outputs.skip == 'false'
+        if: github.ref == 'refs/heads/master' && steps.signing.outputs.available == 'true' && steps.devvc.outputs.skip == 'false'
         env:
           CODE: ${{ steps.devvc.outputs.code }}
         run: |
@@ -105,6 +133,7 @@ jobs:
           echo "applied=true" >> "$GITHUB_OUTPUT"
 
       - name: Build
+        if: steps.signing.outputs.available == 'true'
         run: npm run dist:android:prod
         env:
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.DROID_KEYSTORE_PASSWORD }}
@@ -112,6 +141,7 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.DROID_KEY_PASSWORD }}
 
       - name: DEBUG
+        if: steps.signing.outputs.available == 'true'
         run: |
           ls -la android/app/build/outputs
           ls -la android/app/build/outputs/apk
@@ -121,6 +151,7 @@ jobs:
       # APK is now signed automatically by Gradle using signingConfig
 
       - name: 'Upload APK files'
+        if: steps.signing.outputs.available == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sup-android-release
@@ -139,7 +170,7 @@ jobs:
         # step — closed by `git push --follow-tags`), and transient Play API
         # errors must not fail the release-critical workflow.
         continue-on-error: true
-        if: github.ref == 'refs/heads/master' && steps.applyvc.outputs.applied == 'true'
+        if: github.ref == 'refs/heads/master' && steps.signing.outputs.available == 'true' && steps.applyvc.outputs.applied == 'true'
         uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}

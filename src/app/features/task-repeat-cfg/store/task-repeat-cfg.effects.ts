@@ -45,6 +45,7 @@ import { devError } from '../../../util/dev-error';
 import { getFirstRepeatOccurrence } from './get-first-repeat-occurrence.util';
 import { getNextRepeatOccurrence } from './get-next-repeat-occurrence.util';
 import { clampPastTimedOccurrence } from './clamp-past-timed-occurrence.util';
+import { getLifeOsRepeatTemplateFields } from '../../tasks/util/life-os-task-fields.util';
 
 const SCHEDULE_AFFECTING_FIELDS: (keyof TaskRepeatCfgCopy)[] = [
   'startDate',
@@ -152,7 +153,14 @@ export class TaskRepeatCfgEffects {
               };
             }
 
-            const subTaskTemplates = this._toSubTaskTemplates(subTasks);
+            const templateAnchorDay =
+              taskRepeatCfg.startDate ||
+              taskWithoutSubs.dueDay ||
+              getDbDateStr(taskWithoutSubs.dueWithTime || taskWithoutSubs.created);
+            const subTaskTemplates = this._toSubTaskTemplates(
+              subTasks,
+              templateAnchorDay,
+            );
 
             return {
               task: taskWithoutSubs,
@@ -175,9 +183,12 @@ export class TaskRepeatCfgEffects {
           ? this._dateService.isToday(firstOccurrence)
           : true;
 
-        // Update repeat config with subtask templates AND the correct lastTaskCreationDay
+        // Update repeat config with subtask templates, LifeOS metadata and the
+        // correct lastTaskCreationDay. Date-based LifeOS fields are stored as
+        // offsets from the occurrence so every future instance shifts with it.
         this._taskRepeatCfgService.updateTaskRepeatCfg(taskRepeatCfg.id, {
           subTaskTemplates,
+          ...getLifeOsRepeatTemplateFields(task, firstOccurrenceStr),
           lastTaskCreationDay: firstOccurrenceStr,
           lastTaskCreation: firstOccurrence?.getTime() || Date.now(),
         });
@@ -497,8 +508,11 @@ export class TaskRepeatCfgEffects {
                 map((subs) => ({ cfg, newest, subs })),
               ),
             ),
-            mergeMap(({ cfg, subs }) => {
-              const newTemplates = this._toSubTaskTemplates(subs || []);
+            mergeMap(({ cfg, newest, subs }) => {
+              const newTemplates = this._toSubTaskTemplates(
+                subs || [],
+                getDbDateStr(newest.created),
+              );
               if (this._templatesEqual(cfg.subTaskTemplates, newTemplates)) {
                 return EMPTY;
               }
@@ -561,7 +575,11 @@ export class TaskRepeatCfgEffects {
                 if (newestLive) {
                   return this._taskService.getByIdsLive$(newestLive.subTaskIds).pipe(
                     first(),
-                    map((subs) => ({ cfg, subs })),
+                    map((subs) => ({
+                      cfg,
+                      subs,
+                      occurrenceDay: getDbDateStr(newestLive!.created),
+                    })),
                   );
                 }
 
@@ -571,7 +589,12 @@ export class TaskRepeatCfgEffects {
                 ).pipe(
                   switchMap((arch) => {
                     if (!arch || arch.length === 0) {
-                      return rxOf({ cfg, subs: [] as Task[] });
+                      return rxOf({
+                        cfg,
+                        subs: [] as Task[],
+                        occurrenceDay:
+                          cfg.lastTaskCreationDay || this._dateService.todayStr(),
+                      });
                     }
                     const newest = arch.reduce((a, b) => (a.created > b.created ? a : b));
                     return from(this._taskArchiveService.load()).pipe(
@@ -579,14 +602,18 @@ export class TaskRepeatCfgEffects {
                         const subs = newest.subTaskIds
                           .map((id) => archiveState.entities[id])
                           .filter(Boolean) as unknown as Task[];
-                        return { cfg, subs };
+                        return {
+                          cfg,
+                          subs,
+                          occurrenceDay: getDbDateStr(newest.created),
+                        };
                       }),
                     );
                   }),
                 );
               }),
-              mergeMap(({ cfg: config, subs }) => {
-                const newTemplates = this._toSubTaskTemplates(subs || []);
+              mergeMap(({ cfg: config, subs, occurrenceDay }) => {
+                const newTemplates = this._toSubTaskTemplates(subs || [], occurrenceDay);
                 if (this._templatesEqual(config.subTaskTemplates, newTemplates)) {
                   return EMPTY;
                 }
@@ -835,13 +862,7 @@ export class TaskRepeatCfgEffects {
       return false;
     }
     for (let i = 0; i < aArr.length; i++) {
-      const ai = aArr[i];
-      const bi = b[i];
-      if (
-        ai.title !== bi.title ||
-        (ai.notes || '') !== (bi.notes || '') ||
-        (ai.timeEstimate || 0) !== (bi.timeEstimate || 0)
-      ) {
+      if (JSON.stringify(aArr[i]) !== JSON.stringify(b[i])) {
         return false;
       }
     }
@@ -887,15 +908,18 @@ export class TaskRepeatCfgEffects {
   }
 
   /**
-   * Converts tasks to subtask templates with only essential fields
+   * Converts tasks to subtask templates, including LifeOS metadata. Date-based
+   * fields are stored as offsets from the parent occurrence day.
    */
   private _toSubTaskTemplates(
     subs: Task[],
+    occurrenceDay: string = getDbDateStr(subs[0]?.created || Date.now()),
   ): NonNullable<TaskRepeatCfgCopy['subTaskTemplates']> {
     return subs.map((st) => ({
       title: st.title,
       notes: st.notes,
       timeEstimate: st.timeEstimate,
+      ...getLifeOsRepeatTemplateFields(st, occurrenceDay),
     }));
   }
 
