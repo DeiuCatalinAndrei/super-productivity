@@ -168,3 +168,15 @@ progress-bar {
 .local-attachments-heading {
   margin-bottom: 0;
 }
+
+// Keep the requested Task Intelligence order in the right-side panel:
+// Energy first, then Focus, while preserving the existing 50/50 layout.
+:host ::ng-deep life-task-meta .life-meta-native > .paired-row:first-of-type {
+  > task-detail-item:first-child {
+    order: 2;
+  }
+
+  > task-detail-item:last-child {
+    order: 1;
+  }
+}
