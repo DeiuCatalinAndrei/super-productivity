@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - windows-pr21-exe-20260826
+      - master
 
 permissions:
   contents: read
