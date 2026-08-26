@@ -41,6 +41,7 @@ import {
 } from './store/task-repeat-cfg.selectors';
 import { getRepeatableTaskId } from './get-repeatable-task-id.util';
 import { getDeadlineAutoPlanFields } from '../tasks/util/get-deadline-auto-plan-fields';
+import { applyLifeOsRepeatTemplateFields } from '../tasks/util/life-os-task-fields.util';
 
 @Injectable({
   providedIn: 'root',
@@ -361,6 +362,7 @@ export class TaskRepeatCfgService {
             parentId: task.id,
             projectId: taskRepeatCfg.projectId || undefined,
             isDone: false, // Always start fresh
+            ...applyLifeOsRepeatTemplateFields(subTask, targetDateStr),
           },
         });
 
@@ -395,6 +397,7 @@ export class TaskRepeatCfgService {
           notes: taskRepeatCfg.notes || '',
           dueDay,
           tagIds: taskRepeatCfg.tagIds.filter((tagId) => tagId !== TODAY_TAG.id),
+          ...applyLifeOsRepeatTemplateFields(taskRepeatCfg, dueDay),
         },
       }),
       isAddToBottom: taskRepeatCfg.order > 0,
