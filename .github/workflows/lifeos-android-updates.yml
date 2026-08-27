@@ -1,0 +1,141 @@
+name: LifeOS Android Update Channel
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lifeos-android-updates
+  cancel-in-progress: true
+
+jobs:
+  build-update:
+    runs-on: ubuntu-latest
+    env:
+      UNSPLASH_KEY: ${{ secrets.UNSPLASH_KEY }}
+      UNSPLASH_CLIENT_ID: ${{ secrets.UNSPLASH_CLIENT_ID }}
+    steps:
+      - name: Checkout LifeOS source
+        uses: actions/checkout@v4
+
+      - name: Check permanent signing credentials
+        id: signing
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.DROID_KEYSTORE_BASE_64 }}
+          STORE_PASSWORD: ${{ secrets.DROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.DROID_KEYSTORE_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.DROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$KEYSTORE_B64" || -z "$STORE_PASSWORD" || -z "$KEY_ALIAS" || -z "$KEY_PASSWORD" ]]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::LifeOS Android permanent signing secrets are not configured yet."
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node
+        if: steps.signing.outputs.available == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Java
+        if: steps.signing.outputs.available == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Android SDK
+        if: steps.signing.outputs.available == 'true'
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        if: steps.signing.outputs.available == 'true'
+        run: npm ci
+
+      - name: Restore permanent signing keystore
+        if: steps.signing.outputs.available == 'true'
+        env:
+          KEYSTORE_B64: ${{ secrets.DROID_KEYSTORE_BASE_64 }}
+        run: |
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > keystore.jks
+          test -s keystore.jks
+
+      - name: Build production LifeOS frontend
+        if: steps.signing.outputs.available == 'true'
+        run: npm run buildFrontend:prodWeb
+
+      - name: Sync Capacitor Android project
+        if: steps.signing.outputs.available == 'true'
+        run: npm run sync:android
+
+      - name: Assign monotonic LifeOS versionCode
+        if: steps.signing.outputs.available == 'true'
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          CODE=$((2000000000 + GITHUB_RUN_NUMBER))
+          if (( CODE >= 2100000000 )); then
+            echo "::error::LifeOS Android versionCode exhausted"
+            exit 1
+          fi
+          sed -i -E "s/versionCode [0-9_]+/versionCode ${CODE}/" android/app/build.gradle
+          grep -qE "versionCode ${CODE}( |$)" android/app/build.gradle
+          echo "code=${CODE}" >> "$GITHUB_OUTPUT"
+          echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build release-signed F-Droid APK
+        if: steps.signing.outputs.available == 'true'
+        working-directory: android
+        env:
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.DROID_KEYSTORE_PASSWORD }}
+          RELEASE_KEYSTORE_ALIAS: ${{ secrets.DROID_KEYSTORE_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.DROID_KEY_PASSWORD }}
+        run: ./gradlew assembleFdroidRelease
+
+      - name: Prepare update APK
+        if: steps.signing.outputs.available == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=$(find android/app/build/outputs/apk/fdroid/release -type f -name '*.apk' | head -n 1)
+          test -n "$APK"
+          cp "$APK" LifeOS-Android.apk
+          sha256sum LifeOS-Android.apk > LifeOS-Android.apk.sha256
+
+      - name: Upload build artifact
+        if: steps.signing.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: lifeos-android-${{ steps.version.outputs.code }}
+          path: |
+            LifeOS-Android.apk
+            LifeOS-Android.apk.sha256
+          retention-days: 30
+
+      - name: Publish GitHub update release
+        if: steps.signing.outputs.available == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CODE: ${{ steps.version.outputs.code }}
+          SHORT_SHA: ${{ steps.version.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="lifeos-android-${CODE}"
+          gh release create "$TAG" \
+            LifeOS-Android.apk \
+            LifeOS-Android.apk.sha256 \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "LifeOS Android ${CODE}" \
+            --notes "Automatic LifeOS Android update build from ${SHORT_SHA}. Permanently signed for in-place updates."
