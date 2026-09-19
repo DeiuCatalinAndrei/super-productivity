@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { NetworkingService } from './networking.service';
+import { getDbDateStr } from '../../util/get-db-date-str';
 
 @Component({
   selector: 'life-networking-today',
@@ -53,8 +54,7 @@ import { NetworkingService } from './networking.service';
               <span
                 class="date"
                 [class.overdue]="
-                  contact.nextContactDay &&
-                  contact.nextContactDay < networking.todayContacts()[0]?.nextContactDay
+                  contact.nextContactDay && contact.nextContactDay < today
                 "
                 >{{ contact.nextContactDay }}</span
               >
@@ -121,6 +121,10 @@ import { NetworkingService } from './networking.service';
         font-size: 0.75rem;
         opacity: 0.68;
       }
+      .date.overdue {
+        font-weight: 700;
+        opacity: 1;
+      }
       @media (max-width: 600px) {
         .topic {
           display: none;
@@ -135,4 +139,5 @@ import { NetworkingService } from './networking.service';
 })
 export class NetworkingTodayComponent {
   readonly networking = inject(NetworkingService);
+  readonly today = getDbDateStr();
 }
