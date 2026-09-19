@@ -532,7 +532,7 @@ interface InteractionDraft {
                       · {{ contact.role }}
                     }
                     @if (contact.company) {
-                      @ {{ contact.company }}
+                      · {{ contact.company }}
                     }
                     @if (contact.city) {
                       · {{ contact.city }}
@@ -1772,7 +1772,7 @@ export class NetworkingPageComponent {
       this.filter() === 'ARCHIVED' && query
         ? source.filter((contact) =>
             this.networking
-              .search(query)
+              .search(query, true)
               .some((candidate) => candidate.id === contact.id),
           )
         : source;
