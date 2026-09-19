@@ -17,6 +17,7 @@ import { HabitTrackerComponent } from '../../features/simple-counter/habit-track
 import { SimpleCounterService } from '../../features/simple-counter/simple-counter.service';
 import { LifeOsConfigService } from '../../features/lifeos/life-os-config.service';
 import { LifeContextEngineService } from '../../features/lifeos/life-context-engine.service';
+import { NetworkingTodayComponent } from '../../features/networking/networking-today.component';
 import { LifeSmartView } from '../../features/lifeos/life-os.model';
 import { Task } from '../../features/tasks/task.model';
 import { TaskService } from '../../features/tasks/task.service';
@@ -55,6 +56,7 @@ export type LifeTodayTab =
     MatInputModule,
     LifeFieldPickerComponent,
     HabitTrackerComponent,
+    NetworkingTodayComponent,
   ],
   template: `
     <main class="today-page">
@@ -241,6 +243,8 @@ export type LifeTodayTab =
               }
             </mat-card-content>
           </mat-card>
+
+          <life-networking-today />
 
           <mat-card class="wide">
             <mat-card-content>

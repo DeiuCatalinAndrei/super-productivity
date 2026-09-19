@@ -7,6 +7,7 @@ export { PlannerComponent } from '../features/planner/planner.component';
 export { ScheduleComponent } from '../features/schedule/schedule/schedule.component';
 export { BoardsComponent } from '../features/boards/boards.component';
 export { GoalsPageComponent } from '../pages/goals-page/goals-page.component';
+export { NetworkingPageComponent } from '../pages/networking-page/networking-page.component';
 export { LifeTodayPageComponent } from '../pages/life-today-page/life-today-page.component';
 export { FuturePageComponent } from '../pages/future-page/future-page.component';
 export { LifeSettingsPageComponent } from '../pages/life-settings-page/life-settings-page.component';
