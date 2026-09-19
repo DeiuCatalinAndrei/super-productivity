@@ -146,6 +146,11 @@ export class NetworkingService {
   addContact(input: NetworkContactInput): string {
     const now = Date.now();
     const id = nanoid();
+    const lastContactAt = input.lastContactAt ?? null;
+    const cadenceBaseDay =
+      lastContactAt != null
+        ? timestampToLocalDay(lastContactAt)
+        : input.metOn || getDbDateStr();
     const contact: NetworkContact = {
       ...input,
       id,
@@ -153,7 +158,10 @@ export class NetworkingService {
       tags: this._normalizeTags(input.tags),
       createdAt: now,
       modifiedAt: now,
-      lastContactAt: input.lastContactAt ?? null,
+      lastContactAt,
+      nextContactDay:
+        input.nextContactDay ??
+        getNextContactDay(input.cadence, cadenceBaseDay, input.cadenceDays),
       isArchived: input.isArchived ?? false,
     };
     this._setData({
@@ -166,12 +174,24 @@ export class NetworkingService {
   updateContact(id: string, changes: Partial<NetworkContact>): void {
     const current = this.contact(id);
     if (!current) return;
+    const mergedCadence = changes.cadence ?? current.cadence;
+    const mergedCadenceDays = changes.cadenceDays ?? current.cadenceDays;
+    const mergedLastContactAt = changes.lastContactAt ?? current.lastContactAt ?? null;
+    const mergedNextContactDay =
+      changes.nextContactDay ?? current.nextContactDay ?? null;
+    const cadenceBaseDay =
+      mergedLastContactAt != null
+        ? timestampToLocalDay(mergedLastContactAt)
+        : changes.metOn || current.metOn || getDbDateStr();
     const updated: NetworkContact = {
       ...current,
       ...changes,
       id,
       name: (changes.name ?? current.name).trim(),
       tags: changes.tags ? this._normalizeTags(changes.tags) : current.tags,
+      nextContactDay:
+        mergedNextContactDay ??
+        getNextContactDay(mergedCadence, cadenceBaseDay, mergedCadenceDays),
       modifiedAt: Date.now(),
     };
     this._setData({
