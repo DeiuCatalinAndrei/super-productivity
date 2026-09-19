@@ -131,12 +131,13 @@ export class NetworkingService {
       });
   }
 
-  search(rawQuery: string): NetworkContact[] {
+  search(rawQuery: string, includeArchived = false): NetworkContact[] {
     const data = this.data();
     return data.contacts
       .filter(
         (contact) =>
-          !contact.isArchived && networkContactMatchesQuery(contact, data, rawQuery),
+          (includeArchived || !contact.isArchived) &&
+          networkContactMatchesQuery(contact, data, rawQuery),
       )
       .slice()
       .sort((a, b) => a.name.localeCompare(b.name));
