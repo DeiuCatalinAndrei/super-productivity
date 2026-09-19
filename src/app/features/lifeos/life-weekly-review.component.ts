@@ -20,12 +20,14 @@ import { Task } from '../tasks/task.model';
 import { TaskService } from '../tasks/task.service';
 import { getDbDateStr } from '../../util/get-db-date-str';
 import { LifeOsConfigService } from './life-os-config.service';
+import { NetworkingService } from '../networking/networking.service';
 
 type ReviewStepId =
   | 'overdue'
   | 'waiting'
   | 'blocked'
   | 'review-dates'
+  | 'networking'
   | 'goals'
   | 'next-actions';
 
@@ -178,6 +180,33 @@ interface ReviewOverdueItem {
                   }
                   @if (!reviewTasks().length) {
                     <p class="empty">No task review dates are due.</p>
+                  }
+                }
+                @case ('networking') {
+                  @for (contact of networkingDue(); track contact.id) {
+                    <a
+                      class="review-row"
+                      routerLink="/networking"
+                      [queryParams]="{ contact: contact.id }"
+                    >
+                      <mat-icon>groups</mat-icon>
+                      <span class="grow two-lines">
+                        <strong>{{ contact.name }}</strong>
+                        <small>
+                          @if (contact.nextTopic) {
+                            {{ contact.nextTopic }}
+                          } @else {
+                            Reconnect and record the conversation context.
+                          }
+                        </small>
+                      </span>
+                      @if (contact.nextContactDay) {
+                        <span class="chip">{{ contact.nextContactDay }}</span>
+                      }
+                    </a>
+                  }
+                  @if (!networkingDue().length) {
+                    <p class="empty">No networking follow-ups are due.</p>
                   }
                 }
                 @case ('goals') {
@@ -464,6 +493,7 @@ interface ReviewOverdueItem {
 export class LifeWeeklyReviewComponent {
   private readonly _tasksService = inject(TaskService);
   private readonly _life = inject(LifeOsConfigService);
+  private readonly _networking = inject(NetworkingService);
   private readonly _store = inject(Store);
   private readonly _dateTimeFormat = inject(DateTimeFormatService);
   private readonly _tasks = toSignal(this._tasksService.allTasks$, {
@@ -475,6 +505,7 @@ export class LifeWeeklyReviewComponent {
   );
 
   readonly reviewStepIndex = signal(0);
+  readonly networkingDue = this._networking.dueContacts;
 
   readonly overdueItems = computed<ReviewOverdueItem[]>(() => {
     const today = getDbDateStr();
@@ -626,6 +657,14 @@ export class LifeWeeklyReviewComponent {
       icon: 'rate_review',
       description: 'Process tasks that explicitly asked to come back to your attention.',
       count: () => this.reviewTasks().length,
+    },
+    {
+      id: 'networking',
+      label: 'Networking',
+      icon: 'groups',
+      description:
+        'Reconnect with people whose relationship cadence says it is time to get back in touch.',
+      count: () => this.networkingDue().length,
     },
     {
       id: 'goals',
