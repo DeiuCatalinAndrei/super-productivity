@@ -32,11 +32,10 @@ export type NetworkContactInput = Omit<
   isArchived?: boolean;
 };
 
-export interface NetworkInteractionInput
-  extends Omit<
-    NetworkInteraction,
-    'id' | 'contactId' | 'createdAt'
-  > {
+export interface NetworkInteractionInput extends Omit<
+  NetworkInteraction,
+  'id' | 'contactId' | 'createdAt'
+> {
   followUpTitle?: string;
   followUpDueDay?: string | null;
 }
