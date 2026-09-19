@@ -13,6 +13,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { DateTimeFormatService } from '../../core/date-time-format/date-time-format.service';
 import { getDbDateStr } from '../../util/get-db-date-str';
 import {
   NETWORK_CADENCE_OPTIONS,
@@ -97,8 +98,8 @@ interface InteractionDraft {
         <div>
           <h1>Networking</h1>
           <p>
-            Păstrează contextul relațiilor, istoricul conversațiilor și momentul
-            potrivit pentru a lua din nou legătura.
+            Păstrează contextul relațiilor, istoricul conversațiilor și momentul potrivit
+            pentru a lua din nou legătura.
           </p>
         </div>
         <button
@@ -234,7 +235,9 @@ interface InteractionDraft {
               <mat-card-content>
                 <div class="section-head">
                   <div>
-                    <h2>{{ editingContactId() ? 'Editează persoana' : 'Persoană nouă' }}</h2>
+                    <h2>
+                      {{ editingContactId() ? 'Editează persoana' : 'Persoană nouă' }}
+                    </h2>
                     <p>Nu se salvează poze; doar informațiile utile relației.</p>
                   </div>
                   <button
@@ -522,7 +525,9 @@ interface InteractionDraft {
                 <div>
                   <div class="profile-title-line">
                     <h2>{{ contact.name }}</h2>
-                    <span class="importance">{{ importanceLabel(contact.importance) }}</span>
+                    <span class="importance">
+                      {{ importanceLabel(contact.importance) }}
+                    </span>
                   </div>
                   <p>
                     @if (contact.occupation) {
@@ -618,7 +623,11 @@ interface InteractionDraft {
                     <dl>
                       <div>
                         <dt>Ultimul contact</dt>
-                        <dd>{{ contact.lastContactAt ? dateLabel(contact.lastContactAt) : '—' }}</dd>
+                        <dd>
+                          {{
+                            contact.lastContactAt ? dateLabel(contact.lastContactAt) : '—'
+                          }}
+                        </dd>
                       </div>
                       <div>
                         <dt>Frecvență</dt>
@@ -772,7 +781,9 @@ interface InteractionDraft {
                           type="date"
                           [(ngModel)]="interactionDraft.nextContactDay"
                         />
-                        <small>Dacă rămâne gol, se calculează din frecvența persoanei.</small>
+                        <small
+                          >Dacă rămâne gol, se calculează din frecvența persoanei.</small
+                        >
                       </label>
                       <label>
                         <span>Follow-up de făcut</span>
@@ -831,19 +842,34 @@ interface InteractionDraft {
                         </div>
                       }
                       @if (contact.industry) {
-                        <div><dt>Domeniu</dt><dd>{{ contact.industry }}</dd></div>
+                        <div>
+                          <dt>Domeniu</dt>
+                          <dd>{{ contact.industry }}</dd>
+                        </div>
                       }
                       @if (contact.metThrough) {
-                        <div><dt>De unde o cunosc</dt><dd>{{ contact.metThrough }}</dd></div>
+                        <div>
+                          <dt>De unde o cunosc</dt>
+                          <dd>{{ contact.metThrough }}</dd>
+                        </div>
                       }
                       @if (contact.metAt) {
-                        <div><dt>Ne-am cunoscut la</dt><dd>{{ contact.metAt }}</dd></div>
+                        <div>
+                          <dt>Ne-am cunoscut la</dt>
+                          <dd>{{ contact.metAt }}</dd>
+                        </div>
                       }
                       @if (contact.metOn) {
-                        <div><dt>Din</dt><dd>{{ contact.metOn }}</dd></div>
+                        <div>
+                          <dt>Din</dt>
+                          <dd>{{ contact.metOn }}</dd>
+                        </div>
                       }
                       @if (introducedByName(contact)) {
-                        <div><dt>Introducere prin</dt><dd>{{ introducedByName(contact) }}</dd></div>
+                        <div>
+                          <dt>Introducere prin</dt>
+                          <dd>{{ introducedByName(contact) }}</dd>
+                        </div>
                       }
                     </dl>
                     @if (contact.tags.length) {
@@ -930,7 +956,9 @@ interface InteractionDraft {
                         class="check"
                         type="button"
                         (click)="toggleFollowUp(item.id, item.status)"
-                        [attr.aria-label]="item.status === 'DONE' ? 'Redeschide' : 'Finalizat'"
+                        [attr.aria-label]="
+                          item.status === 'DONE' ? 'Redeschide' : 'Finalizat'
+                        "
                       >
                         <mat-icon>{{
                           item.status === 'DONE'
@@ -966,7 +994,9 @@ interface InteractionDraft {
                   <div class="section-head">
                     <div>
                       <h3>Istoric conversații</h3>
-                      <p>Fiecare conversație rămâne în cronologie; nimic nu se suprascrie.</p>
+                      <p>
+                        Fiecare conversație rămâne în cronologie; nimic nu se suprascrie.
+                      </p>
                     </div>
                     <span>{{ interactions().length }}</span>
                   </div>
@@ -979,7 +1009,9 @@ interface InteractionDraft {
                           <header>
                             <div>
                               <strong>{{ dateTimeLabel(item.at) }}</strong>
-                              <span class="channel">{{ channelLabel(item.channel) }}</span>
+                              <span class="channel">
+                                {{ channelLabel(item.channel) }}
+                              </span>
                             </div>
                             @if (item.location) {
                               <span class="muted">{{ item.location }}</span>
@@ -1061,8 +1093,8 @@ interface InteractionDraft {
               <mat-icon>groups</mat-icon>
               <h2>Networking-ul tău începe aici</h2>
               <p>
-                Adaugă o persoană sau selectează una din listă pentru a vedea
-                contextul relației.
+                Adaugă o persoană sau selectează una din listă pentru a vedea contextul
+                relației.
               </p>
               <button
                 mat-flat-button
@@ -1733,6 +1765,7 @@ interface InteractionDraft {
 export class NetworkingPageComponent {
   readonly networking = inject(NetworkingService);
   private readonly _route = inject(ActivatedRoute);
+  private readonly _dateTimeFormat = inject(DateTimeFormatService);
   private readonly _queryParams = toSignal(this._route.queryParamMap, {
     initialValue: this._route.snapshot.queryParamMap,
   });
@@ -2036,7 +2069,7 @@ export class NetworkingPageComponent {
   }
 
   dateLabel(timestamp: number): string {
-    return new Intl.DateTimeFormat(undefined, {
+    return new Intl.DateTimeFormat(this._dateTimeFormat.textLocale(), {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -2044,7 +2077,7 @@ export class NetworkingPageComponent {
   }
 
   dateTimeLabel(timestamp: number): string {
-    return new Intl.DateTimeFormat(undefined, {
+    return new Intl.DateTimeFormat(this._dateTimeFormat.textLocale(), {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
