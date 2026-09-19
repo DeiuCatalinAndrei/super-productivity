@@ -9,7 +9,8 @@ const toDay = (date: Date): string =>
     date.getDate(),
   ).padStart(2, '0')}`;
 
-export const timestampToLocalDay = (timestamp: number): string => toDay(new Date(timestamp));
+export const timestampToLocalDay = (timestamp: number): string =>
+  toDay(new Date(timestamp));
 
 export const addCalendarDays = (day: string, days: number): string => {
   const date = new Date(`${day}T12:00:00`);
@@ -22,12 +23,7 @@ const addCalendarMonths = (day: string, months: number): string => {
   const originalDay = source.getDate();
   source.setDate(1);
   source.setMonth(source.getMonth() + months);
-  const lastDay = new Date(
-    source.getFullYear(),
-    source.getMonth() + 1,
-    0,
-    12,
-  ).getDate();
+  const lastDay = new Date(source.getFullYear(), source.getMonth() + 1, 0, 12).getDate();
   source.setDate(Math.min(originalDay, lastDay));
   return toDay(source);
 };
