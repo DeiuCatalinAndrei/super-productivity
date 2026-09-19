@@ -105,6 +105,13 @@ export const APP_ROUTES: Routes = [
     canActivate: [FocusOverlayOpenGuard],
   },
   {
+    path: 'networking',
+    loadComponent: () =>
+      import('./routes/pages.routes').then((m) => m.NetworkingPageComponent),
+    data: { page: 'networking' },
+    canActivate: [FocusOverlayOpenGuard],
+  },
+  {
     path: 'future',
     loadComponent: () =>
       import('./routes/pages.routes').then((m) => m.FuturePageComponent),
