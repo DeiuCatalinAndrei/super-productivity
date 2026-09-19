@@ -440,6 +440,14 @@ export class MagicNavConfigService {
 
     items.push({
       type: 'route',
+      id: 'networking',
+      label: 'Networking',
+      icon: 'groups',
+      route: '/networking',
+    });
+
+    items.push({
+      type: 'route',
       id: 'future',
       label: 'Future',
       icon: 'event_upcoming',
