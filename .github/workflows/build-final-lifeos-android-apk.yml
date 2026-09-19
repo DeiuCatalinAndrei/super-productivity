@@ -1,0 +1,65 @@
+name: Build Final LifeOS Android APK
+
+on:
+  push:
+    branches:
+      - build/final-lifeos-packages-20260920
+
+permissions:
+  contents: read
+
+jobs:
+  build-android-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout final LifeOS source
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production frontend
+        run: npm run buildFrontend:prodWeb
+
+      - name: Sync Capacitor Android project
+        run: npm run sync:android
+
+      - name: Build installable F-Droid debug APK
+        working-directory: android
+        run: ./gradlew assembleFdroidDebug
+
+      - name: Prepare APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=$(find android/app/build/outputs/apk/fdroid/debug -type f -name '*.apk' | head -n 1)
+          test -n "$APK"
+          cp "$APK" Super-Productivity-LifeOS-Android.apk
+          sha256sum Super-Productivity-LifeOS-Android.apk > Super-Productivity-LifeOS-Android.apk.sha256
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-lifeos-android-${{ github.sha }}
+          path: |
+            Super-Productivity-LifeOS-Android.apk
+            Super-Productivity-LifeOS-Android.apk.sha256
+          retention-days: 30
