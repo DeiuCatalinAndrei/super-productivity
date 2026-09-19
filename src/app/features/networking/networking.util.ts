@@ -4,6 +4,12 @@ import {
   NetworkContactCadence,
 } from './networking.model';
 
+const normalizeSearchText = (value: string): string =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase();
+
 const toDay = (date: Date): string =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
     date.getDate(),
@@ -66,7 +72,7 @@ export const networkContactMatchesQuery = (
   data: LifeNetworkingData,
   rawQuery: string,
 ): boolean => {
-  const query = rawQuery.trim().toLocaleLowerCase();
+  const query = normalizeSearchText(rawQuery.trim());
   if (!query) return true;
 
   const interactionText = data.interactions
@@ -113,11 +119,12 @@ export const networkContactMatchesQuery = (
     interactionText,
   ]
     .filter(Boolean)
-    .join(' ')
-    .toLocaleLowerCase();
+    .join(' ');
+
+  const normalizedText = normalizeSearchText(text);
 
   return query
     .split(/\s+/)
     .filter(Boolean)
-    .every((token) => text.includes(token));
+    .every((token) => normalizedText.includes(token));
 };
