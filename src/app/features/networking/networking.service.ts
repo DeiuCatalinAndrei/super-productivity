@@ -33,7 +33,10 @@ export type NetworkContactInput = Omit<
 };
 
 export interface NetworkInteractionInput
-  extends Omit<NetworkInteraction, 'id' | 'contactId' | 'createdAt'> {
+  extends Omit<
+    NetworkInteraction,
+    'id' | 'contactId' | 'createdAt'
+  > {
   followUpTitle?: string;
   followUpDueDay?: string | null;
 }
@@ -177,8 +180,7 @@ export class NetworkingService {
     const mergedCadence = changes.cadence ?? current.cadence;
     const mergedCadenceDays = changes.cadenceDays ?? current.cadenceDays;
     const mergedLastContactAt = changes.lastContactAt ?? current.lastContactAt ?? null;
-    const mergedNextContactDay =
-      changes.nextContactDay ?? current.nextContactDay ?? null;
+    const mergedNextContactDay = changes.nextContactDay ?? current.nextContactDay ?? null;
     const cadenceBaseDay =
       mergedLastContactAt != null
         ? timestampToLocalDay(mergedLastContactAt)
