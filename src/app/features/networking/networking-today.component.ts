@@ -53,9 +53,7 @@ import { getDbDateStr } from '../../util/get-db-date-str';
               }
               <span
                 class="date"
-                [class.overdue]="
-                  contact.nextContactDay && contact.nextContactDay < today
-                "
+                [class.overdue]="contact.nextContactDay && contact.nextContactDay < today"
                 >{{ contact.nextContactDay }}</span
               >
               <mat-icon>chevron_right</mat-icon>
