@@ -34,7 +34,13 @@ import {
 import { addCalendarDays } from '../../features/networking/networking.util';
 
 type NetworkingFilter = 'ALL' | 'DUE' | 'UPCOMING' | 'NO_REMINDER' | 'ARCHIVED';
-type ContactEditorSection = 'BASIC' | 'WORK' | 'CONTEXT' | 'RELATIONSHIP' | 'FOLLOW_UP' | 'NOTES';
+type ContactEditorSection =
+  | 'BASIC'
+  | 'WORK'
+  | 'CONTEXT'
+  | 'RELATIONSHIP'
+  | 'FOLLOW_UP'
+  | 'NOTES';
 
 interface ContactDraft {
   name: string;
@@ -195,7 +201,12 @@ interface InteractionDraft {
                         [class.due]="isDue(contact)"
                         (click)="selectContact(contact.id)"
                       >
-                        <span class="person-status-dot" [class.overdue]="contact.nextContactDay && contact.nextContactDay < today"></span>
+                        <span
+                          class="person-status-dot"
+                          [class.overdue]="
+                            contact.nextContactDay && contact.nextContactDay < today
+                          "
+                        ></span>
                         <span class="person-main">
                           <span class="person-top">
                             <strong>{{ contact.name }}</strong>
@@ -228,7 +239,9 @@ interface InteractionDraft {
                                 <span class="chip">{{ tag }}</span>
                               }
                               @if (contact.tags.length > 3) {
-                                <span class="chip more-chip">+{{ contact.tags.length - 3 }}</span>
+                                <span class="chip more-chip"
+                                  >+{{ contact.tags.length - 3 }}</span
+                                >
                               }
                             </span>
                           }
@@ -247,7 +260,12 @@ interface InteractionDraft {
                   [class.due]="isDue(contact)"
                   (click)="selectContact(contact.id)"
                 >
-                  <span class="person-status-dot" [class.overdue]="contact.nextContactDay && contact.nextContactDay < today"></span>
+                  <span
+                    class="person-status-dot"
+                    [class.overdue]="
+                      contact.nextContactDay && contact.nextContactDay < today
+                    "
+                  ></span>
                   <span class="person-main">
                     <span class="person-top">
                       <strong>{{ contact.name }}</strong>
@@ -291,7 +309,10 @@ interface InteractionDraft {
               <div class="empty-list">
                 <mat-icon>person_search</mat-icon>
                 <strong>Nu am găsit persoane aici</strong>
-                <p>Schimbă filtrul sau caută după nume, oraș, companie ori un subiect din conversații.</p>
+                <p>
+                  Schimbă filtrul sau caută după nume, oraș, companie ori un subiect din
+                  conversații.
+                </p>
               </div>
             }
           </div>
@@ -321,7 +342,10 @@ interface InteractionDraft {
                   class="contact-form"
                   (ngSubmit)="saveContact()"
                 >
-                  <nav class="editor-carousel" aria-label="Secțiuni persoană">
+                  <nav
+                    class="editor-carousel"
+                    aria-label="Secțiuni persoană"
+                  >
                     @for (section of editorSections; track section.id) {
                       <button
                         type="button"
@@ -336,9 +360,17 @@ interface InteractionDraft {
                   </nav>
 
                   <div class="editor-progress">
-                    <span>{{ currentEditorSectionIndex() + 1 }} / {{ editorSections.length }}</span>
+                    <span
+                      >{{ currentEditorSectionIndex() + 1 }} /
+                      {{ editorSections.length }}</span
+                    >
                     <span class="editor-progress-track">
-                      <span [style.width.%]="((currentEditorSectionIndex() + 1) / editorSections.length) * 100"></span>
+                      <span
+                        [style.width.%]="
+                          ((currentEditorSectionIndex() + 1) / editorSections.length) *
+                          100
+                        "
+                      ></span>
                     </span>
                   </div>
 
@@ -349,7 +381,10 @@ interface InteractionDraft {
                           <div class="section-emoji">👤</div>
                           <div>
                             <h3>Identitate & contact</h3>
-                            <p>Adaugă doar datele pe care le folosești. Nicio poză, fără aglomerație.</p>
+                            <p>
+                              Adaugă doar datele pe care le folosești. Nicio poză, fără
+                              aglomerație.
+                            </p>
                           </div>
                         </header>
 
@@ -358,9 +393,17 @@ interface InteractionDraft {
                             <span class="field-icon">👤</span>
                             <span class="detail-field-copy">
                               <strong>Nume *</strong>
-                              <small>Numele după care vrei să găsești rapid persoana.</small>
+                              <small
+                                >Numele după care vrei să găsești rapid persoana.</small
+                              >
                             </span>
-                            <input class="native-control" name="name" required placeholder="Ex. Andrei Popescu" [(ngModel)]="contactDraft.name" />
+                            <input
+                              class="native-control"
+                              name="name"
+                              required
+                              placeholder="Ex. Andrei Popescu"
+                              [(ngModel)]="contactDraft.name"
+                            />
                           </label>
                           <label class="detail-field">
                             <span class="field-icon">📱</span>
@@ -368,15 +411,29 @@ interface InteractionDraft {
                               <strong>Telefon</strong>
                               <small>Numărul principal pentru apel sau WhatsApp.</small>
                             </span>
-                            <input class="native-control" name="phone" type="tel" placeholder="+40..." [(ngModel)]="contactDraft.phone" />
+                            <input
+                              class="native-control"
+                              name="phone"
+                              type="tel"
+                              placeholder="+40..."
+                              [(ngModel)]="contactDraft.phone"
+                            />
                           </label>
                           <label class="detail-field">
                             <span class="field-icon">✉️</span>
                             <span class="detail-field-copy">
                               <strong>Email</strong>
-                              <small>Util pentru contacte profesionale și follow-up.</small>
+                              <small
+                                >Util pentru contacte profesionale și follow-up.</small
+                              >
                             </span>
-                            <input class="native-control" name="email" type="email" placeholder="nume@email.com" [(ngModel)]="contactDraft.email" />
+                            <input
+                              class="native-control"
+                              name="email"
+                              type="email"
+                              placeholder="nume@email.com"
+                              [(ngModel)]="contactDraft.email"
+                            />
                           </label>
                           <label class="detail-field">
                             <span class="field-icon">📸</span>
@@ -384,7 +441,12 @@ interface InteractionDraft {
                               <strong>Instagram</strong>
                               <small>@username sau link complet.</small>
                             </span>
-                            <input class="native-control" name="instagram" placeholder="@username" [(ngModel)]="contactDraft.instagram" />
+                            <input
+                              class="native-control"
+                              name="instagram"
+                              placeholder="@username"
+                              [(ngModel)]="contactDraft.instagram"
+                            />
                           </label>
                           <label class="detail-field">
                             <span class="field-icon">💬</span>
@@ -392,15 +454,28 @@ interface InteractionDraft {
                               <strong>Facebook</strong>
                               <small>Profilul unde poți relua conversația.</small>
                             </span>
-                            <input class="native-control" name="facebook" placeholder="profil sau link" [(ngModel)]="contactDraft.facebook" />
+                            <input
+                              class="native-control"
+                              name="facebook"
+                              placeholder="profil sau link"
+                              [(ngModel)]="contactDraft.facebook"
+                            />
                           </label>
                           <label class="detail-field full">
                             <span class="field-icon">💼</span>
                             <span class="detail-field-copy">
                               <strong>LinkedIn</strong>
-                              <small>Păstrează profilul profesional la un click distanță.</small>
+                              <small
+                                >Păstrează profilul profesional la un click
+                                distanță.</small
+                              >
                             </span>
-                            <input class="native-control" name="linkedin" placeholder="profil sau link" [(ngModel)]="contactDraft.linkedin" />
+                            <input
+                              class="native-control"
+                              name="linkedin"
+                              placeholder="profil sau link"
+                              [(ngModel)]="contactDraft.linkedin"
+                            />
                           </label>
                         </div>
                       }
@@ -410,45 +485,109 @@ interface InteractionDraft {
                           <div class="section-emoji">💼</div>
                           <div>
                             <h3>Profesie & locație</h3>
-                            <p>Context rapid ca să-ți amintești cu ce se ocupă și unde este persoana.</p>
+                            <p>
+                              Context rapid ca să-ți amintești cu ce se ocupă și unde este
+                              persoana.
+                            </p>
                           </div>
                         </header>
 
                         <div class="task-panel-fields">
                           <label class="detail-field">
                             <span class="field-icon">🧠</span>
-                            <span class="detail-field-copy"><strong>Ocupație</strong><small>Ex. AI Engineer, avocat, contabil.</small></span>
-                            <input class="native-control" name="occupation" placeholder="Ex. AI Engineer" [(ngModel)]="contactDraft.occupation" />
+                            <span class="detail-field-copy"
+                              ><strong>Ocupație</strong
+                              ><small>Ex. AI Engineer, avocat, contabil.</small></span
+                            >
+                            <input
+                              class="native-control"
+                              name="occupation"
+                              placeholder="Ex. AI Engineer"
+                              [(ngModel)]="contactDraft.occupation"
+                            />
                           </label>
                           <label class="detail-field">
                             <span class="field-icon">🏷️</span>
-                            <span class="detail-field-copy"><strong>Funcție</strong><small>Rolul concret în organizație.</small></span>
-                            <input class="native-control" name="role" placeholder="Ex. Senior Engineer" [(ngModel)]="contactDraft.role" />
+                            <span class="detail-field-copy"
+                              ><strong>Funcție</strong
+                              ><small>Rolul concret în organizație.</small></span
+                            >
+                            <input
+                              class="native-control"
+                              name="role"
+                              placeholder="Ex. Senior Engineer"
+                              [(ngModel)]="contactDraft.role"
+                            />
                           </label>
                           <label class="detail-field">
                             <span class="field-icon">🏢</span>
-                            <span class="detail-field-copy"><strong>Companie / organizație</strong><small>Unde lucrează sau cu ce organizație este asociat.</small></span>
-                            <input class="native-control" name="company" placeholder="Companie" [(ngModel)]="contactDraft.company" />
+                            <span class="detail-field-copy"
+                              ><strong>Companie / organizație</strong
+                              ><small
+                                >Unde lucrează sau cu ce organizație este asociat.</small
+                              ></span
+                            >
+                            <input
+                              class="native-control"
+                              name="company"
+                              placeholder="Companie"
+                              [(ngModel)]="contactDraft.company"
+                            />
                           </label>
                           <label class="detail-field">
                             <span class="field-icon">🧩</span>
-                            <span class="detail-field-copy"><strong>Domeniu</strong><small>AI, juridic, contabilitate, business etc.</small></span>
-                            <input class="native-control" name="industry" placeholder="AI, juridic..." [(ngModel)]="contactDraft.industry" />
+                            <span class="detail-field-copy"
+                              ><strong>Domeniu</strong
+                              ><small
+                                >AI, juridic, contabilitate, business etc.</small
+                              ></span
+                            >
+                            <input
+                              class="native-control"
+                              name="industry"
+                              placeholder="AI, juridic..."
+                              [(ngModel)]="contactDraft.industry"
+                            />
                           </label>
                           <label class="detail-field">
                             <span class="field-icon">📍</span>
-                            <span class="detail-field-copy"><strong>Oraș</strong><small>Foarte util când vrei să vezi rețeaua dintr-un oraș.</small></span>
-                            <input class="native-control" name="city" placeholder="Timișoara" [(ngModel)]="contactDraft.city" />
+                            <span class="detail-field-copy"
+                              ><strong>Oraș</strong
+                              ><small
+                                >Foarte util când vrei să vezi rețeaua dintr-un
+                                oraș.</small
+                              ></span
+                            >
+                            <input
+                              class="native-control"
+                              name="city"
+                              placeholder="Timișoara"
+                              [(ngModel)]="contactDraft.city"
+                            />
                           </label>
                           <label class="detail-field">
                             <span class="field-icon">🗺️</span>
-                            <span class="detail-field-copy"><strong>Județ / regiune</strong><small>Opțional, pentru filtrare mai precisă.</small></span>
-                            <input class="native-control" name="region" [(ngModel)]="contactDraft.region" />
+                            <span class="detail-field-copy"
+                              ><strong>Județ / regiune</strong
+                              ><small>Opțional, pentru filtrare mai precisă.</small></span
+                            >
+                            <input
+                              class="native-control"
+                              name="region"
+                              [(ngModel)]="contactDraft.region"
+                            />
                           </label>
                           <label class="detail-field full">
                             <span class="field-icon">🌍</span>
-                            <span class="detail-field-copy"><strong>Țară</strong><small>Țara în care se află persoana.</small></span>
-                            <input class="native-control" name="country" [(ngModel)]="contactDraft.country" />
+                            <span class="detail-field-copy"
+                              ><strong>Țară</strong
+                              ><small>Țara în care se află persoana.</small></span
+                            >
+                            <input
+                              class="native-control"
+                              name="country"
+                              [(ngModel)]="contactDraft.country"
+                            />
                           </label>
                         </div>
                       }
@@ -458,30 +597,73 @@ interface InteractionDraft {
                           <div class="section-emoji">📍</div>
                           <div>
                             <h3>Cum v-ați cunoscut</h3>
-                            <p>Contextul întâlnirii îți reactivează rapid memoria chiar și după mult timp.</p>
+                            <p>
+                              Contextul întâlnirii îți reactivează rapid memoria chiar și
+                              după mult timp.
+                            </p>
                           </div>
                         </header>
 
                         <div class="task-panel-fields">
                           <label class="detail-field">
                             <span class="field-icon">🤝</span>
-                            <span class="detail-field-copy"><strong>De unde îl/o cunosc</strong><small>Facultate, master, conferință, client, LinkedIn etc.</small></span>
-                            <input class="native-control" name="metThrough" placeholder="Ex. conferință AI" [(ngModel)]="contactDraft.metThrough" />
+                            <span class="detail-field-copy"
+                              ><strong>De unde îl/o cunosc</strong
+                              ><small
+                                >Facultate, master, conferință, client, LinkedIn
+                                etc.</small
+                              ></span
+                            >
+                            <input
+                              class="native-control"
+                              name="metThrough"
+                              placeholder="Ex. conferință AI"
+                              [(ngModel)]="contactDraft.metThrough"
+                            />
                           </label>
                           <label class="detail-field">
                             <span class="field-icon">📌</span>
-                            <span class="detail-field-copy"><strong>Unde ne-am cunoscut</strong><small>Locul, evenimentul sau contextul concret.</small></span>
-                            <input class="native-control" name="metAt" placeholder="Ex. Techsylvania" [(ngModel)]="contactDraft.metAt" />
+                            <span class="detail-field-copy"
+                              ><strong>Unde ne-am cunoscut</strong
+                              ><small
+                                >Locul, evenimentul sau contextul concret.</small
+                              ></span
+                            >
+                            <input
+                              class="native-control"
+                              name="metAt"
+                              placeholder="Ex. Techsylvania"
+                              [(ngModel)]="contactDraft.metAt"
+                            />
                           </label>
                           <label class="detail-field">
                             <span class="field-icon">📅</span>
-                            <span class="detail-field-copy"><strong>Data când ne-am cunoscut</strong><small>Opțional, dacă vrei o cronologie mai exactă.</small></span>
-                            <input class="native-control" name="metOn" type="date" [(ngModel)]="contactDraft.metOn" />
+                            <span class="detail-field-copy"
+                              ><strong>Data când ne-am cunoscut</strong
+                              ><small
+                                >Opțional, dacă vrei o cronologie mai exactă.</small
+                              ></span
+                            >
+                            <input
+                              class="native-control"
+                              name="metOn"
+                              type="date"
+                              [(ngModel)]="contactDraft.metOn"
+                            />
                           </label>
                           <label class="detail-field">
                             <span class="field-icon">🔗</span>
-                            <span class="detail-field-copy"><strong>Ne-a făcut cunoștință</strong><small>Leagă persoanele din rețeaua ta între ele.</small></span>
-                            <select class="native-control" name="introducedBy" [(ngModel)]="contactDraft.introducedByContactId">
+                            <span class="detail-field-copy"
+                              ><strong>Ne-a făcut cunoștință</strong
+                              ><small
+                                >Leagă persoanele din rețeaua ta între ele.</small
+                              ></span
+                            >
+                            <select
+                              class="native-control"
+                              name="introducedBy"
+                              [(ngModel)]="contactDraft.introducedByContactId"
+                            >
                               <option value="">— Nimeni / nu știu —</option>
                               @for (person of introductionOptions(); track person.id) {
                                 <option [value]="person.id">{{ person.name }}</option>
@@ -496,15 +678,28 @@ interface InteractionDraft {
                           <div class="section-emoji">🤝</div>
                           <div>
                             <h3>Relația & utilitatea reciprocă</h3>
-                            <p>Nu e un scor al persoanei; te ajută doar să gestionezi cum vrei să păstrezi legătura.</p>
+                            <p>
+                              Nu e un scor al persoanei; te ajută doar să gestionezi cum
+                              vrei să păstrezi legătura.
+                            </p>
                           </div>
                         </header>
 
                         <div class="task-panel-fields">
                           <label class="detail-field">
                             <span class="field-icon">🫱🏻‍🫲🏼</span>
-                            <span class="detail-field-copy"><strong>Tip relație</strong><small>Profesional, prieten, client, recruiter, mentor etc.</small></span>
-                            <select class="native-control" name="relationshipType" [(ngModel)]="contactDraft.relationshipType">
+                            <span class="detail-field-copy"
+                              ><strong>Tip relație</strong
+                              ><small
+                                >Profesional, prieten, client, recruiter, mentor
+                                etc.</small
+                              ></span
+                            >
+                            <select
+                              class="native-control"
+                              name="relationshipType"
+                              [(ngModel)]="contactDraft.relationshipType"
+                            >
                               @for (item of relationshipOptions; track item.value) {
                                 <option [value]="item.value">{{ item.label }}</option>
                               }
@@ -512,8 +707,17 @@ interface InteractionDraft {
                           </label>
                           <label class="detail-field">
                             <span class="field-icon">⭐</span>
-                            <span class="detail-field-copy"><strong>Importanță relație</strong><small>Cât de atent vrei să fii la menținerea legăturii.</small></span>
-                            <select class="native-control" name="importance" [(ngModel)]="contactDraft.importance">
+                            <span class="detail-field-copy"
+                              ><strong>Importanță relație</strong
+                              ><small
+                                >Cât de atent vrei să fii la menținerea legăturii.</small
+                              ></span
+                            >
+                            <select
+                              class="native-control"
+                              name="importance"
+                              [(ngModel)]="contactDraft.importance"
+                            >
                               @for (item of importanceOptions; track item.value) {
                                 <option [value]="item.value">{{ item.label }}</option>
                               }
@@ -521,23 +725,67 @@ interface InteractionDraft {
                           </label>
                           <label class="detail-field full">
                             <span class="field-icon">🏷️</span>
-                            <span class="detail-field-copy"><strong>Tags</strong><small>Ex. AI, Timișoara, recruiter, facultate. Separate prin virgulă.</small></span>
-                            <input class="native-control" name="tags" placeholder="AI, Timișoara, recruiter" [(ngModel)]="contactDraft.tags" />
+                            <span class="detail-field-copy"
+                              ><strong>Tags</strong
+                              ><small
+                                >Ex. AI, Timișoara, recruiter, facultate. Separate prin
+                                virgulă.</small
+                              ></span
+                            >
+                            <input
+                              class="native-control"
+                              name="tags"
+                              placeholder="AI, Timișoara, recruiter"
+                              [(ngModel)]="contactDraft.tags"
+                            />
                           </label>
                           <label class="detail-field full textarea-field">
                             <span class="field-icon">❤️</span>
-                            <span class="detail-field-copy"><strong>Interese</strong><small>Lucruri care contează pentru persoană și pot relansa natural conversația.</small></span>
-                            <textarea class="native-control" name="interests" rows="3" [(ngModel)]="contactDraft.interests"></textarea>
+                            <span class="detail-field-copy"
+                              ><strong>Interese</strong
+                              ><small
+                                >Lucruri care contează pentru persoană și pot relansa
+                                natural conversația.</small
+                              ></span
+                            >
+                            <textarea
+                              class="native-control"
+                              name="interests"
+                              rows="3"
+                              [(ngModel)]="contactDraft.interests"
+                            ></textarea>
                           </label>
                           <label class="detail-field full textarea-field">
                             <span class="field-icon">🎁</span>
-                            <span class="detail-field-copy"><strong>Pot să îl/o ajut cu</strong><small>Idei, introduceri, experiență sau resurse pe care le poți oferi.</small></span>
-                            <textarea class="native-control" name="canHelpWith" rows="3" [(ngModel)]="contactDraft.canHelpWith"></textarea>
+                            <span class="detail-field-copy"
+                              ><strong>Pot să îl/o ajut cu</strong
+                              ><small
+                                >Idei, introduceri, experiență sau resurse pe care le poți
+                                oferi.</small
+                              ></span
+                            >
+                            <textarea
+                              class="native-control"
+                              name="canHelpWith"
+                              rows="3"
+                              [(ngModel)]="contactDraft.canHelpWith"
+                            ></textarea>
                           </label>
                           <label class="detail-field full textarea-field">
                             <span class="field-icon">🧭</span>
-                            <span class="detail-field-copy"><strong>Mă poate ajuta cu</strong><small>Context util pentru colaborări, carieră sau proiecte viitoare.</small></span>
-                            <textarea class="native-control" name="canHelpMeWith" rows="3" [(ngModel)]="contactDraft.canHelpMeWith"></textarea>
+                            <span class="detail-field-copy"
+                              ><strong>Mă poate ajuta cu</strong
+                              ><small
+                                >Context util pentru colaborări, carieră sau proiecte
+                                viitoare.</small
+                              ></span
+                            >
+                            <textarea
+                              class="native-control"
+                              name="canHelpMeWith"
+                              rows="3"
+                              [(ngModel)]="contactDraft.canHelpMeWith"
+                            ></textarea>
                           </label>
                         </div>
                       }
@@ -547,15 +795,25 @@ interface InteractionDraft {
                           <div class="section-emoji">🗓️</div>
                           <div>
                             <h3>Ținem legătura</h3>
-                            <p>LifeOS îți va arăta persoana în Today când vine momentul să reiei legătura.</p>
+                            <p>
+                              LifeOS îți va arăta persoana în Today când vine momentul să
+                              reiei legătura.
+                            </p>
                           </div>
                         </header>
 
                         <div class="task-panel-fields">
                           <label class="detail-field">
                             <span class="field-icon">🔁</span>
-                            <span class="detail-field-copy"><strong>Frecvență</strong><small>Alege ritmul implicit al relației.</small></span>
-                            <select class="native-control" name="cadence" [(ngModel)]="contactDraft.cadence">
+                            <span class="detail-field-copy"
+                              ><strong>Frecvență</strong
+                              ><small>Alege ritmul implicit al relației.</small></span
+                            >
+                            <select
+                              class="native-control"
+                              name="cadence"
+                              [(ngModel)]="contactDraft.cadence"
+                            >
                               @for (item of cadenceOptions; track item.value) {
                                 <option [value]="item.value">{{ item.label }}</option>
                               }
@@ -564,19 +822,52 @@ interface InteractionDraft {
                           @if (contactDraft.cadence === 'CUSTOM') {
                             <label class="detail-field">
                               <span class="field-icon">⏱️</span>
-                              <span class="detail-field-copy"><strong>La câte zile</strong><small>Interval personalizat dintre contacte.</small></span>
-                              <input class="native-control" name="cadenceDays" type="number" min="1" [(ngModel)]="contactDraft.cadenceDays" />
+                              <span class="detail-field-copy"
+                                ><strong>La câte zile</strong
+                                ><small
+                                  >Interval personalizat dintre contacte.</small
+                                ></span
+                              >
+                              <input
+                                class="native-control"
+                                name="cadenceDays"
+                                type="number"
+                                min="1"
+                                [(ngModel)]="contactDraft.cadenceDays"
+                              />
                             </label>
                           }
                           <label class="detail-field">
                             <span class="field-icon">📆</span>
-                            <span class="detail-field-copy"><strong>Următorul contact</strong><small>Poți suprascrie manual data calculată din frecvență.</small></span>
-                            <input class="native-control" name="nextContactDay" type="date" [(ngModel)]="contactDraft.nextContactDay" />
+                            <span class="detail-field-copy"
+                              ><strong>Următorul contact</strong
+                              ><small
+                                >Poți suprascrie manual data calculată din
+                                frecvență.</small
+                              ></span
+                            >
+                            <input
+                              class="native-control"
+                              name="nextContactDay"
+                              type="date"
+                              [(ngModel)]="contactDraft.nextContactDay"
+                            />
                           </label>
                           <label class="detail-field full">
                             <span class="field-icon">💡</span>
-                            <span class="detail-field-copy"><strong>Subiect data viitoare</strong><small>Ce vrei să întrebi sau să continui la următoarea conversație.</small></span>
-                            <input class="native-control" name="nextTopic" placeholder="Ex. întreabă despre proiectul RAG" [(ngModel)]="contactDraft.nextTopic" />
+                            <span class="detail-field-copy"
+                              ><strong>Subiect data viitoare</strong
+                              ><small
+                                >Ce vrei să întrebi sau să continui la următoarea
+                                conversație.</small
+                              ></span
+                            >
+                            <input
+                              class="native-control"
+                              name="nextTopic"
+                              placeholder="Ex. întreabă despre proiectul RAG"
+                              [(ngModel)]="contactDraft.nextTopic"
+                            />
                           </label>
                         </div>
 
@@ -584,7 +875,10 @@ interface InteractionDraft {
                           <span>✨</span>
                           <div>
                             <strong>Sfat</strong>
-                            <p>Un next topic concret face reminderul din Today mult mai ușor de acționat.</p>
+                            <p>
+                              Un next topic concret face reminderul din Today mult mai
+                              ușor de acționat.
+                            </p>
                           </div>
                         </aside>
                       }
@@ -594,15 +888,30 @@ interface InteractionDraft {
                           <div class="section-emoji">📝</div>
                           <div>
                             <h3>Note permanente</h3>
-                            <p>Păstrează aici lucrurile stabile. Conversațiile se salvează separat în istoricul persoanei.</p>
+                            <p>
+                              Păstrează aici lucrurile stabile. Conversațiile se salvează
+                              separat în istoricul persoanei.
+                            </p>
                           </div>
                         </header>
 
                         <div class="task-panel-fields">
                           <label class="detail-field full textarea-field">
                             <span class="field-icon">🧠</span>
-                            <span class="detail-field-copy"><strong>Note permanente</strong><small>Preferințe, context personal sau profesional și lucruri utile pe termen lung.</small></span>
-                            <textarea class="native-control notes-control" name="notes" rows="8" placeholder="Ce merită să știu despre această persoană..." [(ngModel)]="contactDraft.notes"></textarea>
+                            <span class="detail-field-copy"
+                              ><strong>Note permanente</strong
+                              ><small
+                                >Preferințe, context personal sau profesional și lucruri
+                                utile pe termen lung.</small
+                              ></span
+                            >
+                            <textarea
+                              class="native-control notes-control"
+                              name="notes"
+                              rows="8"
+                              placeholder="Ce merită să știu despre această persoană..."
+                              [(ngModel)]="contactDraft.notes"
+                            ></textarea>
                           </label>
                         </div>
 
@@ -610,7 +919,11 @@ interface InteractionDraft {
                           <span>💬</span>
                           <div>
                             <strong>Conversațiile nu se pun aici</strong>
-                            <p>După ce salvezi persoana, folosește „Am vorbit” pentru fiecare discuție. Istoricul rămâne cronologic și nu se suprascrie.</p>
+                            <p>
+                              După ce salvezi persoana, folosește „Am vorbit” pentru
+                              fiecare discuție. Istoricul rămâne cronologic și nu se
+                              suprascrie.
+                            </p>
                           </div>
                         </aside>
                       }
@@ -2452,7 +2765,9 @@ export class NetworkingPageComponent {
   }
 
   currentEditorSectionIndex(): number {
-    const index = this.editorSections.findIndex((section) => section.id === this.editorSection());
+    const index = this.editorSections.findIndex(
+      (section) => section.id === this.editorSection(),
+    );
     return index < 0 ? 0 : index;
   }
 
