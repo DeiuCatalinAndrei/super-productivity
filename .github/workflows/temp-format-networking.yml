@@ -20,26 +20,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: feat/networking-ui-polish-20260922
-          fetch-depth: 0
-          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - run: npm ci
       - name: Format Networking only
         run: npx prettier --write src/app/pages/networking-page/networking-page.component.ts src/app/features/networking/networking-today.component.ts
-      - name: Commit formatted Networking files
+      - name: Commit formatted Networking files through API
         env:
           GH_TOKEN: ${{ github.token }}
+          BRANCH: feat/networking-ui-polish-20260922
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet -- src/app/pages/networking-page/networking-page.component.ts src/app/features/networking/networking-today.component.ts; then
-            echo "Nothing to format"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/app/pages/networking-page/networking-page.component.ts src/app/features/networking/networking-today.component.ts
-          git commit -m "style(networking): apply project formatting"
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:feat/networking-ui-polish-20260922
+          for FILE in             src/app/pages/networking-page/networking-page.component.ts             src/app/features/networking/networking-today.component.ts
+          do
+            REMOTE_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/contents/${FILE}?ref=${BRANCH}" --jq .sha)
+            CONTENT=$(base64 -w0 "${FILE}")
+            gh api               --method PUT               "repos/${GITHUB_REPOSITORY}/contents/${FILE}"               -f message="style(networking): apply project formatting"               -f content="${CONTENT}"               -f sha="${REMOTE_SHA}"               -f branch="${BRANCH}" >/dev/null
+          done
