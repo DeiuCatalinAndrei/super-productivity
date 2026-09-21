@@ -10,7 +10,7 @@ import { getDbDateStr } from '../../util/get-db-date-str';
   selector: 'life-networking-today',
   standalone: true,
   imports: [RouterModule, MatButtonModule, MatCardModule, MatIconModule],
-  template: \`
+  template: `
     @if (networking.dueContacts().length) {
       <mat-card class="networking-today-card">
         <mat-card-content>
@@ -80,9 +80,9 @@ import { getDbDateStr } from '../../util/get-db-date-str';
         </mat-card-content>
       </mat-card>
     }
-  \`,
+  `,
   styles: [
-    \`
+    `
       :host {
         display: block;
         grid-column: 1 / -1;
@@ -249,7 +249,7 @@ import { getDbDateStr } from '../../util/get-db-date-str';
           min-height: 48px;
         }
       }
-    \`,
+    `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
