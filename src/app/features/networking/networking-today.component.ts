@@ -16,9 +16,12 @@ import { getDbDateStr } from '../../util/get-db-date-str';
         <mat-card-content>
           <div class="head">
             <div class="title">
-              <mat-icon>group</mat-icon>
-              <strong>Networking</strong>
-              <span>{{ networking.dueContacts().length }}</span>
+              <span class="network-emoji">🤝</span>
+              <div>
+                <strong>Networking</strong>
+                <small>Persoane cu care e momentul să reiei legătura</small>
+              </div>
+              <span class="count">{{ networking.dueContacts().length }}</span>
             </div>
             <a
               mat-button
@@ -34,6 +37,10 @@ import { getDbDateStr } from '../../util/get-db-date-str';
               routerLink="/networking"
               [queryParams]="{ contact: contact.id }"
             >
+              <span
+                class="status-dot"
+                [class.overdue]="contact.nextContactDay && contact.nextContactDay < today"
+              ></span>
               <div class="who">
                 <strong>{{ contact.name }}</strong>
                 <small>
@@ -47,10 +54,10 @@ import { getDbDateStr } from '../../util/get-db-date-str';
                     · {{ contact.city }}
                   }
                 </small>
+                @if (contact.nextTopic) {
+                  <span class="topic">💬 {{ contact.nextTopic }}</span>
+                }
               </div>
-              @if (contact.nextTopic) {
-                <span class="topic">{{ contact.nextTopic }}</span>
-              }
               <span
                 class="date"
                 [class.overdue]="contact.nextContactDay && contact.nextContactDay < today"
@@ -82,11 +89,39 @@ import { getDbDateStr } from '../../util/get-db-date-str';
         margin-bottom: 6px;
       }
       .title {
-        gap: 7px;
+        gap: 8px;
       }
-      .title span {
+      .title > div {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .title small {
         opacity: 0.55;
-        font-size: 0.8rem;
+        font-size: 0.67rem;
+        font-weight: 400;
+      }
+      .network-emoji {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        background: rgba(127, 127, 127, 0.1);
+        font-size: 1rem;
+      }
+      .count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 22px;
+        height: 22px;
+        padding: 0 5px;
+        border-radius: 999px;
+        background: rgba(127, 127, 127, 0.12);
+        opacity: 0.75;
+        font-size: 0.7rem;
       }
       .contact-row {
         gap: 9px;
@@ -104,16 +139,29 @@ import { getDbDateStr } from '../../util/get-db-date-str';
         min-width: 160px;
         flex-direction: column;
         align-items: flex-start;
+        gap: 2px;
+      }
+      .status-dot {
+        flex: 0 0 auto;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--c-accent);
+      }
+      .status-dot.overdue {
+        background: var(--c-warn);
       }
       .who small {
         opacity: 0.58;
       }
       .topic {
-        max-width: 42%;
+        display: block;
+        max-width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         opacity: 0.72;
+        font-size: 0.7rem;
       }
       .date {
         font-size: 0.75rem;
@@ -125,7 +173,7 @@ import { getDbDateStr } from '../../util/get-db-date-str';
       }
       @media (max-width: 600px) {
         .topic {
-          display: none;
+          max-width: 100%;
         }
         .who {
           min-width: 0;
