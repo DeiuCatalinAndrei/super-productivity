@@ -1131,8 +1131,10 @@ interface InteractionDraft {
                 }
               </nav>
 
-              @if (profileSection() === 'OVERVIEW') {
-              <section class="context-grid">
+              <section
+                class="context-grid"
+                [class.section-hidden]="profileSection() !== 'OVERVIEW'"
+              >
                 <mat-card>
                   <mat-card-content>
                     <div class="mini-head">
@@ -1203,8 +1205,6 @@ interface InteractionDraft {
                   </mat-card-content>
                 </mat-card>
               </section>
-
-              }
 
               @if (profileSection() === 'HISTORY' && interactionEditorOpen()) {
                 <section class="editor-shell conversation-editor">
@@ -1523,8 +1523,10 @@ interface InteractionDraft {
                 </section>
               }
 
-              @if (profileSection() === 'OVERVIEW') {
-              <section class="profile-grid">
+              <section
+                class="profile-grid"
+                [class.section-hidden]="profileSection() !== 'OVERVIEW'"
+              >
                 <mat-card>
                   <mat-card-content>
                     <div class="mini-head">
@@ -1609,10 +1611,10 @@ interface InteractionDraft {
                 </mat-card>
               </section>
 
-              }
-
-              @if (profileSection() === 'FOLLOW_UPS') {
-              <mat-card class="followup-card">
+              <mat-card
+                class="followup-card"
+                [class.section-hidden]="profileSection() !== 'FOLLOW_UPS'"
+              >
                 <mat-card-content>
                   <div class="section-head">
                     <div>
@@ -1689,10 +1691,10 @@ interface InteractionDraft {
                 </mat-card-content>
               </mat-card>
 
-              }
-
-              @if (profileSection() === 'HISTORY') {
-              <mat-card class="timeline-card">
+              <mat-card
+                class="timeline-card"
+                [class.section-hidden]="profileSection() !== 'HISTORY'"
+              >
                 <mat-card-content>
                   <div class="section-head">
                     <div>
@@ -1770,8 +1772,6 @@ interface InteractionDraft {
                   </div>
                 </mat-card-content>
               </mat-card>
-
-              }
 
               <footer class="danger-zone">
                 @if (contact.isArchived) {
@@ -2901,7 +2901,6 @@ interface InteractionDraft {
         background: var(--task-detail-bg-hover, var(--state-hover));
       }
 
-
       .profile-carousel {
         display: flex;
         gap: 4px;
@@ -2952,6 +2951,10 @@ interface InteractionDraft {
         border-radius: 999px;
         background: var(--state-hover);
         font-size: 0.62rem;
+      }
+
+      .section-hidden {
+        display: none !important;
       }
 
       @media (max-width: 900px) {
