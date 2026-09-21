@@ -36,6 +36,18 @@ jobs:
           for FILE in             src/app/pages/networking-page/networking-page.component.ts             src/app/features/networking/networking-today.component.ts
           do
             REMOTE_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/contents/${FILE}?ref=${BRANCH}" --jq .sha)
-            CONTENT=$(base64 -w0 "${FILE}")
-            gh api               --method PUT               "repos/${GITHUB_REPOSITORY}/contents/${FILE}"               -f message="style(networking): apply project formatting"               -f content="${CONTENT}"               -f sha="${REMOTE_SHA}"               -f branch="${BRANCH}" >/dev/null
+            python - "${FILE}" "${REMOTE_SHA}" "${BRANCH}" <<'PY'
+          import base64, json, sys
+          path, sha, branch = sys.argv[1:]
+          with open(path, "rb") as fh:
+              content = base64.b64encode(fh.read()).decode("ascii")
+          with open("/tmp/payload.json", "w", encoding="utf-8") as fh:
+              json.dump({
+                  "message": "style(networking): apply project formatting",
+                  "content": content,
+                  "sha": sha,
+                  "branch": branch,
+              }, fh)
+          PY
+            gh api               --method PUT               "repos/${GITHUB_REPOSITORY}/contents/${FILE}"               --input /tmp/payload.json >/dev/null
           done
