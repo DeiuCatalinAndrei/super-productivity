@@ -105,7 +105,7 @@ interface InteractionDraft {
     MatIconModule,
     TaskDetailItemComponent,
   ],
-  template: \`
+  template: `
     <main class="networking-page">
       <header class="page-head">
         <div class="page-heading">
@@ -1382,9 +1382,9 @@ interface InteractionDraft {
         </section>
       </section>
     </main>
-  \`,
+  `,
   styles: [
-    \`
+    `
       :host {
         display: block;
         width: 100%;
@@ -2536,7 +2536,7 @@ interface InteractionDraft {
           flex-direction: column;
         }
       }
-    \`,
+    `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
