@@ -13,6 +13,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { TaskDetailItemComponent } from '../../features/tasks/task-detail-panel/task-additional-info-item/task-detail-item.component';
 import { DateTimeFormatService } from '../../core/date-time-format/date-time-format.service';
 import { getDbDateStr } from '../../util/get-db-date-str';
 import {
@@ -34,6 +35,17 @@ import {
 import { addCalendarDays } from '../../features/networking/networking.util';
 
 type NetworkingFilter = 'ALL' | 'DUE' | 'UPCOMING' | 'NO_REMINDER' | 'ARCHIVED';
+type ContactEditorSection = 'CONTACT' | 'WORK' | 'CONTEXT' | 'RELATIONSHIP' | 'FOLLOW_UP' | 'NOTES';
+type ProfileSection = 'OVERVIEW' | 'DETAILS' | 'HISTORY';
+type InteractionSection = 'CONVERSATION' | 'NEXT';
+
+interface ContactGroup {
+  id: string;
+  label: string;
+  emoji: string;
+  hint: string;
+  contacts: NetworkContact[];
+}
 
 interface ContactDraft {
   name: string;
@@ -91,20 +103,23 @@ interface InteractionDraft {
     MatButtonModule,
     MatCardModule,
     MatIconModule,
+    TaskDetailItemComponent,
   ],
-  template: `
+  template: \`
     <main class="networking-page">
       <header class="page-head">
-        <div>
+        <div class="page-heading">
+          <div class="eyebrow">🤝 LifeOS</div>
           <h1>Networking</h1>
           <p>
-            Păstrează contextul relațiilor, istoricul conversațiilor și momentul potrivit
-            pentru a lua din nou legătura.
+            Ține minte oamenii, contextul și promisiunile. LifeOS îți amintește când e
+            timpul să reiei legătura.
           </p>
         </div>
         <button
           mat-flat-button
           color="primary"
+          class="primary-action"
           (click)="startNewContact()"
         >
           <mat-icon>person_add</mat-icon>
@@ -112,118 +127,165 @@ interface InteractionDraft {
         </button>
       </header>
 
-      <section class="summary-grid">
+      <section class="summary-strip" aria-label="Networking overview">
         <button
-          class="summary-card"
+          class="summary-chip danger"
           [class.active]="filter() === 'DUE'"
           (click)="filter.set('DUE')"
         >
-          <mat-icon>notifications_active</mat-icon>
-          <strong>{{ networking.dueContacts().length }}</strong>
-          <span>De contactat</span>
+          <span class="summary-emoji">⏰</span>
+          <span><strong>{{ networking.overdueContacts().length }}</strong> overdue</span>
         </button>
         <button
-          class="summary-card"
+          class="summary-chip today"
+          [class.active]="filter() === 'DUE'"
           (click)="filter.set('DUE')"
         >
-          <mat-icon>today</mat-icon>
-          <strong>{{ networking.todayContacts().length }}</strong>
-          <span>Astăzi</span>
+          <span class="summary-emoji">☀️</span>
+          <span><strong>{{ networking.todayContacts().length }}</strong> azi</span>
         </button>
         <button
-          class="summary-card"
+          class="summary-chip"
           [class.active]="filter() === 'UPCOMING'"
           (click)="filter.set('UPCOMING')"
         >
-          <mat-icon>event_upcoming</mat-icon>
-          <strong>{{ networking.upcomingContacts().length }}</strong>
-          <span>Următoarele 7 zile</span>
+          <span class="summary-emoji">📅</span>
+          <span><strong>{{ networking.upcomingContacts().length }}</strong> în 7 zile</span>
         </button>
         <button
-          class="summary-card"
+          class="summary-chip"
           [class.active]="filter() === 'ALL'"
           (click)="filter.set('ALL')"
         >
-          <mat-icon>groups</mat-icon>
-          <strong>{{ networking.contacts().length }}</strong>
-          <span>Persoane active</span>
+          <span class="summary-emoji">👥</span>
+          <span><strong>{{ networking.contacts().length }}</strong> persoane</span>
         </button>
       </section>
 
       <section class="workspace">
         <aside class="people-panel">
-          <div class="search-row">
-            <label class="search-box">
-              <mat-icon>search</mat-icon>
-              <input
-                type="search"
-                placeholder="Caută nume, oraș, ocupație, discuții..."
-                [ngModel]="query()"
-                (ngModelChange)="query.set($event)"
-              />
-            </label>
+          <div class="panel-intro">
+            <div>
+              <strong>👥 Persoane</strong>
+              <small>Găsește rapid pe cine trebuie să contactezi.</small>
+            </div>
           </div>
 
-          <nav class="filters">
+          <label class="search-box">
+            <mat-icon>search</mat-icon>
+            <input
+              type="search"
+              placeholder="Caută nume, oraș, companie sau conversații..."
+              [ngModel]="query()"
+              (ngModelChange)="query.set($event)"
+            />
+            @if (query()) {
+              <button
+                type="button"
+                class="clear-search"
+                aria-label="Șterge căutarea"
+                (click)="query.set('')"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </label>
+
+          <nav class="filter-carousel" aria-label="Filtre networking">
             @for (item of filters; track item.id) {
               <button
                 type="button"
                 [class.active]="filter() === item.id"
                 (click)="filter.set(item.id)"
               >
-                {{ item.label }}
-                <span>{{ filterCount(item.id) }}</span>
+                <span>{{ item.label }}</span>
+                <small>{{ filterCount(item.id) }}</small>
               </button>
             }
           </nav>
 
-          <div class="people-list">
-            @for (contact of filteredContacts(); track contact.id) {
-              <button
-                class="person-row"
-                [class.selected]="selectedId() === contact.id"
-                [class.due]="isDue(contact)"
-                (click)="selectContact(contact.id)"
-              >
-                <div class="person-top">
-                  <strong>{{ contact.name }}</strong>
-                  @if (contact.nextContactDay) {
-                    <span
-                      class="contact-date"
-                      [class.overdue]="contact.nextContactDay < today"
-                    >
-                      {{ contact.nextContactDay }}
-                    </span>
-                  }
-                </div>
-                <div class="person-meta">
-                  @if (contact.occupation) {
-                    <span>{{ contact.occupation }}</span>
-                  }
-                  @if (contact.company) {
-                    <span>· {{ contact.company }}</span>
-                  }
-                  @if (contact.city) {
-                    <span>· {{ contact.city }}</span>
-                  }
-                </div>
-                @if (contact.nextTopic) {
-                  <small class="person-topic">{{ contact.nextTopic }}</small>
-                }
-                @if (contact.tags.length) {
-                  <div class="chips">
-                    @for (tag of contact.tags.slice(0, 4); track tag) {
-                      <span class="chip">{{ tag }}</span>
+          <div class="people-groups">
+            @for (group of groupedContacts(); track group.id) {
+              @if (group.contacts.length) {
+                <section class="people-group">
+                  <header class="group-header">
+                    <div>
+                      <span class="group-emoji">{{ group.emoji }}</span>
+                      <strong>{{ group.label }}</strong>
+                    </div>
+                    <span>{{ group.contacts.length }}</span>
+                  </header>
+                  <p class="group-hint">{{ group.hint }}</p>
+
+                  <div class="person-list">
+                    @for (contact of group.contacts; track contact.id) {
+                      <button
+                        class="person-row"
+                        [class.selected]="selectedId() === contact.id"
+                        [class.due]="isDue(contact)"
+                        (click)="selectContact(contact.id)"
+                      >
+                        <span class="person-check">
+                          <mat-icon>{{
+                            contact.nextContactDay === today
+                              ? 'today'
+                              : isDue(contact)
+                                ? 'notification_important'
+                                : 'person'
+                          }}</mat-icon>
+                        </span>
+                        <span class="person-main">
+                          <span class="person-title-line">
+                            <strong>{{ contact.name }}</strong>
+                            @if (contact.nextContactDay) {
+                              <span
+                                class="contact-date"
+                                [class.overdue]="contact.nextContactDay < today"
+                                [class.today]="contact.nextContactDay === today"
+                              >
+                                {{ contact.nextContactDay }}
+                              </span>
+                            }
+                          </span>
+                          <span class="person-meta">
+                            @if (contact.occupation) {
+                              {{ contact.occupation }}
+                            }
+                            @if (contact.company) {
+                              · {{ contact.company }}
+                            }
+                            @if (contact.city) {
+                              · {{ contact.city }}
+                            }
+                          </span>
+                          @if (contact.nextTopic) {
+                            <span class="person-topic">💬 {{ contact.nextTopic }}</span>
+                          }
+                          @if (contact.tags.length) {
+                            <span class="chips">
+                              @for (tag of contact.tags.slice(0, 3); track tag) {
+                                <span class="chip">{{ tag }}</span>
+                              }
+                            </span>
+                          }
+                        </span>
+                        <mat-icon class="row-chevron">chevron_right</mat-icon>
+                      </button>
                     }
                   </div>
-                }
-              </button>
+                </section>
+              }
             }
 
             @if (!filteredContacts().length) {
               <div class="empty-list">
                 <mat-icon>person_search</mat-icon>
-                <p>Nicio persoană nu corespunde filtrului.</p>
+                <strong>Nicio persoană aici</strong>
+                <p>Schimbă filtrul sau adaugă o persoană nouă.</p>
+                <button mat-button (click)="startNewContact()">
+                  <mat-icon>person_add</mat-icon>
+                  Adaugă persoană
+                </button>
               </div>
             }
           </div>
@@ -231,281 +293,538 @@ interface InteractionDraft {
 
         <section class="detail-panel">
           @if (contactEditorOpen()) {
-            <mat-card class="editor-card">
-              <mat-card-content>
-                <div class="section-head">
-                  <div>
-                    <h2>
-                      {{ editingContactId() ? 'Editează persoana' : 'Persoană nouă' }}
-                    </h2>
-                    <p>Nu se salvează poze; doar informațiile utile relației.</p>
-                  </div>
-                  <button
-                    mat-icon-button
-                    aria-label="Închide"
-                    (click)="cancelContactEdit()"
-                  >
-                    <mat-icon>close</mat-icon>
-                  </button>
+            <section class="editor-shell">
+              <header class="editor-head">
+                <div>
+                  <span class="eyebrow">{{
+                    editingContactId() ? '✏️ Editare contact' : '✨ Contact nou'
+                  }}</span>
+                  <h2>{{ editingContactId() ? 'Editează persoana' : 'Adaugă o persoană' }}</h2>
+                  <p>
+                    Completează doar ce îți este util. Poți reveni oricând; nimic din istoricul
+                    existent nu este șters.
+                  </p>
                 </div>
-
-                <form
-                  class="contact-form"
-                  (ngSubmit)="saveContact()"
+                <button
+                  mat-icon-button
+                  aria-label="Închide"
+                  (click)="cancelContactEdit()"
                 >
-                  <label class="wide">
-                    <span>Nume *</span>
-                    <input
-                      name="name"
-                      required
-                      [(ngModel)]="contactDraft.name"
-                    />
-                  </label>
+                  <mat-icon>close</mat-icon>
+                </button>
+              </header>
 
-                  <label>
-                    <span>Telefon</span>
-                    <input
-                      name="phone"
-                      type="tel"
-                      [(ngModel)]="contactDraft.phone"
-                    />
-                  </label>
-                  <label>
-                    <span>Email</span>
-                    <input
-                      name="email"
-                      type="email"
-                      [(ngModel)]="contactDraft.email"
-                    />
-                  </label>
-                  <label>
-                    <span>Instagram</span>
-                    <input
-                      name="instagram"
-                      placeholder="@username sau link"
-                      [(ngModel)]="contactDraft.instagram"
-                    />
-                  </label>
-                  <label>
-                    <span>Facebook</span>
-                    <input
-                      name="facebook"
-                      placeholder="profil sau link"
-                      [(ngModel)]="contactDraft.facebook"
-                    />
-                  </label>
-                  <label>
-                    <span>LinkedIn</span>
-                    <input
-                      name="linkedin"
-                      placeholder="profil sau link"
-                      [(ngModel)]="contactDraft.linkedin"
-                    />
-                  </label>
+              <nav class="editor-carousel" aria-label="Secțiuni contact">
+                @for (section of contactSections; track section.id; let i = $index) {
+                  <button
+                    type="button"
+                    [class.active]="contactSection() === section.id"
+                    [class.complete]="i < contactSectionIndex()"
+                    (click)="contactSection.set(section.id)"
+                  >
+                    <span class="section-emoji">{{ section.emoji }}</span>
+                    <span>{{ section.label }}</span>
+                    <small>{{ i + 1 }}/{{ contactSections.length }}</small>
+                  </button>
+                }
+              </nav>
 
-                  <label>
-                    <span>Oraș</span>
-                    <input
-                      name="city"
-                      [(ngModel)]="contactDraft.city"
-                    />
-                  </label>
-                  <label>
-                    <span>Județ / regiune</span>
-                    <input
-                      name="region"
-                      [(ngModel)]="contactDraft.region"
-                    />
-                  </label>
-                  <label>
-                    <span>Țară</span>
-                    <input
-                      name="country"
-                      [(ngModel)]="contactDraft.country"
-                    />
-                  </label>
+              <div class="carousel-progress">
+                @for (section of contactSections; track section.id) {
+                  <button
+                    type="button"
+                    [class.active]="contactSection() === section.id"
+                    (click)="contactSection.set(section.id)"
+                    [attr.aria-label]="'Mergi la ' + section.label"
+                  ></button>
+                }
+              </div>
 
-                  <label>
-                    <span>Ocupație</span>
-                    <input
-                      name="occupation"
-                      placeholder="ex. AI Engineer"
-                      [(ngModel)]="contactDraft.occupation"
-                    />
-                  </label>
-                  <label>
-                    <span>Funcție</span>
-                    <input
-                      name="role"
-                      [(ngModel)]="contactDraft.role"
-                    />
-                  </label>
-                  <label>
-                    <span>Companie / organizație</span>
-                    <input
-                      name="company"
-                      [(ngModel)]="contactDraft.company"
-                    />
-                  </label>
-                  <label>
-                    <span>Domeniu</span>
-                    <input
-                      name="industry"
-                      placeholder="AI, juridic, contabilitate..."
-                      [(ngModel)]="contactDraft.industry"
-                    />
-                  </label>
+              <form class="contact-editor-form" (ngSubmit)="saveContact()">
+                @if (contactSection() === 'CONTACT') {
+                  <section class="editor-section">
+                    <div class="section-copy">
+                      <span>👤</span>
+                      <div>
+                        <h3>Date de contact</h3>
+                        <p>Informațiile de bază pentru a găsi și contacta rapid persoana.</p>
+                      </div>
+                    </div>
 
-                  <label>
-                    <span>De unde îl/o cunosc</span>
-                    <input
-                      name="metThrough"
-                      placeholder="facultate, conferință, prin cineva..."
-                      [(ngModel)]="contactDraft.metThrough"
-                    />
-                  </label>
-                  <label>
-                    <span>Unde ne-am cunoscut</span>
-                    <input
-                      name="metAt"
-                      [(ngModel)]="contactDraft.metAt"
-                    />
-                  </label>
-                  <label>
-                    <span>Data când ne-am cunoscut</span>
-                    <input
-                      name="metOn"
-                      type="date"
-                      [(ngModel)]="contactDraft.metOn"
-                    />
-                  </label>
-                  <label>
-                    <span>Ne-a făcut cunoștință</span>
-                    <select
-                      name="introducedBy"
-                      [(ngModel)]="contactDraft.introducedByContactId"
-                    >
-                      <option value="">—</option>
-                      @for (person of introductionOptions(); track person.id) {
-                        <option [value]="person.id">{{ person.name }}</option>
+                    <task-detail-item type="fullSizeInput" class="network-field">
+                      <ng-container input-title>
+                        <mat-icon>person</mat-icon><span>Nume *</span>
+                      </ng-container>
+                      <ng-container input-value>
+                        <input
+                          name="name"
+                          required
+                          placeholder="ex. Andrei Popescu"
+                          [(ngModel)]="contactDraft.name"
+                        />
+                      </ng-container>
+                    </task-detail-item>
+                    <div class="field-help">✨ Folosește numele după care îl/o vei căuta cel mai ușor.</div>
+
+                    <div class="field-grid two">
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>phone</mat-icon><span>Telefon</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <input name="phone" type="tel" placeholder="07..." [(ngModel)]="contactDraft.phone" />
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">📞 Numărul principal pentru contact rapid.</div>
+                      </div>
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>mail</mat-icon><span>Email</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <input name="email" type="email" placeholder="nume@email.com" [(ngModel)]="contactDraft.email" />
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">✉️ Util pentru conversații profesionale și follow-up-uri.</div>
+                      </div>
+                    </div>
+
+                    <div class="field-grid three">
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>photo_camera</mat-icon><span>Instagram</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <input name="instagram" placeholder="@username" [(ngModel)]="contactDraft.instagram" />
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">📸 Username sau link.</div>
+                      </div>
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>public</mat-icon><span>Facebook</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <input name="facebook" placeholder="profil sau link" [(ngModel)]="contactDraft.facebook" />
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">🌐 Profil sau URL complet.</div>
+                      </div>
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>business_center</mat-icon><span>LinkedIn</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <input name="linkedin" placeholder="profil sau link" [(ngModel)]="contactDraft.linkedin" />
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">💼 Foarte util pentru networking profesional.</div>
+                      </div>
+                    </div>
+                  </section>
+                }
+
+                @if (contactSection() === 'WORK') {
+                  <section class="editor-section">
+                    <div class="section-copy">
+                      <span>💼</span>
+                      <div>
+                        <h3>Muncă & expertiză</h3>
+                        <p>Context profesional ca să înțelegi imediat cine este și cu ce se ocupă.</p>
+                      </div>
+                    </div>
+
+                    <div class="field-grid two">
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>badge</mat-icon><span>Ocupație</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <input name="occupation" placeholder="ex. AI Engineer" [(ngModel)]="contactDraft.occupation" />
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">🧠 Rolul general sau profesia persoanei.</div>
+                      </div>
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>workspace_premium</mat-icon><span>Funcție</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <input name="role" placeholder="ex. Senior Engineer" [(ngModel)]="contactDraft.role" />
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">🏷️ Titlul exact, dacă îl știi.</div>
+                      </div>
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>apartment</mat-icon><span>Companie</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <input name="company" placeholder="Companie / organizație" [(ngModel)]="contactDraft.company" />
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">🏢 Unde lucrează sau ce organizație reprezintă.</div>
+                      </div>
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>hub</mat-icon><span>Domeniu</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <input name="industry" placeholder="AI, juridic, contabilitate..." [(ngModel)]="contactDraft.industry" />
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">🧩 Ajută la filtrarea mentală a rețelei tale.</div>
+                      </div>
+                    </div>
+                  </section>
+                }
+
+                @if (contactSection() === 'CONTEXT') {
+                  <section class="editor-section">
+                    <div class="section-copy">
+                      <span>📍</span>
+                      <div>
+                        <h3>Loc & context</h3>
+                        <p>De unde îl/o cunoști și unde se află acum.</p>
+                      </div>
+                    </div>
+
+                    <div class="field-grid three">
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>location_city</mat-icon><span>Oraș</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <input name="city" placeholder="Timișoara" [(ngModel)]="contactDraft.city" />
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">📍 Unde se află de obicei.</div>
+                      </div>
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>map</mat-icon><span>Județ / regiune</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <input name="region" [(ngModel)]="contactDraft.region" />
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">🗺️ Opțional, pentru căutare mai precisă.</div>
+                      </div>
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>language</mat-icon><span>Țară</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <input name="country" [(ngModel)]="contactDraft.country" />
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">🌍 Țara principală.</div>
+                      </div>
+                    </div>
+
+                    <div class="field-grid two">
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>connect_without_contact</mat-icon><span>De unde îl/o cunosc</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <input
+                              name="metThrough"
+                              placeholder="facultate, master, conferință, LinkedIn..."
+                              [(ngModel)]="contactDraft.metThrough"
+                            />
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">🤝 Contextul în care a intrat în rețeaua ta.</div>
+                      </div>
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>place</mat-icon><span>Unde ne-am cunoscut</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <input name="metAt" placeholder="eveniment, firmă, facultate..." [(ngModel)]="contactDraft.metAt" />
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">📌 Locul sau evenimentul concret.</div>
+                      </div>
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>event</mat-icon><span>Data întâlnirii</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <input name="metOn" type="date" [(ngModel)]="contactDraft.metOn" />
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">🗓️ Dacă nu o știi, o poți lăsa goală.</div>
+                      </div>
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>group_add</mat-icon><span>Ne-a făcut cunoștință</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <select name="introducedBy" [(ngModel)]="contactDraft.introducedByContactId">
+                              <option value="">— Nimeni / nu știu —</option>
+                              @for (person of introductionOptions(); track person.id) {
+                                <option [value]="person.id">{{ person.name }}</option>
+                              }
+                            </select>
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">🔗 Leagă relațiile din rețeaua ta.</div>
+                      </div>
+                    </div>
+                  </section>
+                }
+
+                @if (contactSection() === 'RELATIONSHIP') {
+                  <section class="editor-section">
+                    <div class="section-copy">
+                      <span>🤝</span>
+                      <div>
+                        <h3>Relație & valoare reciprocă</h3>
+                        <p>Ce fel de relație aveți și unde există puncte comune.</p>
+                      </div>
+                    </div>
+
+                    <div class="field-grid two">
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>people</mat-icon><span>Tip relație</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <select name="relationshipType" [(ngModel)]="contactDraft.relationshipType">
+                              @for (item of relationshipOptions; track item.value) {
+                                <option [value]="item.value">{{ item.label }}</option>
+                              }
+                            </select>
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">🧭 Profesional, prieten, recruiter, mentor, client etc.</div>
+                      </div>
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>stars</mat-icon><span>Importanță</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <select name="importance" [(ngModel)]="contactDraft.importance">
+                              @for (item of importanceOptions; track item.value) {
+                                <option [value]="item.value">{{ item.label }}</option>
+                              }
+                            </select>
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">⭐ Cât de activ vrei să menții relația.</div>
+                      </div>
+                    </div>
+
+                    <task-detail-item type="fullSizeInput" class="network-field">
+                      <ng-container input-title>
+                        <mat-icon>sell</mat-icon><span>Tags</span>
+                      </ng-container>
+                      <ng-container input-value>
+                        <input
+                          name="tags"
+                          placeholder="AI, Timișoara, recruiter, facultate"
+                          [(ngModel)]="contactDraft.tags"
+                        />
+                      </ng-container>
+                    </task-detail-item>
+                    <div class="field-help">🏷️ Separate prin virgulă. Sunt utile pentru căutare și filtrare.</div>
+
+                    <task-detail-item type="fullSizeInput" class="network-field text-field">
+                      <ng-container input-title>
+                        <mat-icon>interests</mat-icon><span>Interese</span>
+                      </ng-container>
+                      <ng-container input-value>
+                        <textarea name="interests" rows="3" placeholder="Ce îl/o interesează?" [(ngModel)]="contactDraft.interests"></textarea>
+                      </ng-container>
+                    </task-detail-item>
+                    <div class="field-help">💡 Subiecte bune pentru conversații viitoare.</div>
+
+                    <div class="field-grid two">
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field text-field">
+                          <ng-container input-title>
+                            <mat-icon>volunteer_activism</mat-icon><span>Pot să ajut cu</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <textarea name="canHelpWith" rows="3" [(ngModel)]="contactDraft.canHelpWith"></textarea>
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">🎁 Cum poți aduce valoare relației.</div>
+                      </div>
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field text-field">
+                          <ng-container input-title>
+                            <mat-icon>handshake</mat-icon><span>Mă poate ajuta cu</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <textarea name="canHelpMeWith" rows="3" [(ngModel)]="contactDraft.canHelpMeWith"></textarea>
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">🧩 Zone unde ar putea exista colaborare sau ajutor.</div>
+                      </div>
+                    </div>
+                  </section>
+                }
+
+                @if (contactSection() === 'FOLLOW_UP') {
+                  <section class="editor-section">
+                    <div class="section-copy">
+                      <span>🗓️</span>
+                      <div>
+                        <h3>Ținem legătura</h3>
+                        <p>Setează ritmul relației. La termen, persoana apare automat în Today.</p>
+                      </div>
+                    </div>
+
+                    <div class="info-banner">
+                      <mat-icon>lightbulb</mat-icon>
+                      <div>
+                        <strong>Folosește frecvența pentru relații, nu pentru taskuri.</strong>
+                        <span>Un follow-up concret poate fi transformat separat într-un task LifeOS.</span>
+                      </div>
+                    </div>
+
+                    <div class="field-grid two">
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>repeat</mat-icon><span>Frecvență</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <select name="cadence" [(ngModel)]="contactDraft.cadence">
+                              @for (item of cadenceOptions; track item.value) {
+                                <option [value]="item.value">{{ item.label }}</option>
+                              }
+                            </select>
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">🔁 Lunar, trimestrial, custom sau fără reminder.</div>
+                      </div>
+
+                      @if (contactDraft.cadence === 'CUSTOM') {
+                        <div>
+                          <task-detail-item type="fullSizeInput" class="network-field">
+                            <ng-container input-title>
+                              <mat-icon>date_range</mat-icon><span>La câte zile</span>
+                            </ng-container>
+                            <ng-container input-value>
+                              <input name="cadenceDays" type="number" min="1" [(ngModel)]="contactDraft.cadenceDays" />
+                            </ng-container>
+                          </task-detail-item>
+                          <div class="field-help">⚙️ Interval personalizat în zile.</div>
+                        </div>
                       }
-                    </select>
-                  </label>
 
-                  <label>
-                    <span>Tip relație</span>
-                    <select
-                      name="relationshipType"
-                      [(ngModel)]="contactDraft.relationshipType"
-                    >
-                      @for (item of relationshipOptions; track item.value) {
-                        <option [value]="item.value">{{ item.label }}</option>
-                      }
-                    </select>
-                  </label>
-                  <label>
-                    <span>Importanță relație</span>
-                    <select
-                      name="importance"
-                      [(ngModel)]="contactDraft.importance"
-                    >
-                      @for (item of importanceOptions; track item.value) {
-                        <option [value]="item.value">{{ item.label }}</option>
-                      }
-                    </select>
-                  </label>
+                      <div>
+                        <task-detail-item type="fullSizeInput" class="network-field">
+                          <ng-container input-title>
+                            <mat-icon>event_available</mat-icon><span>Următorul contact</span>
+                          </ng-container>
+                          <ng-container input-value>
+                            <input name="nextContactDay" type="date" [(ngModel)]="contactDraft.nextContactDay" />
+                          </ng-container>
+                        </task-detail-item>
+                        <div class="field-help">☀️ În această zi persoana va apărea în Today.</div>
+                      </div>
+                    </div>
 
-                  <label class="wide">
-                    <span>Tags</span>
-                    <input
-                      name="tags"
-                      placeholder="AI, Timișoara, recruiter, facultate"
-                      [(ngModel)]="contactDraft.tags"
-                    />
-                    <small>Separate prin virgulă.</small>
-                  </label>
+                    <task-detail-item type="fullSizeInput" class="network-field">
+                      <ng-container input-title>
+                        <mat-icon>forum</mat-icon><span>Subiect data viitoare</span>
+                      </ng-container>
+                      <ng-container input-value>
+                        <input
+                          name="nextTopic"
+                          placeholder="Ce vreau să întreb sau să discut..."
+                          [(ngModel)]="contactDraft.nextTopic"
+                        />
+                      </ng-container>
+                    </task-detail-item>
+                    <div class="field-help">💬 Îți apare în context ca să nu începi conversația „de la zero”.</div>
+                  </section>
+                }
 
-                  <label class="wide">
-                    <span>Interese</span>
-                    <textarea
-                      name="interests"
-                      rows="2"
-                      [(ngModel)]="contactDraft.interests"
-                    ></textarea>
-                  </label>
-                  <label class="wide">
-                    <span>Pot să îl/o ajut cu</span>
-                    <textarea
-                      name="canHelpWith"
-                      rows="2"
-                      [(ngModel)]="contactDraft.canHelpWith"
-                    ></textarea>
-                  </label>
-                  <label class="wide">
-                    <span>Mă poate ajuta cu</span>
-                    <textarea
-                      name="canHelpMeWith"
-                      rows="2"
-                      [(ngModel)]="contactDraft.canHelpMeWith"
-                    ></textarea>
-                  </label>
-                  <label class="wide">
-                    <span>Note permanente</span>
-                    <textarea
-                      name="notes"
-                      rows="4"
-                      [(ngModel)]="contactDraft.notes"
-                    ></textarea>
-                  </label>
+                @if (contactSection() === 'NOTES') {
+                  <section class="editor-section">
+                    <div class="section-copy">
+                      <span>📝</span>
+                      <div>
+                        <h3>Note permanente</h3>
+                        <p>Lucruri care rămân relevante în timp, separat de conversațiile individuale.</p>
+                      </div>
+                    </div>
 
-                  <div class="form-divider wide">Ținem legătura</div>
-                  <label>
-                    <span>Frecvență</span>
-                    <select
-                      name="cadence"
-                      [(ngModel)]="contactDraft.cadence"
-                    >
-                      @for (item of cadenceOptions; track item.value) {
-                        <option [value]="item.value">{{ item.label }}</option>
-                      }
-                    </select>
-                  </label>
-                  @if (contactDraft.cadence === 'CUSTOM') {
-                    <label>
-                      <span>La câte zile</span>
-                      <input
-                        name="cadenceDays"
-                        type="number"
-                        min="1"
-                        [(ngModel)]="contactDraft.cadenceDays"
-                      />
-                    </label>
-                  }
-                  <label>
-                    <span>Următorul contact</span>
-                    <input
-                      name="nextContactDay"
-                      type="date"
-                      [(ngModel)]="contactDraft.nextContactDay"
-                    />
-                  </label>
-                  <label class="wide">
-                    <span>Subiect data viitoare</span>
-                    <input
-                      name="nextTopic"
-                      placeholder="Ce vreau să întreb / discut data viitoare"
-                      [(ngModel)]="contactDraft.nextTopic"
-                    />
-                  </label>
+                    <task-detail-item type="fullSizeInput" class="network-field text-field notes-field">
+                      <ng-container input-title>
+                        <mat-icon>notes</mat-icon><span>Note</span>
+                      </ng-container>
+                      <ng-container input-value>
+                        <textarea
+                          name="notes"
+                          rows="8"
+                          placeholder="Context general, preferințe, lucruri importante de ținut minte..."
+                          [(ngModel)]="contactDraft.notes"
+                        ></textarea>
+                      </ng-container>
+                    </task-detail-item>
+                    <div class="field-help">🧠 Pentru conversații folosește istoricul; aici păstrează doar contextul permanent.</div>
 
-                  <div class="form-actions wide">
+                    <div class="finish-card">
+                      <span>✅</span>
+                      <div>
+                        <strong>Gata de salvat</strong>
+                        <p>Poți reveni oricând și completa restul informațiilor.</p>
+                      </div>
+                    </div>
+                  </section>
+                }
+
+                <footer class="editor-footer">
+                  <button
+                    type="button"
+                    mat-button
+                    [disabled]="contactSectionIndex() === 0"
+                    (click)="moveContactSection(-1)"
+                  >
+                    <mat-icon>arrow_back</mat-icon>
+                    Înapoi
+                  </button>
+
+                  <span class="footer-step">
+                    {{ contactSectionIndex() + 1 }} / {{ contactSections.length }}
+                  </span>
+
+                  @if (contactSectionIndex() < contactSections.length - 1) {
                     <button
                       type="button"
-                      mat-button
-                      (click)="cancelContactEdit()"
+                      mat-flat-button
+                      color="primary"
+                      (click)="moveContactSection(1)"
                     >
-                      Anulează
+                      Continuă
+                      <mat-icon>arrow_forward</mat-icon>
                     </button>
+                  } @else {
                     <button
                       type="submit"
                       mat-flat-button
@@ -513,21 +832,20 @@ interface InteractionDraft {
                       [disabled]="!contactDraft.name.trim()"
                     >
                       <mat-icon>save</mat-icon>
-                      Salvează
+                      Salvează persoana
                     </button>
-                  </div>
-                </form>
-              </mat-card-content>
-            </mat-card>
+                  }
+                </footer>
+              </form>
+            </section>
           } @else if (selectedContact(); as contact) {
             <section class="profile">
               <header class="profile-head">
-                <div>
+                <div class="profile-copy">
+                  <span class="eyebrow">👤 Contact</span>
                   <div class="profile-title-line">
                     <h2>{{ contact.name }}</h2>
-                    <span class="importance">
-                      {{ importanceLabel(contact.importance) }}
-                    </span>
+                    <span class="importance">{{ importanceLabel(contact.importance) }}</span>
                   </div>
                   <p>
                     @if (contact.occupation) {
@@ -546,19 +864,12 @@ interface InteractionDraft {
                 </div>
                 <div class="profile-actions">
                   @if (!contact.isArchived) {
-                    <button
-                      mat-flat-button
-                      color="primary"
-                      (click)="startInteraction()"
-                    >
+                    <button mat-flat-button color="primary" (click)="startInteraction()">
                       <mat-icon>forum</mat-icon>
                       Am vorbit
                     </button>
                   }
-                  <button
-                    mat-button
-                    (click)="startEditContact(contact)"
-                  >
+                  <button mat-button (click)="startEditContact(contact)">
                     <mat-icon>edit</mat-icon>
                     Editează
                   </button>
@@ -567,521 +878,487 @@ interface InteractionDraft {
 
               <div class="contact-links">
                 @if (contact.phone) {
-                  <a [href]="'tel:' + contact.phone">
-                    <mat-icon>phone</mat-icon>{{ contact.phone }}
-                  </a>
+                  <a [href]="'tel:' + contact.phone"><mat-icon>phone</mat-icon>{{ contact.phone }}</a>
                 }
                 @if (contact.email) {
-                  <a [href]="'mailto:' + contact.email">
-                    <mat-icon>mail</mat-icon>{{ contact.email }}
-                  </a>
+                  <a [href]="'mailto:' + contact.email"><mat-icon>mail</mat-icon>{{ contact.email }}</a>
                 }
                 @if (contact.instagram) {
-                  <a
-                    [href]="socialUrl('instagram', contact.instagram)"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
+                  <a [href]="socialUrl('instagram', contact.instagram)" target="_blank" rel="noreferrer">
                     <mat-icon>photo_camera</mat-icon>Instagram
                   </a>
                 }
                 @if (contact.facebook) {
-                  <a
-                    [href]="socialUrl('facebook', contact.facebook)"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
+                  <a [href]="socialUrl('facebook', contact.facebook)" target="_blank" rel="noreferrer">
                     <mat-icon>public</mat-icon>Facebook
                   </a>
                 }
                 @if (contact.linkedin) {
-                  <a
-                    [href]="socialUrl('linkedin', contact.linkedin)"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
+                  <a [href]="socialUrl('linkedin', contact.linkedin)" target="_blank" rel="noreferrer">
                     <mat-icon>business_center</mat-icon>LinkedIn
                   </a>
                 }
               </div>
 
-              <section class="context-grid">
-                <mat-card>
-                  <mat-card-content>
-                    <div class="mini-head">
-                      <strong>Ținem legătura</strong>
-                      @if (contact.nextContactDay) {
-                        <span
-                          class="status-pill"
-                          [class.overdue]="contact.nextContactDay < today"
-                          [class.due-now]="contact.nextContactDay === today"
-                        >
-                          {{ contact.nextContactDay }}
-                        </span>
-                      }
-                    </div>
-                    <dl>
-                      <div>
-                        <dt>Ultimul contact</dt>
-                        <dd>
-                          {{
-                            contact.lastContactAt ? dateLabel(contact.lastContactAt) : '—'
-                          }}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Frecvență</dt>
-                        <dd>{{ cadenceLabel(contact.cadence, contact.cadenceDays) }}</dd>
-                      </div>
-                      <div>
-                        <dt>Data viitoare</dt>
-                        <dd>{{ contact.nextContactDay || '—' }}</dd>
-                      </div>
-                    </dl>
-                    @if (contact.nextTopic) {
-                      <div class="next-topic">
-                        <small>Data viitoare</small>
-                        <p>{{ contact.nextTopic }}</p>
-                      </div>
-                    }
-                  </mat-card-content>
-                </mat-card>
+              <nav class="profile-carousel" aria-label="Detalii persoană">
+                @for (section of profileSections; track section.id) {
+                  <button
+                    type="button"
+                    [class.active]="profileSection() === section.id"
+                    (click)="profileSection.set(section.id)"
+                  >
+                    <span>{{ section.emoji }}</span>
+                    {{ section.label }}
+                  </button>
+                }
+              </nav>
 
-                <mat-card>
-                  <mat-card-content>
-                    <div class="mini-head">
-                      <strong>Context rapid</strong>
-                      <mat-icon>psychology_alt</mat-icon>
-                    </div>
-                    @if (latestInteraction(); as last) {
-                      <p class="last-summary">{{ last.summary }}</p>
-                      @if (last.learned) {
-                        <div class="context-line">
-                          <b>Am aflat:</b> {{ last.learned }}
-                        </div>
-                      }
-                      @if (last.iPromised) {
-                        <div class="context-line">
-                          <b>Am promis:</b> {{ last.iPromised }}
-                        </div>
-                      }
-                      @if (last.theyPromised) {
-                        <div class="context-line">
-                          <b>A promis:</b> {{ last.theyPromised }}
-                        </div>
-                      }
-                    } @else {
-                      <p class="muted">Nu există încă nicio conversație înregistrată.</p>
-                    }
-                  </mat-card-content>
-                </mat-card>
-              </section>
-
-              @if (interactionEditorOpen()) {
-                <mat-card class="interaction-editor">
-                  <mat-card-content>
-                    <div class="section-head">
-                      <div>
-                        <h3>Înregistrează conversația</h3>
-                        <p>
-                          Scrie esențialul, ca data viitoare să ai imediat tot contextul.
-                        </p>
-                      </div>
-                      <button
-                        mat-icon-button
-                        (click)="interactionEditorOpen.set(false)"
-                        aria-label="Închide"
-                      >
-                        <mat-icon>close</mat-icon>
-                      </button>
-                    </div>
-
-                    <form
-                      class="interaction-form"
-                      (ngSubmit)="saveInteraction(contact.id)"
-                    >
-                      <label>
-                        <span>Data și ora</span>
-                        <input
-                          name="interactionAt"
-                          type="datetime-local"
-                          [(ngModel)]="interactionDraft.at"
-                        />
-                      </label>
-                      <label>
-                        <span>Cum am vorbit</span>
-                        <select
-                          name="channel"
-                          [(ngModel)]="interactionDraft.channel"
-                        >
-                          @for (item of channelOptions; track item.value) {
-                            <option [value]="item.value">{{ item.label }}</option>
+              @if (profileSection() === 'OVERVIEW') {
+                <section class="overview-layout">
+                  <div class="context-grid">
+                    <mat-card class="soft-card">
+                      <mat-card-content>
+                        <div class="mini-head">
+                          <strong>🗓️ Ținem legătura</strong>
+                          @if (contact.nextContactDay) {
+                            <span
+                              class="status-pill"
+                              [class.overdue]="contact.nextContactDay < today"
+                              [class.due-now]="contact.nextContactDay === today"
+                            >
+                              {{ contact.nextContactDay }}
+                            </span>
                           }
-                        </select>
-                      </label>
-                      <label class="wide">
-                        <span>Unde / context</span>
-                        <input
-                          name="interactionLocation"
-                          [(ngModel)]="interactionDraft.location"
-                        />
-                      </label>
-                      <label class="wide">
-                        <span>Ce am vorbit? *</span>
-                        <textarea
-                          name="summary"
-                          rows="5"
-                          required
-                          placeholder="Rezumatul conversației și ideile importante..."
-                          [(ngModel)]="interactionDraft.summary"
-                        ></textarea>
-                      </label>
-                      <label class="wide">
-                        <span>Ce am aflat nou?</span>
-                        <textarea
-                          name="learned"
-                          rows="3"
-                          [(ngModel)]="interactionDraft.learned"
-                        ></textarea>
-                      </label>
-                      <label>
-                        <span>Ce am promis eu?</span>
-                        <textarea
-                          name="iPromised"
-                          rows="3"
-                          [(ngModel)]="interactionDraft.iPromised"
-                        ></textarea>
-                      </label>
-                      <label>
-                        <span>Ce a promis persoana?</span>
-                        <textarea
-                          name="theyPromised"
-                          rows="3"
-                          [(ngModel)]="interactionDraft.theyPromised"
-                        ></textarea>
-                      </label>
-                      <label class="wide">
-                        <span>Următorul pas</span>
-                        <input
-                          name="nextStep"
-                          [(ngModel)]="interactionDraft.nextStep"
-                        />
-                      </label>
-                      <label class="wide">
-                        <span>Despre ce să vorbesc data viitoare?</span>
-                        <input
-                          name="interactionNextTopic"
-                          [(ngModel)]="interactionDraft.nextTopic"
-                        />
-                      </label>
-                      <label>
-                        <span>Următorul contact</span>
-                        <input
-                          name="interactionNextContactDay"
-                          type="date"
-                          [(ngModel)]="interactionDraft.nextContactDay"
-                        />
-                        <small
-                          >Dacă rămâne gol, se calculează din frecvența persoanei.</small
-                        >
-                      </label>
-                      <label>
-                        <span>Follow-up de făcut</span>
-                        <input
-                          name="followUpTitle"
-                          placeholder="ex. Trimite CV-ul"
-                          [(ngModel)]="interactionDraft.followUpTitle"
-                        />
-                      </label>
-                      @if (interactionDraft.followUpTitle.trim()) {
-                        <label>
-                          <span>Termen follow-up</span>
-                          <input
-                            name="followUpDueDay"
-                            type="date"
-                            [(ngModel)]="interactionDraft.followUpDueDay"
-                          />
-                        </label>
-                      }
+                        </div>
+                        <dl>
+                          <div>
+                            <dt>Ultimul contact</dt>
+                            <dd>{{ contact.lastContactAt ? dateLabel(contact.lastContactAt) : '—' }}</dd>
+                          </div>
+                          <div>
+                            <dt>Frecvență</dt>
+                            <dd>{{ cadenceLabel(contact.cadence, contact.cadenceDays) }}</dd>
+                          </div>
+                          <div>
+                            <dt>Data viitoare</dt>
+                            <dd>{{ contact.nextContactDay || '—' }}</dd>
+                          </div>
+                        </dl>
+                        @if (contact.nextTopic) {
+                          <div class="next-topic">
+                            <small>💬 Subiect data viitoare</small>
+                            <p>{{ contact.nextTopic }}</p>
+                          </div>
+                        }
+                      </mat-card-content>
+                    </mat-card>
 
-                      <div class="form-actions wide">
+                    <mat-card class="soft-card">
+                      <mat-card-content>
+                        <div class="mini-head">
+                          <strong>🧠 Context rapid</strong>
+                          <mat-icon>psychology_alt</mat-icon>
+                        </div>
+                        @if (latestInteraction(); as last) {
+                          <p class="last-summary">{{ last.summary }}</p>
+                          @if (last.learned) {
+                            <div class="context-line"><b>💡 Am aflat:</b> {{ last.learned }}</div>
+                          }
+                          @if (last.iPromised) {
+                            <div class="context-line"><b>✅ Am promis:</b> {{ last.iPromised }}</div>
+                          }
+                          @if (last.theyPromised) {
+                            <div class="context-line"><b>🤝 A promis:</b> {{ last.theyPromised }}</div>
+                          }
+                        } @else {
+                          <div class="empty-inline">
+                            <mat-icon>forum</mat-icon>
+                            <span>Nicio conversație încă. Apasă „Am vorbit” după următoarea discuție.</span>
+                          </div>
+                        }
+                      </mat-card-content>
+                    </mat-card>
+                  </div>
+
+                  <mat-card class="soft-card followups-card">
+                    <mat-card-content>
+                      <div class="section-head">
+                        <div>
+                          <h3>✅ Follow-up-uri</h3>
+                          <p>Acțiuni concrete legate de această persoană.</p>
+                        </div>
+                        <span>{{ openFollowUps().length }} deschise</span>
+                      </div>
+
+                      <div class="followup-add">
+                        <input #followUpTitle placeholder="ex. Trimite CV-ul..." />
+                        <input #followUpDue type="date" />
                         <button
-                          type="button"
                           mat-button
-                          (click)="interactionEditorOpen.set(false)"
+                          (click)="
+                            addFollowUp(contact.id, followUpTitle.value, followUpDue.value);
+                            followUpTitle.value = ''
+                          "
                         >
-                          Anulează
-                        </button>
-                        <button
-                          type="submit"
-                          mat-flat-button
-                          color="primary"
-                          [disabled]="!interactionDraft.summary.trim()"
-                        >
-                          <mat-icon>save</mat-icon>
-                          Salvează conversația
+                          <mat-icon>add</mat-icon>
+                          Adaugă
                         </button>
                       </div>
-                    </form>
-                  </mat-card-content>
-                </mat-card>
+
+                      @for (item of followUps(); track item.id) {
+                        <div class="followup-row" [class.done]="item.status === 'DONE'">
+                          <button
+                            class="check"
+                            type="button"
+                            (click)="toggleFollowUp(item.id, item.status)"
+                            [attr.aria-label]="item.status === 'DONE' ? 'Redeschide' : 'Finalizat'"
+                          >
+                            <mat-icon>{{
+                              item.status === 'DONE' ? 'check_circle' : 'radio_button_unchecked'
+                            }}</mat-icon>
+                          </button>
+                          <span class="grow">{{ item.title }}</span>
+                          @if (item.dueDay) {
+                            <span class="chip">{{ item.dueDay }}</span>
+                          }
+                          @if (item.taskId) {
+                            <span class="chip linked">Task creat</span>
+                          } @else if (item.status === 'OPEN') {
+                            <button mat-button (click)="createTask(item.id)">
+                              <mat-icon>add_task</mat-icon>
+                              Task
+                            </button>
+                          }
+                        </div>
+                      }
+
+                      @if (!followUps().length) {
+                        <div class="empty-inline">
+                          <mat-icon>task_alt</mat-icon>
+                          <span>Nu ai follow-up-uri deschise pentru această persoană.</span>
+                        </div>
+                      }
+                    </mat-card-content>
+                  </mat-card>
+                </section>
               }
 
-              <section class="profile-grid">
-                <mat-card>
-                  <mat-card-content>
-                    <div class="mini-head">
-                      <strong>Despre persoană</strong>
-                      <span>{{ relationshipLabel(contact.relationshipType) }}</span>
-                    </div>
-                    <dl>
-                      @if (contact.city || contact.region || contact.country) {
-                        <div>
-                          <dt>Locație</dt>
-                          <dd>{{ locationLabel(contact) }}</dd>
-                        </div>
-                      }
-                      @if (contact.industry) {
-                        <div>
-                          <dt>Domeniu</dt>
-                          <dd>{{ contact.industry }}</dd>
-                        </div>
-                      }
-                      @if (contact.metThrough) {
-                        <div>
-                          <dt>De unde o cunosc</dt>
-                          <dd>{{ contact.metThrough }}</dd>
-                        </div>
-                      }
-                      @if (contact.metAt) {
-                        <div>
-                          <dt>Ne-am cunoscut la</dt>
-                          <dd>{{ contact.metAt }}</dd>
-                        </div>
-                      }
-                      @if (contact.metOn) {
-                        <div>
-                          <dt>Din</dt>
-                          <dd>{{ contact.metOn }}</dd>
-                        </div>
-                      }
-                      @if (introducedByName(contact)) {
-                        <div>
-                          <dt>Introducere prin</dt>
-                          <dd>{{ introducedByName(contact) }}</dd>
-                        </div>
-                      }
-                    </dl>
-                    @if (contact.tags.length) {
-                      <div class="chips roomy">
-                        @for (tag of contact.tags; track tag) {
-                          <span class="chip">{{ tag }}</span>
+              @if (profileSection() === 'DETAILS') {
+                <section class="detail-cards">
+                  <mat-card class="soft-card">
+                    <mat-card-content>
+                      <div class="section-head compact">
+                        <div><h3>👤 Despre persoană</h3><p>Date de context și relație.</p></div>
+                      </div>
+                      <div class="detail-rows">
+                        @if (locationLabel(contact)) {
+                          <div><span>📍 Locație</span><strong>{{ locationLabel(contact) }}</strong></div>
                         }
+                        @if (contact.industry) {
+                          <div><span>🧩 Domeniu</span><strong>{{ contact.industry }}</strong></div>
+                        }
+                        @if (contact.metThrough) {
+                          <div><span>🤝 De unde îl/o cunosc</span><strong>{{ contact.metThrough }}</strong></div>
+                        }
+                        @if (contact.metAt) {
+                          <div><span>📌 Unde ne-am cunoscut</span><strong>{{ contact.metAt }}</strong></div>
+                        }
+                        @if (contact.metOn) {
+                          <div><span>🗓️ Când ne-am cunoscut</span><strong>{{ contact.metOn }}</strong></div>
+                        }
+                        @if (introducedByName(contact)) {
+                          <div><span>🔗 Ne-a făcut cunoștință</span><strong>{{ introducedByName(contact) }}</strong></div>
+                        }
+                        <div><span>👥 Relație</span><strong>{{ relationshipLabel(contact.relationshipType) }}</strong></div>
+                        <div><span>⭐ Importanță</span><strong>{{ importanceLabel(contact.importance) }}</strong></div>
                       </div>
-                    }
-                    @if (contact.interests) {
-                      <div class="text-block">
-                        <small>Interese</small>
-                        <p>{{ contact.interests }}</p>
-                      </div>
-                    }
-                    @if (contact.notes) {
-                      <div class="text-block">
-                        <small>Note</small>
-                        <p>{{ contact.notes }}</p>
-                      </div>
-                    }
-                  </mat-card-content>
-                </mat-card>
+                    </mat-card-content>
+                  </mat-card>
 
-                <mat-card>
-                  <mat-card-content>
-                    <div class="mini-head">
-                      <strong>Relație reciprocă</strong>
-                      <mat-icon>handshake</mat-icon>
-                    </div>
-                    <div class="text-block">
-                      <small>Pot să îl/o ajut cu</small>
-                      <p>{{ contact.canHelpWith || '—' }}</p>
-                    </div>
-                    <div class="text-block">
-                      <small>Mă poate ajuta cu</small>
-                      <p>{{ contact.canHelpMeWith || '—' }}</p>
-                    </div>
-                  </mat-card-content>
-                </mat-card>
-              </section>
+                  @if (contact.tags.length) {
+                    <mat-card class="soft-card">
+                      <mat-card-content>
+                        <div class="section-head compact"><div><h3>🏷️ Tags</h3><p>Repere rapide pentru căutare.</p></div></div>
+                        <div class="chips large">
+                          @for (tag of contact.tags; track tag) {
+                            <span class="chip">{{ tag }}</span>
+                          }
+                        </div>
+                      </mat-card-content>
+                    </mat-card>
+                  }
 
-              <mat-card class="followup-card">
-                <mat-card-content>
-                  <div class="section-head">
-                    <div>
-                      <h3>Follow-ups & promisiuni</h3>
-                      <p>Acțiuni concrete separate de simplul reminder de networking.</p>
-                    </div>
-                    <span>{{ openFollowUps().length }} deschise</span>
-                  </div>
-
-                  <div class="quick-followup">
-                    <input
-                      #followUpTitle
-                      placeholder="Adaugă follow-up..."
-                      (keydown.enter)="
-                        addFollowUp(contact.id, followUpTitle.value, followUpDue.value);
-                        followUpTitle.value = ''
-                      "
-                    />
-                    <input
-                      #followUpDue
-                      type="date"
-                    />
-                    <button
-                      mat-button
-                      (click)="
-                        addFollowUp(contact.id, followUpTitle.value, followUpDue.value);
-                        followUpTitle.value = ''
-                      "
-                    >
-                      <mat-icon>add</mat-icon>
-                      Adaugă
-                    </button>
-                  </div>
-
-                  @for (item of followUps(); track item.id) {
-                    <div
-                      class="followup-row"
-                      [class.done]="item.status === 'DONE'"
-                    >
-                      <button
-                        class="check"
-                        type="button"
-                        (click)="toggleFollowUp(item.id, item.status)"
-                        [attr.aria-label]="
-                          item.status === 'DONE' ? 'Redeschide' : 'Finalizat'
-                        "
-                      >
-                        <mat-icon>{{
-                          item.status === 'DONE'
-                            ? 'check_circle'
-                            : 'radio_button_unchecked'
-                        }}</mat-icon>
-                      </button>
-                      <span class="grow">{{ item.title }}</span>
-                      @if (item.dueDay) {
-                        <span class="chip">{{ item.dueDay }}</span>
+                  @if (contact.interests || contact.canHelpWith || contact.canHelpMeWith) {
+                    <div class="context-grid">
+                      @if (contact.interests) {
+                        <mat-card class="soft-card">
+                          <mat-card-content>
+                            <div class="mini-head"><strong>💡 Interese</strong></div>
+                            <p class="body-copy">{{ contact.interests }}</p>
+                          </mat-card-content>
+                        </mat-card>
                       }
-                      @if (item.taskId) {
-                        <span class="chip linked">Task creat</span>
-                      } @else if (item.status === 'OPEN') {
-                        <button
-                          mat-button
-                          (click)="createTask(item.id)"
-                        >
-                          <mat-icon>add_task</mat-icon>
-                          Task
+                      @if (contact.canHelpWith) {
+                        <mat-card class="soft-card">
+                          <mat-card-content>
+                            <div class="mini-head"><strong>🎁 Pot să ajut cu</strong></div>
+                            <p class="body-copy">{{ contact.canHelpWith }}</p>
+                          </mat-card-content>
+                        </mat-card>
+                      }
+                      @if (contact.canHelpMeWith) {
+                        <mat-card class="soft-card">
+                          <mat-card-content>
+                            <div class="mini-head"><strong>🤝 Mă poate ajuta cu</strong></div>
+                            <p class="body-copy">{{ contact.canHelpMeWith }}</p>
+                          </mat-card-content>
+                        </mat-card>
+                      }
+                    </div>
+                  }
+
+                  @if (contact.notes) {
+                    <mat-card class="soft-card">
+                      <mat-card-content>
+                        <div class="mini-head"><strong>📝 Note permanente</strong></div>
+                        <p class="body-copy pre-wrap">{{ contact.notes }}</p>
+                      </mat-card-content>
+                    </mat-card>
+                  }
+                </section>
+              }
+
+              @if (profileSection() === 'HISTORY') {
+                <section class="history-layout">
+                  @if (interactionEditorOpen()) {
+                    <mat-card class="interaction-editor native-editor">
+                      <mat-card-content>
+                        <div class="section-head">
+                          <div>
+                            <h3>💬 Înregistrează conversația</h3>
+                            <p>Scrie doar esențialul; data viitoare vei avea tot contextul la îndemână.</p>
+                          </div>
+                          <button
+                            mat-icon-button
+                            (click)="interactionEditorOpen.set(false)"
+                            aria-label="Închide"
+                          >
+                            <mat-icon>close</mat-icon>
+                          </button>
+                        </div>
+
+                        <nav class="interaction-switch">
+                          <button
+                            type="button"
+                            [class.active]="interactionSection() === 'CONVERSATION'"
+                            (click)="interactionSection.set('CONVERSATION')"
+                          >
+                            💬 Conversație
+                          </button>
+                          <button
+                            type="button"
+                            [class.active]="interactionSection() === 'NEXT'"
+                            (click)="interactionSection.set('NEXT')"
+                          >
+                            🔁 Ce urmează
+                          </button>
+                        </nav>
+
+                        <form class="interaction-form" (ngSubmit)="saveInteraction(contact.id)">
+                          @if (interactionSection() === 'CONVERSATION') {
+                            <div class="field-grid two">
+                              <label class="native-input">
+                                <span>🗓️ Data și ora</span>
+                                <input name="interactionAt" type="datetime-local" [(ngModel)]="interactionDraft.at" />
+                              </label>
+                              <label class="native-input">
+                                <span>📞 Cum am vorbit</span>
+                                <select name="channel" [(ngModel)]="interactionDraft.channel">
+                                  @for (item of channelOptions; track item.value) {
+                                    <option [value]="item.value">{{ item.label }}</option>
+                                  }
+                                </select>
+                              </label>
+                            </div>
+
+                            <label class="native-input">
+                              <span>📍 Unde / context</span>
+                              <input name="interactionLocation" placeholder="telefon, cafea, conferință..." [(ngModel)]="interactionDraft.location" />
+                              <small>Opțional — locul sau contextul discuției.</small>
+                            </label>
+
+                            <label class="native-input text">
+                              <span>💬 Ce am vorbit? *</span>
+                              <textarea
+                                name="summary"
+                                rows="5"
+                                required
+                                placeholder="Rezumatul conversației și ideile importante..."
+                                [(ngModel)]="interactionDraft.summary"
+                              ></textarea>
+                              <small>Scrie suficient cât să recapeți contextul peste câteva luni.</small>
+                            </label>
+
+                            <label class="native-input text">
+                              <span>💡 Ce am aflat nou?</span>
+                              <textarea name="learned" rows="3" [(ngModel)]="interactionDraft.learned"></textarea>
+                              <small>Lucruri noi despre persoană, proiecte, planuri sau interese.</small>
+                            </label>
+                          }
+
+                          @if (interactionSection() === 'NEXT') {
+                            <div class="field-grid two">
+                              <label class="native-input text">
+                                <span>✅ Ce am promis eu?</span>
+                                <textarea name="iPromised" rows="3" [(ngModel)]="interactionDraft.iPromised"></textarea>
+                              </label>
+                              <label class="native-input text">
+                                <span>🤝 Ce a promis persoana?</span>
+                                <textarea name="theyPromised" rows="3" [(ngModel)]="interactionDraft.theyPromised"></textarea>
+                              </label>
+                            </div>
+
+                            <label class="native-input text">
+                              <span>➡️ Ce fac în continuare?</span>
+                              <textarea name="nextStep" rows="3" [(ngModel)]="interactionDraft.nextStep"></textarea>
+                              <small>Un next step clar te ajută să nu pierzi continuitatea relației.</small>
+                            </label>
+
+                            <label class="native-input">
+                              <span>💬 Subiect data viitoare</span>
+                              <input name="nextTopic" placeholder="Ce vreau să întreb data viitoare..." [(ngModel)]="interactionDraft.nextTopic" />
+                            </label>
+
+                            <div class="field-grid two">
+                              <label class="native-input">
+                                <span>🗓️ Reiau legătura la</span>
+                                <input name="interactionNextContactDay" type="date" [(ngModel)]="interactionDraft.nextContactDay" />
+                                <small>Dacă rămâne gol, se calculează din frecvența persoanei.</small>
+                              </label>
+                              <label class="native-input">
+                                <span>✅ Follow-up de făcut</span>
+                                <input name="followUpTitle" placeholder="ex. Trimite CV-ul" [(ngModel)]="interactionDraft.followUpTitle" />
+                                <small>Poate fi transformat ulterior într-un task LifeOS.</small>
+                              </label>
+                            </div>
+
+                            @if (interactionDraft.followUpTitle.trim()) {
+                              <label class="native-input">
+                                <span>🚩 Termen follow-up</span>
+                                <input name="followUpDueDay" type="date" [(ngModel)]="interactionDraft.followUpDueDay" />
+                              </label>
+                            }
+                          }
+
+                          <div class="interaction-actions">
+                            @if (interactionSection() === 'CONVERSATION') {
+                              <span></span>
+                              <button type="button" mat-flat-button color="primary" (click)="interactionSection.set('NEXT')">
+                                Continuă
+                                <mat-icon>arrow_forward</mat-icon>
+                              </button>
+                            } @else {
+                              <button type="button" mat-button (click)="interactionSection.set('CONVERSATION')">
+                                <mat-icon>arrow_back</mat-icon>
+                                Înapoi
+                              </button>
+                              <button
+                                type="submit"
+                                mat-flat-button
+                                color="primary"
+                                [disabled]="!interactionDraft.summary.trim()"
+                              >
+                                <mat-icon>save</mat-icon>
+                                Salvează conversația
+                              </button>
+                            }
+                          </div>
+                        </form>
+                      </mat-card-content>
+                    </mat-card>
+                  } @else {
+                    <div class="history-cta">
+                      <div>
+                        <strong>💬 Ai vorbit cu {{ contact.name }}?</strong>
+                        <p>Adaugă conversația cât contextul este încă proaspăt.</p>
+                      </div>
+                      @if (!contact.isArchived) {
+                        <button mat-flat-button color="primary" (click)="startInteraction()">
+                          <mat-icon>add_comment</mat-icon>
+                          Adaugă conversație
                         </button>
                       }
                     </div>
                   }
-                  @if (!followUps().length) {
-                    <p class="muted">Nu există follow-up-uri pentru această persoană.</p>
-                  }
-                </mat-card-content>
-              </mat-card>
 
-              <mat-card class="timeline-card">
-                <mat-card-content>
-                  <div class="section-head">
-                    <div>
-                      <h3>Istoric conversații</h3>
-                      <p>
-                        Fiecare conversație rămâne în cronologie; nimic nu se suprascrie.
-                      </p>
-                    </div>
-                    <span>{{ interactions().length }}</span>
-                  </div>
-
-                  <div class="timeline">
-                    @for (item of interactions(); track item.id) {
-                      <article class="interaction">
-                        <div class="timeline-marker"></div>
-                        <div class="interaction-body">
-                          <header>
-                            <div>
-                              <strong>{{ dateTimeLabel(item.at) }}</strong>
-                              <span class="channel">
-                                {{ channelLabel(item.channel) }}
-                              </span>
-                            </div>
-                            @if (item.location) {
-                              <span class="muted">{{ item.location }}</span>
-                            }
-                          </header>
-                          <p class="summary">{{ item.summary }}</p>
-
-                          <div class="interaction-details">
-                            @if (item.learned) {
-                              <div>
-                                <small>Ce am aflat</small>
-                                <p>{{ item.learned }}</p>
-                              </div>
-                            }
-                            @if (item.iPromised) {
-                              <div>
-                                <small>Am promis</small>
-                                <p>{{ item.iPromised }}</p>
-                              </div>
-                            }
-                            @if (item.theyPromised) {
-                              <div>
-                                <small>A promis</small>
-                                <p>{{ item.theyPromised }}</p>
-                              </div>
-                            }
-                            @if (item.nextStep) {
-                              <div>
-                                <small>Următorul pas</small>
-                                <p>{{ item.nextStep }}</p>
-                              </div>
-                            }
-                            @if (item.nextTopic) {
-                              <div>
-                                <small>Data viitoare</small>
-                                <p>{{ item.nextTopic }}</p>
-                              </div>
-                            }
-                          </div>
+                  <mat-card class="timeline-card soft-card">
+                    <mat-card-content>
+                      <div class="section-head">
+                        <div>
+                          <h3>🕘 Istoric conversații</h3>
+                          <p>Fiecare conversație rămâne în cronologie; nimic nu se suprascrie.</p>
                         </div>
-                      </article>
-                    }
-
-                    @if (!interactions().length) {
-                      <div class="timeline-empty">
-                        <mat-icon>forum</mat-icon>
-                        <p>
-                          Nu ai înregistrat încă o conversație. După următoarea discuție
-                          apasă „Am vorbit”.
-                        </p>
+                        <span>{{ interactions().length }}</span>
                       </div>
-                    }
-                  </div>
-                </mat-card-content>
-              </mat-card>
+
+                      <div class="timeline">
+                        @for (item of interactions(); track item.id) {
+                          <article class="interaction">
+                            <div class="timeline-marker"></div>
+                            <div class="interaction-body">
+                              <header>
+                                <div>
+                                  <strong>{{ dateTimeLabel(item.at) }}</strong>
+                                  <span class="channel">{{ channelLabel(item.channel) }}</span>
+                                </div>
+                                @if (item.location) {
+                                  <span class="muted">📍 {{ item.location }}</span>
+                                }
+                              </header>
+                              <p class="summary">{{ item.summary }}</p>
+
+                              <div class="interaction-details">
+                                @if (item.learned) {
+                                  <div><small>💡 Ce am aflat</small><p>{{ item.learned }}</p></div>
+                                }
+                                @if (item.iPromised) {
+                                  <div><small>✅ Am promis</small><p>{{ item.iPromised }}</p></div>
+                                }
+                                @if (item.theyPromised) {
+                                  <div><small>🤝 A promis</small><p>{{ item.theyPromised }}</p></div>
+                                }
+                                @if (item.nextStep) {
+                                  <div><small>➡️ Următorul pas</small><p>{{ item.nextStep }}</p></div>
+                                }
+                                @if (item.nextTopic) {
+                                  <div><small>💬 Data viitoare</small><p>{{ item.nextTopic }}</p></div>
+                                }
+                              </div>
+                            </div>
+                          </article>
+                        }
+
+                        @if (!interactions().length) {
+                          <div class="timeline-empty">
+                            <mat-icon>forum</mat-icon>
+                            <strong>Istoricul este gol</strong>
+                            <p>După următoarea discuție apasă „Am vorbit”.</p>
+                          </div>
+                        }
+                      </div>
+                    </mat-card-content>
+                  </mat-card>
+                </section>
+              }
 
               <footer class="danger-zone">
                 @if (contact.isArchived) {
-                  <button
-                    mat-button
-                    (click)="networking.archiveContact(contact.id, false)"
-                  >
+                  <button mat-button (click)="networking.archiveContact(contact.id, false)">
                     <mat-icon>unarchive</mat-icon>
                     Reactivează persoana
                   </button>
                 } @else {
-                  <button
-                    mat-button
-                    (click)="archiveSelected(contact.id)"
-                  >
+                  <button mat-button (click)="archiveSelected(contact.id)">
                     <mat-icon>archive</mat-icon>
                     Arhivează persoana
                   </button>
@@ -1090,64 +1367,69 @@ interface InteractionDraft {
             </section>
           } @else {
             <div class="empty-detail">
-              <mat-icon>groups</mat-icon>
-              <h2>Networking-ul tău începe aici</h2>
+              <span class="empty-emoji">🤝</span>
+              <h2>Construiește-ți rețeaua, fără să pierzi contextul</h2>
               <p>
-                Adaugă o persoană sau selectează una din listă pentru a vedea contextul
-                relației.
+                Adaugă o persoană, notează conversațiile și LifeOS îți va aminti când să
+                reiei legătura.
               </p>
-              <button
-                mat-flat-button
-                color="primary"
-                (click)="startNewContact()"
-              >
+              <button mat-flat-button color="primary" (click)="startNewContact()">
                 <mat-icon>person_add</mat-icon>
-                Adaugă persoană
+                Adaugă prima persoană
               </button>
             </div>
           }
         </section>
       </section>
     </main>
-  `,
+  \`,
   styles: [
-    `
+    \`
       :host {
         display: block;
         width: 100%;
       }
 
       .networking-page {
-        width: min(1440px, 100%);
+        max-width: 1440px;
         margin: 0 auto;
-        padding: 18px 18px 96px;
-        box-sizing: border-box;
+        padding: var(--s2);
       }
 
       .page-head,
-      .section-head,
+      .editor-head,
       .profile-head,
-      .profile-title-line,
-      .profile-actions,
+      .section-head,
       .mini-head,
-      .person-top,
-      .followup-row,
-      .quick-followup {
+      .group-header,
+      .panel-intro,
+      .history-cta,
+      .interaction-actions {
         display: flex;
         align-items: center;
+        justify-content: space-between;
+        gap: var(--s);
       }
 
       .page-head,
-      .section-head,
-      .profile-head,
-      .mini-head,
-      .person-top {
-        justify-content: space-between;
+      .editor-head,
+      .profile-head {
+        align-items: flex-start;
       }
 
-      .page-head {
-        gap: 18px;
-        margin-bottom: 14px;
+      .page-heading,
+      .profile-copy,
+      .editor-head > div {
+        min-width: 0;
+      }
+
+      .eyebrow {
+        margin-bottom: var(--s-quarter);
+        color: var(--text-color-muted);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
       h1,
@@ -1157,65 +1439,83 @@ interface InteractionDraft {
         margin-top: 0;
       }
 
-      .page-head h1 {
-        margin-bottom: 3px;
-        font-size: 1.5rem;
+      .page-head h1,
+      .editor-head h2,
+      .profile-head h2 {
+        margin-bottom: var(--s-quarter);
       }
 
       .page-head p,
+      .editor-head p,
+      .profile-head p,
       .section-head p,
-      .profile-head p {
+      .section-copy p,
+      .panel-intro small,
+      .group-hint {
         margin-bottom: 0;
         color: var(--text-color-muted);
-        font-size: 0.82rem;
       }
 
-      .summary-grid {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 8px;
-        margin-bottom: 12px;
+      .primary-action {
+        flex: 0 0 auto;
       }
 
-      .summary-card {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        grid-template-rows: auto auto;
-        column-gap: 9px;
-        align-items: center;
-        min-height: 68px;
-        padding: 10px 12px;
+      .summary-strip {
+        display: flex;
+        gap: var(--s-half);
+        overflow-x: auto;
+        margin: var(--s2) 0;
+        padding-bottom: var(--s-quarter);
+      }
+
+      .summary-chip,
+      .filter-carousel button,
+      .editor-carousel button,
+      .profile-carousel button,
+      .interaction-switch button {
         border: 1px solid var(--divider-color);
         border-radius: var(--card-border-radius);
-        background: transparent;
-        color: inherit;
-        text-align: left;
+        background: var(--task-detail-bg);
+        color: var(--text-color);
         cursor: pointer;
+        transition: var(--transition-standard);
       }
 
-      .summary-card:hover,
-      .summary-card.active {
-        background: var(--state-hover);
+      .summary-chip {
+        display: inline-flex;
+        min-height: 42px;
+        align-items: center;
+        gap: var(--s-half);
+        padding: 0 var(--s);
+        white-space: nowrap;
       }
 
-      .summary-card mat-icon {
-        grid-row: 1 / 3;
+      .summary-chip:hover,
+      .filter-carousel button:hover,
+      .editor-carousel button:hover,
+      .profile-carousel button:hover,
+      .interaction-switch button:hover {
+        background: var(--task-detail-bg-hover);
       }
 
-      .summary-card strong {
-        font-size: 1.1rem;
+      .summary-chip.active,
+      .filter-carousel button.active,
+      .editor-carousel button.active,
+      .profile-carousel button.active,
+      .interaction-switch button.active {
+        border-color: var(--palette-primary-400);
+        background: var(--task-detail-bg-hover);
       }
 
-      .summary-card span {
-        color: var(--text-color-muted);
-        font-size: 0.74rem;
+      .summary-emoji {
+        font-size: 16px;
       }
 
       .workspace {
         display: grid;
-        grid-template-columns: 330px minmax(0, 1fr);
-        gap: 12px;
-        min-height: 620px;
+        grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+        gap: var(--s2);
+        min-height: 640px;
       }
 
       .people-panel,
@@ -1224,193 +1524,561 @@ interface InteractionDraft {
       }
 
       .people-panel {
-        overflow: hidden;
-        border: 1px solid var(--divider-color);
-        border-radius: var(--card-border-radius);
-        background: color-mix(in srgb, var(--bg-lighter) 72%, transparent);
+        display: flex;
+        flex-direction: column;
+        gap: var(--s);
+        border-right: 1px solid var(--divider-color);
+        padding-right: var(--s2);
       }
 
-      .search-row {
-        padding: 10px;
-        border-bottom: 1px solid var(--divider-color);
+      .panel-intro {
+        min-height: 46px;
+      }
+
+      .panel-intro > div {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
       }
 
       .search-box {
         display: flex;
+        min-height: 46px;
         align-items: center;
-        gap: 7px;
-        padding: 7px 9px;
+        gap: var(--s-half);
         border: 1px solid var(--divider-color);
-        border-radius: 8px;
+        border-radius: var(--card-border-radius);
+        background: var(--task-detail-bg);
+        padding: 0 var(--s);
       }
 
-      .search-box input {
+      .search-box:focus-within {
+        border-color: var(--palette-primary-400);
+      }
+
+      .search-box input,
+      .network-field input,
+      .network-field select,
+      .network-field textarea,
+      .native-input input,
+      .native-input select,
+      .native-input textarea,
+      .followup-add input {
         width: 100%;
         min-width: 0;
+        box-sizing: border-box;
         border: 0;
         outline: 0;
         background: transparent;
-        color: inherit;
+        color: var(--text-color);
+        font: inherit;
       }
 
-      .filters {
-        display: flex;
-        gap: 3px;
-        overflow-x: auto;
-        padding: 7px;
-        border-bottom: 1px solid var(--divider-color);
+      .search-box input {
+        min-height: 42px;
       }
 
-      .filters button {
+      .clear-search {
         display: inline-flex;
+        width: 32px;
+        height: 32px;
         align-items: center;
-        gap: 5px;
-        padding: 5px 8px;
+        justify-content: center;
         border: 0;
-        border-radius: 99px;
+        border-radius: 50%;
         background: transparent;
         color: inherit;
-        white-space: nowrap;
         cursor: pointer;
       }
 
-      .filters button:hover,
-      .filters button.active {
-        background: var(--state-selected);
+      .clear-search mat-icon {
+        font-size: 18px;
       }
 
-      .filters span {
-        opacity: 0.55;
-        font-size: 0.72rem;
+      .filter-carousel,
+      .editor-carousel,
+      .profile-carousel,
+      .interaction-switch {
+        display: flex;
+        gap: var(--s-half);
+        overflow-x: auto;
+        padding-bottom: var(--s-quarter);
       }
 
-      .people-list {
-        max-height: calc(100vh - 275px);
+      .filter-carousel button,
+      .profile-carousel button,
+      .interaction-switch button {
+        display: inline-flex;
+        min-height: 38px;
+        align-items: center;
+        gap: var(--s-half);
+        padding: 0 var(--s);
+        white-space: nowrap;
+      }
+
+      .filter-carousel small {
+        min-width: 22px;
+        border-radius: 999px;
+        background: var(--bg-lighter);
+        padding: 2px 6px;
+        text-align: center;
+      }
+
+      .people-groups {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s2);
         overflow: auto;
-        padding: 5px;
+        padding-bottom: var(--s2);
+      }
+
+      .people-group {
+        min-width: 0;
+      }
+
+      .group-header {
+        margin-bottom: 2px;
+        color: var(--text-color);
+        font-size: 12px;
+      }
+
+      .group-header > div {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--s-half);
+      }
+
+      .group-header > span:last-child {
+        color: var(--text-color-muted);
+      }
+
+      .group-hint {
+        margin: 0 0 var(--s-half);
+        padding-left: calc(16px + var(--s-half));
+        font-size: 10px;
+      }
+
+      .person-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-quarter);
       }
 
       .person-row {
-        display: block;
+        position: relative;
+        display: flex;
         width: 100%;
-        padding: 10px;
-        border: 0;
-        border-radius: 8px;
+        min-height: 58px;
+        align-items: center;
+        gap: var(--s-half);
+        border: 1px solid transparent;
+        border-radius: var(--card-border-radius);
         background: transparent;
         color: inherit;
+        padding: var(--s-half);
         text-align: left;
         cursor: pointer;
+        transition: var(--transition-standard);
       }
 
       .person-row:hover,
       .person-row.selected {
-        background: var(--state-hover);
+        background: var(--task-detail-bg-hover);
       }
 
-      .person-row.due:not(.selected) {
-        box-shadow: inset 3px 0 0 var(--c-accent);
+      .person-row.selected {
+        border-color: var(--palette-primary-400);
       }
 
+      .person-check {
+        display: inline-flex;
+        width: 32px;
+        height: 32px;
+        flex: 0 0 32px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--divider-color);
+        border-radius: 50%;
+        color: var(--text-color-muted);
+      }
+
+      .person-row.due .person-check {
+        color: var(--c-accent);
+      }
+
+      .person-check mat-icon {
+        width: 18px;
+        height: 18px;
+        font-size: 18px;
+      }
+
+      .person-main {
+        display: flex;
+        min-width: 0;
+        flex: 1;
+        flex-direction: column;
+        gap: 3px;
+      }
+
+      .person-title-line {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--s-half);
+      }
+
+      .person-title-line strong,
       .person-meta,
       .person-topic {
-        display: block;
-        margin-top: 3px;
         overflow: hidden;
-        color: var(--text-color-muted);
-        font-size: 0.75rem;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
 
+      .person-meta,
+      .person-topic {
+        color: var(--text-color-muted);
+        font-size: 11px;
+      }
+
       .contact-date {
-        opacity: 0.65;
-        font-size: 0.7rem;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        background: var(--bg-lighter);
+        padding: 2px 6px;
+        color: var(--text-color-muted);
+        font-size: 10px;
       }
 
-      .contact-date.overdue,
-      .status-pill.overdue {
-        font-weight: 700;
+      .contact-date.overdue {
         color: var(--c-warn);
+        font-weight: 700;
       }
 
-      .status-pill.due-now {
-        font-weight: 700;
+      .contact-date.today {
         color: var(--c-accent);
+        font-weight: 700;
+      }
+
+      .row-chevron {
+        flex: 0 0 auto;
+        opacity: 0.35;
       }
 
       .chips {
         display: flex;
+        min-width: 0;
         flex-wrap: wrap;
         gap: 4px;
-        margin-top: 6px;
-      }
-
-      .chips.roomy {
-        margin-block: 10px;
       }
 
       .chip,
       .importance,
-      .channel,
-      .status-pill {
+      .status-pill,
+      .channel {
         display: inline-flex;
-        padding: 2px 7px;
-        border-radius: 99px;
-        background: var(--state-hover);
-        font-size: 0.68rem;
+        align-items: center;
+        border-radius: 999px;
+        background: var(--bg-lighter);
+        padding: 3px 7px;
+        color: var(--text-color-muted);
+        font-size: 10px;
       }
 
-      .detail-panel {
-        min-height: 600px;
+      .chips.large .chip {
+        padding: 5px 9px;
+        font-size: 12px;
       }
 
-      .editor-card,
-      .interaction-editor,
-      .profile-grid,
-      .context-grid,
-      .followup-card,
-      .timeline-card {
-        margin-bottom: 10px;
+      .empty-list,
+      .empty-detail,
+      .timeline-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--s-half);
+        text-align: center;
+        color: var(--text-color-muted);
       }
 
-      .profile {
-        display: block;
+      .empty-list {
+        min-height: 180px;
       }
 
-      .profile-head {
-        gap: 12px;
-        margin-bottom: 9px;
+      .empty-detail {
+        min-height: 520px;
+        padding: var(--s2);
       }
 
-      .profile-title-line {
-        gap: 8px;
-      }
-
-      .profile-title-line h2 {
+      .empty-detail h2,
+      .empty-detail p,
+      .timeline-empty p {
+        max-width: 520px;
         margin-bottom: 0;
       }
 
-      .profile-actions {
-        gap: 4px;
+      .empty-emoji {
+        font-size: 44px;
+      }
+
+      .editor-shell,
+      .profile {
+        min-width: 0;
+        padding-bottom: var(--s2);
+      }
+
+      .editor-head,
+      .profile-head {
+        margin-bottom: var(--s);
+        padding: calc(var(--s) + var(--s-half));
+        border: 1px solid var(--divider-color);
+        border-bottom: 2px solid var(--c-primary);
+        border-radius: var(--card-border-radius);
+        background: var(--task-detail-bg);
+      }
+
+      .editor-carousel {
+        margin-bottom: var(--s-half);
+      }
+
+      .editor-carousel button {
+        display: flex;
+        min-width: 132px;
+        min-height: 62px;
+        flex: 1 0 132px;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 2px;
+        padding: var(--s-half) var(--s);
+        text-align: left;
+      }
+
+      .editor-carousel button small {
+        color: var(--text-color-muted);
+        font-size: 9px;
+      }
+
+      .editor-carousel button.complete {
+        opacity: 0.82;
+      }
+
+      .section-emoji {
+        font-size: 17px;
+      }
+
+      .carousel-progress {
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+        margin-bottom: var(--s2);
+      }
+
+      .carousel-progress button {
+        width: 20px;
+        height: 4px;
+        border: 0;
+        border-radius: 999px;
+        background: var(--divider-color);
+        cursor: pointer;
+        transition: var(--transition-standard);
+      }
+
+      .carousel-progress button.active {
+        width: 38px;
+        background: var(--c-primary);
+      }
+
+      .editor-section {
+        max-width: 980px;
+        margin: 0 auto;
+      }
+
+      .section-copy {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--s);
+        margin: 0 var(--s) var(--s2);
+      }
+
+      .section-copy > span {
+        font-size: 30px;
+      }
+
+      .section-copy h3,
+      .section-copy p {
+        margin-bottom: 3px;
+      }
+
+      .field-grid {
+        display: grid;
+        gap: var(--s-half) var(--s);
+      }
+
+      .field-grid.two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .field-grid.three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .network-field {
+        display: block;
+      }
+
+      :host ::ng-deep .network-field > .input-item {
+        margin-block: var(--s-half);
+      }
+
+      :host ::ng-deep .network-field .input-item__value {
+        text-align: left;
+        justify-content: stretch;
+      }
+
+      :host ::ng-deep .network-field .input-item__value > * {
+        width: 100%;
+        margin-left: 0;
+        text-align: left;
+      }
+
+      :host ::ng-deep .network-field .input-item__title {
+        flex: 0 0 180px;
+      }
+
+      :host ::ng-deep .network-field input,
+      :host ::ng-deep .network-field select,
+      :host ::ng-deep .network-field textarea {
+        min-height: 36px;
+        padding: 4px var(--s-half);
+        border-radius: 6px;
+      }
+
+      :host ::ng-deep .network-field textarea {
+        resize: vertical;
+      }
+
+      :host ::ng-deep .network-field input:focus,
+      :host ::ng-deep .network-field select:focus,
+      :host ::ng-deep .network-field textarea:focus {
+        background: var(--bg-lightest);
+        box-shadow: inset 0 0 0 1px var(--palette-primary-400);
+      }
+
+      :host ::ng-deep .network-field.text-field > .input-item,
+      :host ::ng-deep .network-field.notes-field > .input-item {
+        min-height: 96px;
+      }
+
+      .field-help {
+        margin: calc(-1 * var(--s-quarter)) calc(var(--s) + var(--s-half)) var(--s);
+        color: var(--text-color-muted);
+        font-size: 10px;
+        line-height: 1.35;
+      }
+
+      .info-banner,
+      .finish-card,
+      .history-cta {
+        display: flex;
+        align-items: center;
+        gap: var(--s);
+        margin: var(--s);
+        border: 1px solid var(--divider-color);
+        border-radius: var(--card-border-radius);
+        background: var(--task-detail-bg);
+        padding: var(--s);
+      }
+
+      .info-banner mat-icon {
+        color: var(--c-accent);
+      }
+
+      .info-banner > div,
+      .finish-card > div {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .info-banner span,
+      .finish-card p {
+        color: var(--text-color-muted);
+        font-size: 11px;
+      }
+
+      .finish-card > span {
+        font-size: 28px;
+      }
+
+      .editor-footer {
+        position: sticky;
+        bottom: 0;
+        z-index: 3;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: var(--s);
+        margin-top: var(--s2);
+        border-top: 1px solid var(--divider-color);
+        background: var(--bg);
+        padding: var(--s);
+      }
+
+      .editor-footer > button:first-child {
+        justify-self: start;
+      }
+
+      .editor-footer > button:last-child {
+        justify-self: end;
+      }
+
+      .footer-step {
+        color: var(--text-color-muted);
+        font-size: 11px;
+      }
+
+      .profile-title-line {
+        display: flex;
+        align-items: center;
+        gap: var(--s-half);
+        flex-wrap: wrap;
+      }
+
+      .profile-title-line h2 {
+        margin: 0;
+      }
+
+      .profile-actions,
+      .contact-links {
+        display: flex;
+        align-items: center;
+        gap: var(--s-half);
+        flex-wrap: wrap;
       }
 
       .contact-links {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-bottom: 10px;
+        margin-bottom: var(--s);
       }
 
       .contact-links a {
         display: inline-flex;
+        min-height: 36px;
         align-items: center;
         gap: 5px;
-        min-height: 32px;
-        padding: 3px 8px;
         border: 1px solid var(--divider-color);
-        border-radius: 7px;
+        border-radius: 999px;
+        background: var(--task-detail-bg);
+        padding: 0 var(--s);
         color: inherit;
         text-decoration: none;
+      }
+
+      .contact-links a:hover {
+        background: var(--task-detail-bg-hover);
       }
 
       .contact-links mat-icon {
@@ -1419,145 +2087,131 @@ interface InteractionDraft {
         font-size: 17px;
       }
 
-      .context-grid,
-      .profile-grid {
+      .profile-carousel {
+        margin-bottom: var(--s2);
+      }
+
+      .overview-layout,
+      .detail-cards,
+      .history-layout {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s);
+      }
+
+      .context-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
+        gap: var(--s);
       }
 
-      .mini-head {
-        gap: 8px;
-        margin-bottom: 7px;
+      .soft-card,
+      .interaction-editor {
+        box-shadow: none !important;
+        border: 1px solid var(--divider-color);
+        border-radius: var(--card-border-radius) !important;
+        background: var(--task-detail-bg) !important;
       }
 
-      .mini-head > span {
+      .mini-head,
+      .section-head {
+        margin-bottom: var(--s);
+      }
+
+      .section-head.compact {
+        margin-bottom: var(--s-half);
+      }
+
+      .section-head h3,
+      .section-head p {
+        margin-bottom: 2px;
+      }
+
+      .section-head > span {
         color: var(--text-color-muted);
-        font-size: 0.75rem;
+        font-size: 11px;
       }
 
       dl {
         margin: 0;
       }
 
-      dl > div {
-        display: grid;
-        grid-template-columns: minmax(105px, 0.4fr) 1fr;
-        gap: 8px;
-        padding: 5px 0;
-        border-bottom: 1px solid color-mix(in srgb, var(--divider-color) 60%, transparent);
+      dl > div,
+      .detail-rows > div {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--s);
+        min-height: 38px;
+        border-bottom: 1px solid var(--divider-color);
+      }
+
+      dl > div:last-child,
+      .detail-rows > div:last-child {
+        border-bottom: 0;
       }
 
       dt,
-      .text-block small,
-      .next-topic small,
-      .interaction-details small {
+      .detail-rows span {
         color: var(--text-color-muted);
-        font-size: 0.72rem;
       }
 
       dd {
         margin: 0;
       }
 
-      .next-topic,
-      .text-block {
-        margin-top: 9px;
+      .next-topic {
+        margin-top: var(--s);
+        border-radius: var(--card-border-radius);
+        background: var(--bg-lighter);
+        padding: var(--s);
+      }
+
+      .next-topic small {
+        color: var(--text-color-muted);
       }
 
       .next-topic p,
-      .text-block p {
-        margin: 3px 0 0;
-        white-space: pre-wrap;
-      }
-
-      .last-summary {
-        margin-bottom: 8px;
-        white-space: pre-wrap;
+      .last-summary,
+      .body-copy {
+        margin: var(--s-half) 0 0;
+        line-height: 1.5;
       }
 
       .context-line {
-        margin-top: 5px;
-        font-size: 0.82rem;
+        margin-top: var(--s-half);
+        color: var(--text-color-less-intense);
+        line-height: 1.45;
       }
 
-      .contact-form,
-      .interaction-form {
+      .empty-inline {
+        display: flex;
+        align-items: center;
+        gap: var(--s-half);
+        color: var(--text-color-muted);
+      }
+
+      .followup-add {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 9px;
+        grid-template-columns: minmax(0, 1fr) 150px auto;
+        gap: var(--s-half);
+        margin-bottom: var(--s);
       }
 
-      .contact-form label,
-      .interaction-form label {
-        display: flex;
-        min-width: 0;
-        flex-direction: column;
-        gap: 4px;
-      }
-
-      label > span {
-        color: var(--text-color-muted);
-        font-size: 0.73rem;
-      }
-
-      label > small {
-        color: var(--text-color-muted);
-        font-size: 0.65rem;
-      }
-
-      input,
-      textarea,
-      select {
-        width: 100%;
-        box-sizing: border-box;
-        padding: 8px 9px;
+      .followup-add input {
+        min-height: 38px;
         border: 1px solid var(--divider-color);
-        border-radius: 7px;
-        outline: 0;
-        background: var(--bg);
-        color: inherit;
-        font: inherit;
-      }
-
-      textarea {
-        resize: vertical;
-      }
-
-      .wide {
-        grid-column: 1 / -1;
-      }
-
-      .form-divider {
-        margin-top: 5px;
-        padding-top: 9px;
-        border-top: 1px solid var(--divider-color);
-        font-weight: 700;
-      }
-
-      .form-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 6px;
-      }
-
-      .quick-followup {
-        gap: 6px;
-        margin: 8px 0;
-      }
-
-      .quick-followup input:first-child {
-        flex: 1;
-      }
-
-      .quick-followup input[type='date'] {
-        width: auto;
+        border-radius: var(--card-border-radius);
+        background: var(--bg-lightest);
+        padding: 0 var(--s-half);
       }
 
       .followup-row {
-        min-height: 38px;
-        gap: 7px;
-        border-top: 1px solid color-mix(in srgb, var(--divider-color) 65%, transparent);
+        display: flex;
+        min-height: 44px;
+        align-items: center;
+        gap: var(--s-half);
+        border-top: 1px solid var(--divider-color);
       }
 
       .followup-row.done {
@@ -1570,10 +2224,10 @@ interface InteractionDraft {
 
       .check {
         display: inline-flex;
-        align-items: center;
-        justify-content: center;
         width: 32px;
         height: 32px;
+        align-items: center;
+        justify-content: center;
         border: 0;
         border-radius: 50%;
         background: transparent;
@@ -1581,140 +2235,197 @@ interface InteractionDraft {
         cursor: pointer;
       }
 
-      .linked {
-        opacity: 0.7;
+      .grow {
+        min-width: 0;
+        flex: 1;
       }
 
-      .grow {
-        flex: 1;
+      .linked {
+        color: var(--c-accent);
+      }
+
+      .history-cta {
+        justify-content: space-between;
+        margin: 0;
+      }
+
+      .history-cta p {
+        margin: 3px 0 0;
+        color: var(--text-color-muted);
+      }
+
+      .interaction-switch {
+        margin-bottom: var(--s);
+      }
+
+      .interaction-form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s);
+      }
+
+      .native-input {
+        display: flex;
         min-width: 0;
+        flex-direction: column;
+        gap: 5px;
+        border: 1px solid var(--divider-color);
+        border-radius: var(--card-border-radius);
+        background: var(--task-detail-bg);
+        padding: var(--s);
+      }
+
+      .native-input > span {
+        font-weight: 600;
+      }
+
+      .native-input > small {
+        color: var(--text-color-muted);
+        font-size: 10px;
+      }
+
+      .native-input input,
+      .native-input select,
+      .native-input textarea {
+        min-height: 36px;
+        border-radius: 6px;
+        background: var(--bg-lightest);
+        padding: 6px var(--s-half);
+      }
+
+      .native-input textarea {
+        resize: vertical;
+      }
+
+      .interaction-actions {
+        margin-top: var(--s);
       }
 
       .timeline {
         position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: var(--s);
       }
 
       .interaction {
         position: relative;
         display: grid;
-        grid-template-columns: 20px 1fr;
-        gap: 8px;
-        padding-bottom: 16px;
-      }
-
-      .interaction:not(:last-child)::before {
-        position: absolute;
-        top: 18px;
-        bottom: -2px;
-        left: 7px;
-        width: 1px;
-        background: var(--divider-color);
-        content: '';
+        grid-template-columns: 16px minmax(0, 1fr);
+        gap: var(--s);
       }
 
       .timeline-marker {
-        z-index: 1;
-        width: 9px;
-        height: 9px;
-        margin-top: 5px;
-        margin-left: 3px;
-        border: 2px solid var(--c-accent);
+        width: 10px;
+        height: 10px;
+        margin-top: 7px;
+        border: 2px solid var(--c-primary);
         border-radius: 50%;
-        background: var(--bg);
+        background: var(--task-detail-bg);
+      }
+
+      .interaction:not(:last-child) .timeline-marker::after {
+        content: '';
+        position: absolute;
+        top: 18px;
+        bottom: calc(-1 * var(--s));
+        left: 4px;
+        width: 1px;
+        background: var(--divider-color);
+      }
+
+      .interaction-body {
+        min-width: 0;
+        border: 1px solid var(--divider-color);
+        border-radius: var(--card-border-radius);
+        background: var(--bg-lightest);
+        padding: var(--s);
       }
 
       .interaction-body header {
         display: flex;
+        align-items: flex-start;
         justify-content: space-between;
-        gap: 10px;
+        gap: var(--s);
       }
 
       .interaction-body header > div {
         display: flex;
         align-items: center;
-        gap: 7px;
+        gap: var(--s-half);
+        flex-wrap: wrap;
       }
 
       .summary {
-        margin: 6px 0;
-        white-space: pre-wrap;
+        margin: var(--s) 0 0;
+        line-height: 1.5;
       }
 
       .interaction-details {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 6px;
+        gap: var(--s-half);
+        margin-top: var(--s);
       }
 
       .interaction-details > div {
-        padding: 6px 8px;
-        border-radius: 7px;
-        background: var(--state-hover);
+        border-radius: var(--card-border-radius);
+        background: var(--task-detail-bg);
+        padding: var(--s-half) var(--s);
+      }
+
+      .interaction-details small {
+        color: var(--text-color-muted);
       }
 
       .interaction-details p {
-        margin: 3px 0 0;
+        margin: 4px 0 0;
         white-space: pre-wrap;
+      }
+
+      .pre-wrap {
+        white-space: pre-wrap;
+      }
+
+      .status-pill.overdue {
+        color: var(--c-warn);
+        font-weight: 700;
+      }
+
+      .status-pill.due-now {
+        color: var(--c-accent);
+        font-weight: 700;
       }
 
       .danger-zone {
         display: flex;
         justify-content: flex-end;
-        margin-top: 12px;
-        opacity: 0.8;
+        margin-top: var(--s2);
+        border-top: 1px solid var(--divider-color);
+        padding-top: var(--s);
       }
 
-      .muted {
-        color: var(--text-color-muted);
-      }
+      @media (max-width: 1050px) {
+        .workspace {
+          grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+        }
 
-      .empty-list,
-      .empty-detail,
-      .timeline-empty {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 7px;
-        padding: 28px 16px;
-        color: var(--text-color-muted);
-        text-align: center;
-      }
-
-      .empty-detail {
-        min-height: 440px;
-      }
-
-      .empty-detail mat-icon,
-      .timeline-empty mat-icon {
-        width: 40px;
-        height: 40px;
-        font-size: 40px;
-      }
-
-      @media (max-width: 900px) {
-        .summary-grid {
+        .field-grid.three {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
-        .workspace {
-          grid-template-columns: 270px minmax(0, 1fr);
-        }
-
-        .context-grid,
-        .profile-grid {
-          grid-template-columns: 1fr;
+        :host ::ng-deep .network-field .input-item__title {
+          flex-basis: 150px;
         }
       }
 
-      @media (max-width: 700px) {
+      @media (max-width: 780px) {
         .networking-page {
-          padding: 12px 9px 96px;
+          padding: var(--s);
+          padding-bottom: 92px;
         }
 
-        .page-head,
-        .profile-head {
-          align-items: stretch;
+        .page-head {
           flex-direction: column;
         }
 
@@ -1723,42 +2434,109 @@ interface InteractionDraft {
         }
 
         .people-panel {
-          margin-bottom: 10px;
+          max-height: none;
+          margin-bottom: var(--s2);
+          border-right: 0;
+          border-bottom: 1px solid var(--divider-color);
+          padding-right: 0;
+          padding-bottom: var(--s2);
         }
 
-        .people-list {
-          max-height: 310px;
+        .people-groups {
+          max-height: 360px;
         }
 
-        .contact-form,
-        .interaction-form,
+        .field-grid.two,
+        .field-grid.three,
+        .context-grid,
         .interaction-details {
           grid-template-columns: 1fr;
         }
 
-        .wide {
-          grid-column: auto;
+        .editor-carousel button {
+          min-width: 118px;
         }
 
-        .profile-actions {
-          flex-wrap: wrap;
-        }
-
-        .quick-followup {
+        :host ::ng-deep .network-field .input-item {
+          flex-direction: column;
+          height: auto;
+          min-height: 76px;
           align-items: stretch;
+        }
+
+        :host ::ng-deep .network-field .input-item__title {
+          min-height: 34px;
+          flex: 0 0 auto;
+        }
+
+        :host ::ng-deep .network-field .input-item__value {
+          min-height: 38px;
+          padding: 0 var(--s-half) var(--s-half);
+        }
+
+        .field-help {
+          margin-left: var(--s);
+        }
+
+        .followup-add {
+          grid-template-columns: 1fr;
+        }
+
+        .profile-head {
           flex-direction: column;
         }
 
-        .quick-followup input[type='date'] {
+        .profile-actions {
           width: 100%;
         }
+      }
 
-        input,
-        select {
-          min-height: 44px;
+      @media (max-width: 520px) {
+        .summary-strip {
+          margin-block: var(--s);
+        }
+
+        .summary-chip {
+          min-height: 38px;
+        }
+
+        .person-row {
+          min-height: 54px;
+        }
+
+        .person-topic,
+        .chips {
+          display: none;
+        }
+
+        .contact-date {
+          display: none;
+        }
+
+        .editor-head,
+        .profile-head {
+          padding: var(--s);
+        }
+
+        .editor-footer {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .footer-step {
+          display: none;
+        }
+
+        .editor-footer > button:last-child {
+          justify-self: end;
+        }
+
+        .history-cta,
+        .interaction-body header {
+          align-items: stretch;
+          flex-direction: column;
         }
       }
-    `,
+    \`,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -1777,6 +2555,32 @@ export class NetworkingPageComponent {
   readonly contactEditorOpen = signal(false);
   readonly editingContactId = signal<string | null>(null);
   readonly interactionEditorOpen = signal(false);
+  readonly contactSection = signal<ContactEditorSection>('CONTACT');
+  readonly profileSection = signal<ProfileSection>('OVERVIEW');
+  readonly interactionSection = signal<InteractionSection>('CONVERSATION');
+
+  readonly contactSections: ReadonlyArray<{
+    id: ContactEditorSection;
+    label: string;
+    emoji: string;
+  }> = [
+    { id: 'CONTACT', label: 'Contact', emoji: '👤' },
+    { id: 'WORK', label: 'Work', emoji: '💼' },
+    { id: 'CONTEXT', label: 'Context', emoji: '📍' },
+    { id: 'RELATIONSHIP', label: 'Relație', emoji: '🤝' },
+    { id: 'FOLLOW_UP', label: 'Follow-up', emoji: '🗓️' },
+    { id: 'NOTES', label: 'Note', emoji: '📝' },
+  ];
+
+  readonly profileSections: ReadonlyArray<{
+    id: ProfileSection;
+    label: string;
+    emoji: string;
+  }> = [
+    { id: 'OVERVIEW', label: 'Overview', emoji: '🧠' },
+    { id: 'DETAILS', label: 'Detalii', emoji: '👤' },
+    { id: 'HISTORY', label: 'Istoric', emoji: '💬' },
+  ];
 
   readonly cadenceOptions = NETWORK_CADENCE_OPTIONS;
   readonly relationshipOptions = NETWORK_RELATIONSHIP_OPTIONS;
@@ -1829,6 +2633,77 @@ export class NetworkingPageComponent {
     }
   });
 
+  readonly groupedContacts = computed<ContactGroup[]>(() => {
+    const contacts = this.filteredContacts();
+
+    if (this.filter() === 'ARCHIVED') {
+      return [
+        {
+          id: 'archived',
+          label: 'Arhivate',
+          emoji: '🗃️',
+          hint: 'Persoane păstrate pentru istoric, dar scoase din networking-ul activ.',
+          contacts,
+        },
+      ];
+    }
+
+    const today = this.today;
+    const weekEnd = addCalendarDays(today, 7);
+    const overdue = contacts.filter(
+      (contact) => !!contact.nextContactDay && contact.nextContactDay < today,
+    );
+    const dueToday = contacts.filter((contact) => contact.nextContactDay === today);
+    const thisWeek = contacts.filter(
+      (contact) =>
+        !!contact.nextContactDay &&
+        contact.nextContactDay > today &&
+        contact.nextContactDay <= weekEnd,
+    );
+    const later = contacts.filter(
+      (contact) => !!contact.nextContactDay && contact.nextContactDay > weekEnd,
+    );
+    const noReminder = contacts.filter((contact) => !contact.nextContactDay);
+
+    return [
+      {
+        id: 'overdue',
+        label: 'Overdue',
+        emoji: '⏰',
+        hint: 'Relații pentru care data de reluare a legăturii a trecut.',
+        contacts: overdue,
+      },
+      {
+        id: 'today',
+        label: 'Astăzi',
+        emoji: '☀️',
+        hint: 'Persoane pe care ai planificat să le contactezi azi.',
+        contacts: dueToday,
+      },
+      {
+        id: 'week',
+        label: 'Săptămâna aceasta',
+        emoji: '📅',
+        hint: 'Următoarele contacte din cele 7 zile.',
+        contacts: thisWeek,
+      },
+      {
+        id: 'later',
+        label: 'Mai târziu',
+        emoji: '🧭',
+        hint: 'Relații programate după săptămâna curentă.',
+        contacts: later,
+      },
+      {
+        id: 'none',
+        label: 'Fără reminder',
+        emoji: '○',
+        hint: 'Persoane active fără o dată viitoare de contact.',
+        contacts: noReminder,
+      },
+    ];
+  });
+
   readonly selectedContact = computed(() => this.networking.contact(this.selectedId()));
 
   readonly interactions = computed(() => {
@@ -1864,6 +2739,19 @@ export class NetworkingPageComponent {
     });
   }
 
+  contactSectionIndex(): number {
+    return Math.max(
+      0,
+      this.contactSections.findIndex((section) => section.id === this.contactSection()),
+    );
+  }
+
+  moveContactSection(delta: number): void {
+    const index = this.contactSectionIndex();
+    const next = Math.max(0, Math.min(this.contactSections.length - 1, index + delta));
+    this.contactSection.set(this.contactSections[next].id);
+  }
+
   filterCount(filter: NetworkingFilter): number {
     switch (filter) {
       case 'DUE':
@@ -1887,6 +2775,7 @@ export class NetworkingPageComponent {
 
   selectContact(id: string): void {
     this.selectedId.set(id);
+    this.profileSection.set('OVERVIEW');
     this.contactEditorOpen.set(false);
     this.interactionEditorOpen.set(false);
   }
@@ -1894,6 +2783,7 @@ export class NetworkingPageComponent {
   startNewContact(): void {
     this.editingContactId.set(null);
     this.contactDraft = this._emptyContactDraft();
+    this.contactSection.set('CONTACT');
     this.contactEditorOpen.set(true);
     this.interactionEditorOpen.set(false);
   }
@@ -1930,6 +2820,7 @@ export class NetworkingPageComponent {
       nextContactDay: contact.nextContactDay || '',
       nextTopic: contact.nextTopic || '',
     };
+    this.contactSection.set('CONTACT');
     this.contactEditorOpen.set(true);
     this.interactionEditorOpen.set(false);
   }
@@ -1991,6 +2882,8 @@ export class NetworkingPageComponent {
 
   startInteraction(): void {
     this.interactionDraft = this._emptyInteractionDraft();
+    this.interactionSection.set('CONVERSATION');
+    this.profileSection.set('HISTORY');
     this.interactionEditorOpen.set(true);
   }
 
