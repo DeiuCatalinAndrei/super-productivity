@@ -1,0 +1,35 @@
+name: Format Networking Temp
+
+on:
+  push:
+    branches: [feature/networking-native-ui-20260922]
+    paths:
+      - '.github/workflows/format-networking-temp.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/networking-native-ui-20260922
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Format Networking only
+        run: npx prettier --write src/app/pages/networking-page/networking-page.component.ts src/app/features/networking/networking-today.component.ts
+      - name: Commit formatting
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/pages/networking-page/networking-page.component.ts src/app/features/networking/networking-today.component.ts
+          if git diff --cached --quiet; then
+            echo "No formatting changes"
+          else
+            git commit -m "style(networking): apply project formatting"
+            git push
+          fi
