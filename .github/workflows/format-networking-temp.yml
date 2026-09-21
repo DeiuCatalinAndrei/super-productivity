@@ -7,7 +7,7 @@ on:
       - '.github/workflows/format-networking-temp.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   format:
@@ -22,14 +22,11 @@ jobs:
       - run: npm ci
       - name: Format Networking only
         run: npx prettier --write src/app/pages/networking-page/networking-page.component.ts src/app/features/networking/networking-today.component.ts
-      - name: Commit formatting
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/app/pages/networking-page/networking-page.component.ts src/app/features/networking/networking-today.component.ts
-          if git diff --cached --quiet; then
-            echo "No formatting changes"
-          else
-            git commit -m "style(networking): apply project formatting"
-            git push
-          fi
+      - name: Upload formatted files
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-networking
+          path: |
+            src/app/pages/networking-page/networking-page.component.ts
+            src/app/features/networking/networking-today.component.ts
+          retention-days: 1
