@@ -22,7 +22,10 @@ import { getDbDateStr } from '../../util/get-db-date-str';
                 <small>Persoane cu care e timpul să reiei legătura.</small>
               </div>
             </div>
-            <a mat-button routerLink="/networking">
+            <a
+              mat-button
+              routerLink="/networking"
+            >
               Vezi toate
               <mat-icon>arrow_forward</mat-icon>
             </a>
@@ -35,7 +38,12 @@ import { getDbDateStr } from '../../util/get-db-date-str';
                 routerLink="/networking"
                 [queryParams]="{ contact: contact.id }"
               >
-                <span class="status-icon" [class.overdue]="contact.nextContactDay && contact.nextContactDay < today">
+                <span
+                  class="status-icon"
+                  [class.overdue]="
+                    contact.nextContactDay && contact.nextContactDay < today
+                  "
+                >
                   <mat-icon>{{
                     contact.nextContactDay === today ? 'today' : 'notification_important'
                   }}</mat-icon>
@@ -46,9 +54,13 @@ import { getDbDateStr } from '../../util/get-db-date-str';
                     <strong>{{ contact.name }}</strong>
                     <span
                       class="date"
-                      [class.overdue]="contact.nextContactDay && contact.nextContactDay < today"
+                      [class.overdue]="
+                        contact.nextContactDay && contact.nextContactDay < today
+                      "
                     >
-                      {{ contact.nextContactDay === today ? 'Azi' : contact.nextContactDay }}
+                      {{
+                        contact.nextContactDay === today ? 'Azi' : contact.nextContactDay
+                      }}
                     </span>
                   </span>
                   <small>
