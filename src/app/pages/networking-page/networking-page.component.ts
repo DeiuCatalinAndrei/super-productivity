@@ -35,7 +35,13 @@ import {
 import { addCalendarDays } from '../../features/networking/networking.util';
 
 type NetworkingFilter = 'ALL' | 'DUE' | 'UPCOMING' | 'NO_REMINDER' | 'ARCHIVED';
-type ContactEditorSection = 'CONTACT' | 'WORK' | 'CONTEXT' | 'RELATIONSHIP' | 'FOLLOW_UP' | 'NOTES';
+type ContactEditorSection =
+  | 'CONTACT'
+  | 'WORK'
+  | 'CONTEXT'
+  | 'RELATIONSHIP'
+  | 'FOLLOW_UP'
+  | 'NOTES';
 type ProfileSection = 'OVERVIEW' | 'DETAILS' | 'HISTORY';
 type InteractionSection = 'CONVERSATION' | 'NEXT';
 
@@ -127,14 +133,19 @@ interface InteractionDraft {
         </button>
       </header>
 
-      <section class="summary-strip" aria-label="Networking overview">
+      <section
+        class="summary-strip"
+        aria-label="Networking overview"
+      >
         <button
           class="summary-chip danger"
           [class.active]="filter() === 'DUE'"
           (click)="filter.set('DUE')"
         >
           <span class="summary-emoji">⏰</span>
-          <span><strong>{{ networking.overdueContacts().length }}</strong> overdue</span>
+          <span
+            ><strong>{{ networking.overdueContacts().length }}</strong> overdue</span
+          >
         </button>
         <button
           class="summary-chip today"
@@ -142,7 +153,9 @@ interface InteractionDraft {
           (click)="filter.set('DUE')"
         >
           <span class="summary-emoji">☀️</span>
-          <span><strong>{{ networking.todayContacts().length }}</strong> azi</span>
+          <span
+            ><strong>{{ networking.todayContacts().length }}</strong> azi</span
+          >
         </button>
         <button
           class="summary-chip"
@@ -150,7 +163,9 @@ interface InteractionDraft {
           (click)="filter.set('UPCOMING')"
         >
           <span class="summary-emoji">📅</span>
-          <span><strong>{{ networking.upcomingContacts().length }}</strong> în 7 zile</span>
+          <span
+            ><strong>{{ networking.upcomingContacts().length }}</strong> în 7 zile</span
+          >
         </button>
         <button
           class="summary-chip"
@@ -158,7 +173,9 @@ interface InteractionDraft {
           (click)="filter.set('ALL')"
         >
           <span class="summary-emoji">👥</span>
-          <span><strong>{{ networking.contacts().length }}</strong> persoane</span>
+          <span
+            ><strong>{{ networking.contacts().length }}</strong> persoane</span
+          >
         </button>
       </section>
 
@@ -191,7 +208,10 @@ interface InteractionDraft {
             }
           </label>
 
-          <nav class="filter-carousel" aria-label="Filtre networking">
+          <nav
+            class="filter-carousel"
+            aria-label="Filtre networking"
+          >
             @for (item of filters; track item.id) {
               <button
                 type="button"
@@ -282,7 +302,10 @@ interface InteractionDraft {
                 <mat-icon>person_search</mat-icon>
                 <strong>Nicio persoană aici</strong>
                 <p>Schimbă filtrul sau adaugă o persoană nouă.</p>
-                <button mat-button (click)="startNewContact()">
+                <button
+                  mat-button
+                  (click)="startNewContact()"
+                >
                   <mat-icon>person_add</mat-icon>
                   Adaugă persoană
                 </button>
@@ -299,10 +322,12 @@ interface InteractionDraft {
                   <span class="eyebrow">{{
                     editingContactId() ? '✏️ Editare contact' : '✨ Contact nou'
                   }}</span>
-                  <h2>{{ editingContactId() ? 'Editează persoana' : 'Adaugă o persoană' }}</h2>
+                  <h2>
+                    {{ editingContactId() ? 'Editează persoana' : 'Adaugă o persoană' }}
+                  </h2>
                   <p>
-                    Completează doar ce îți este util. Poți reveni oricând; nimic din istoricul
-                    existent nu este șters.
+                    Completează doar ce îți este util. Poți reveni oricând; nimic din
+                    istoricul existent nu este șters.
                   </p>
                 </div>
                 <button
@@ -314,7 +339,10 @@ interface InteractionDraft {
                 </button>
               </header>
 
-              <nav class="editor-carousel" aria-label="Secțiuni contact">
+              <nav
+                class="editor-carousel"
+                aria-label="Secțiuni contact"
+              >
                 @for (section of contactSections; track section.id; let i = $index) {
                   <button
                     type="button"
@@ -340,18 +368,26 @@ interface InteractionDraft {
                 }
               </div>
 
-              <form class="contact-editor-form" (ngSubmit)="saveContact()">
+              <form
+                class="contact-editor-form"
+                (ngSubmit)="saveContact()"
+              >
                 @if (contactSection() === 'CONTACT') {
                   <section class="editor-section">
                     <div class="section-copy">
                       <span>👤</span>
                       <div>
                         <h3>Date de contact</h3>
-                        <p>Informațiile de bază pentru a găsi și contacta rapid persoana.</p>
+                        <p>
+                          Informațiile de bază pentru a găsi și contacta rapid persoana.
+                        </p>
                       </div>
                     </div>
 
-                    <task-detail-item type="fullSizeInput" class="network-field">
+                    <task-detail-item
+                      type="fullSizeInput"
+                      class="network-field"
+                    >
                       <ng-container input-title>
                         <mat-icon>person</mat-icon><span>Nume *</span>
                       </ng-container>
@@ -364,66 +400,111 @@ interface InteractionDraft {
                         />
                       </ng-container>
                     </task-detail-item>
-                    <div class="field-help">✨ Folosește numele după care îl/o vei căuta cel mai ușor.</div>
+                    <div class="field-help">
+                      ✨ Folosește numele după care îl/o vei căuta cel mai ușor.
+                    </div>
 
                     <div class="field-grid two">
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
                             <mat-icon>phone</mat-icon><span>Telefon</span>
                           </ng-container>
                           <ng-container input-value>
-                            <input name="phone" type="tel" placeholder="07..." [(ngModel)]="contactDraft.phone" />
+                            <input
+                              name="phone"
+                              type="tel"
+                              placeholder="07..."
+                              [(ngModel)]="contactDraft.phone"
+                            />
                           </ng-container>
                         </task-detail-item>
-                        <div class="field-help">📞 Numărul principal pentru contact rapid.</div>
+                        <div class="field-help">
+                          📞 Numărul principal pentru contact rapid.
+                        </div>
                       </div>
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
                             <mat-icon>mail</mat-icon><span>Email</span>
                           </ng-container>
                           <ng-container input-value>
-                            <input name="email" type="email" placeholder="nume@email.com" [(ngModel)]="contactDraft.email" />
+                            <input
+                              name="email"
+                              type="email"
+                              placeholder="nume@email.com"
+                              [(ngModel)]="contactDraft.email"
+                            />
                           </ng-container>
                         </task-detail-item>
-                        <div class="field-help">✉️ Util pentru conversații profesionale și follow-up-uri.</div>
+                        <div class="field-help">
+                          ✉️ Util pentru conversații profesionale și follow-up-uri.
+                        </div>
                       </div>
                     </div>
 
                     <div class="field-grid three">
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
                             <mat-icon>photo_camera</mat-icon><span>Instagram</span>
                           </ng-container>
                           <ng-container input-value>
-                            <input name="instagram" placeholder="@username" [(ngModel)]="contactDraft.instagram" />
+                            <input
+                              name="instagram"
+                              placeholder="@username"
+                              [(ngModel)]="contactDraft.instagram"
+                            />
                           </ng-container>
                         </task-detail-item>
                         <div class="field-help">📸 Username sau link.</div>
                       </div>
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
                             <mat-icon>public</mat-icon><span>Facebook</span>
                           </ng-container>
                           <ng-container input-value>
-                            <input name="facebook" placeholder="profil sau link" [(ngModel)]="contactDraft.facebook" />
+                            <input
+                              name="facebook"
+                              placeholder="profil sau link"
+                              [(ngModel)]="contactDraft.facebook"
+                            />
                           </ng-container>
                         </task-detail-item>
                         <div class="field-help">🌐 Profil sau URL complet.</div>
                       </div>
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
                             <mat-icon>business_center</mat-icon><span>LinkedIn</span>
                           </ng-container>
                           <ng-container input-value>
-                            <input name="linkedin" placeholder="profil sau link" [(ngModel)]="contactDraft.linkedin" />
+                            <input
+                              name="linkedin"
+                              placeholder="profil sau link"
+                              [(ngModel)]="contactDraft.linkedin"
+                            />
                           </ng-container>
                         </task-detail-item>
-                        <div class="field-help">💼 Foarte util pentru networking profesional.</div>
+                        <div class="field-help">
+                          💼 Foarte util pentru networking profesional.
+                        </div>
                       </div>
                     </div>
                   </section>
@@ -435,54 +516,91 @@ interface InteractionDraft {
                       <span>💼</span>
                       <div>
                         <h3>Muncă & expertiză</h3>
-                        <p>Context profesional ca să înțelegi imediat cine este și cu ce se ocupă.</p>
+                        <p>
+                          Context profesional ca să înțelegi imediat cine este și cu ce se
+                          ocupă.
+                        </p>
                       </div>
                     </div>
 
                     <div class="field-grid two">
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
                             <mat-icon>badge</mat-icon><span>Ocupație</span>
                           </ng-container>
                           <ng-container input-value>
-                            <input name="occupation" placeholder="ex. AI Engineer" [(ngModel)]="contactDraft.occupation" />
+                            <input
+                              name="occupation"
+                              placeholder="ex. AI Engineer"
+                              [(ngModel)]="contactDraft.occupation"
+                            />
                           </ng-container>
                         </task-detail-item>
-                        <div class="field-help">🧠 Rolul general sau profesia persoanei.</div>
+                        <div class="field-help">
+                          🧠 Rolul general sau profesia persoanei.
+                        </div>
                       </div>
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
                             <mat-icon>workspace_premium</mat-icon><span>Funcție</span>
                           </ng-container>
                           <ng-container input-value>
-                            <input name="role" placeholder="ex. Senior Engineer" [(ngModel)]="contactDraft.role" />
+                            <input
+                              name="role"
+                              placeholder="ex. Senior Engineer"
+                              [(ngModel)]="contactDraft.role"
+                            />
                           </ng-container>
                         </task-detail-item>
                         <div class="field-help">🏷️ Titlul exact, dacă îl știi.</div>
                       </div>
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
                             <mat-icon>apartment</mat-icon><span>Companie</span>
                           </ng-container>
                           <ng-container input-value>
-                            <input name="company" placeholder="Companie / organizație" [(ngModel)]="contactDraft.company" />
+                            <input
+                              name="company"
+                              placeholder="Companie / organizație"
+                              [(ngModel)]="contactDraft.company"
+                            />
                           </ng-container>
                         </task-detail-item>
-                        <div class="field-help">🏢 Unde lucrează sau ce organizație reprezintă.</div>
+                        <div class="field-help">
+                          🏢 Unde lucrează sau ce organizație reprezintă.
+                        </div>
                       </div>
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
                             <mat-icon>hub</mat-icon><span>Domeniu</span>
                           </ng-container>
                           <ng-container input-value>
-                            <input name="industry" placeholder="AI, juridic, contabilitate..." [(ngModel)]="contactDraft.industry" />
+                            <input
+                              name="industry"
+                              placeholder="AI, juridic, contabilitate..."
+                              [(ngModel)]="contactDraft.industry"
+                            />
                           </ng-container>
                         </task-detail-item>
-                        <div class="field-help">🧩 Ajută la filtrarea mentală a rețelei tale.</div>
+                        <div class="field-help">
+                          🧩 Ajută la filtrarea mentală a rețelei tale.
+                        </div>
                       </div>
                     </div>
                   </section>
@@ -500,34 +618,55 @@ interface InteractionDraft {
 
                     <div class="field-grid three">
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
                             <mat-icon>location_city</mat-icon><span>Oraș</span>
                           </ng-container>
                           <ng-container input-value>
-                            <input name="city" placeholder="Timișoara" [(ngModel)]="contactDraft.city" />
+                            <input
+                              name="city"
+                              placeholder="Timișoara"
+                              [(ngModel)]="contactDraft.city"
+                            />
                           </ng-container>
                         </task-detail-item>
                         <div class="field-help">📍 Unde se află de obicei.</div>
                       </div>
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
                             <mat-icon>map</mat-icon><span>Județ / regiune</span>
                           </ng-container>
                           <ng-container input-value>
-                            <input name="region" [(ngModel)]="contactDraft.region" />
+                            <input
+                              name="region"
+                              [(ngModel)]="contactDraft.region"
+                            />
                           </ng-container>
                         </task-detail-item>
-                        <div class="field-help">🗺️ Opțional, pentru căutare mai precisă.</div>
+                        <div class="field-help">
+                          🗺️ Opțional, pentru căutare mai precisă.
+                        </div>
                       </div>
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
                             <mat-icon>language</mat-icon><span>Țară</span>
                           </ng-container>
                           <ng-container input-value>
-                            <input name="country" [(ngModel)]="contactDraft.country" />
+                            <input
+                              name="country"
+                              [(ngModel)]="contactDraft.country"
+                            />
                           </ng-container>
                         </task-detail-item>
                         <div class="field-help">🌍 Țara principală.</div>
@@ -536,9 +675,13 @@ interface InteractionDraft {
 
                     <div class="field-grid two">
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
-                            <mat-icon>connect_without_contact</mat-icon><span>De unde îl/o cunosc</span>
+                            <mat-icon>connect_without_contact</mat-icon
+                            ><span>De unde îl/o cunosc</span>
                           </ng-container>
                           <ng-container input-value>
                             <input
@@ -548,37 +691,62 @@ interface InteractionDraft {
                             />
                           </ng-container>
                         </task-detail-item>
-                        <div class="field-help">🤝 Contextul în care a intrat în rețeaua ta.</div>
+                        <div class="field-help">
+                          🤝 Contextul în care a intrat în rețeaua ta.
+                        </div>
                       </div>
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
                             <mat-icon>place</mat-icon><span>Unde ne-am cunoscut</span>
                           </ng-container>
                           <ng-container input-value>
-                            <input name="metAt" placeholder="eveniment, firmă, facultate..." [(ngModel)]="contactDraft.metAt" />
+                            <input
+                              name="metAt"
+                              placeholder="eveniment, firmă, facultate..."
+                              [(ngModel)]="contactDraft.metAt"
+                            />
                           </ng-container>
                         </task-detail-item>
                         <div class="field-help">📌 Locul sau evenimentul concret.</div>
                       </div>
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
                             <mat-icon>event</mat-icon><span>Data întâlnirii</span>
                           </ng-container>
                           <ng-container input-value>
-                            <input name="metOn" type="date" [(ngModel)]="contactDraft.metOn" />
+                            <input
+                              name="metOn"
+                              type="date"
+                              [(ngModel)]="contactDraft.metOn"
+                            />
                           </ng-container>
                         </task-detail-item>
-                        <div class="field-help">🗓️ Dacă nu o știi, o poți lăsa goală.</div>
+                        <div class="field-help">
+                          🗓️ Dacă nu o știi, o poți lăsa goală.
+                        </div>
                       </div>
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
-                            <mat-icon>group_add</mat-icon><span>Ne-a făcut cunoștință</span>
+                            <mat-icon>group_add</mat-icon
+                            ><span>Ne-a făcut cunoștință</span>
                           </ng-container>
                           <ng-container input-value>
-                            <select name="introducedBy" [(ngModel)]="contactDraft.introducedByContactId">
+                            <select
+                              name="introducedBy"
+                              [(ngModel)]="contactDraft.introducedByContactId"
+                            >
                               <option value="">— Nimeni / nu știu —</option>
                               @for (person of introductionOptions(); track person.id) {
                                 <option [value]="person.id">{{ person.name }}</option>
@@ -604,38 +772,57 @@ interface InteractionDraft {
 
                     <div class="field-grid two">
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
                             <mat-icon>people</mat-icon><span>Tip relație</span>
                           </ng-container>
                           <ng-container input-value>
-                            <select name="relationshipType" [(ngModel)]="contactDraft.relationshipType">
+                            <select
+                              name="relationshipType"
+                              [(ngModel)]="contactDraft.relationshipType"
+                            >
                               @for (item of relationshipOptions; track item.value) {
                                 <option [value]="item.value">{{ item.label }}</option>
                               }
                             </select>
                           </ng-container>
                         </task-detail-item>
-                        <div class="field-help">🧭 Profesional, prieten, recruiter, mentor, client etc.</div>
+                        <div class="field-help">
+                          🧭 Profesional, prieten, recruiter, mentor, client etc.
+                        </div>
                       </div>
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
                             <mat-icon>stars</mat-icon><span>Importanță</span>
                           </ng-container>
                           <ng-container input-value>
-                            <select name="importance" [(ngModel)]="contactDraft.importance">
+                            <select
+                              name="importance"
+                              [(ngModel)]="contactDraft.importance"
+                            >
                               @for (item of importanceOptions; track item.value) {
                                 <option [value]="item.value">{{ item.label }}</option>
                               }
                             </select>
                           </ng-container>
                         </task-detail-item>
-                        <div class="field-help">⭐ Cât de activ vrei să menții relația.</div>
+                        <div class="field-help">
+                          ⭐ Cât de activ vrei să menții relația.
+                        </div>
                       </div>
                     </div>
 
-                    <task-detail-item type="fullSizeInput" class="network-field">
+                    <task-detail-item
+                      type="fullSizeInput"
+                      class="network-field"
+                    >
                       <ng-container input-title>
                         <mat-icon>sell</mat-icon><span>Tags</span>
                       </ng-container>
@@ -647,40 +834,69 @@ interface InteractionDraft {
                         />
                       </ng-container>
                     </task-detail-item>
-                    <div class="field-help">🏷️ Separate prin virgulă. Sunt utile pentru căutare și filtrare.</div>
+                    <div class="field-help">
+                      🏷️ Separate prin virgulă. Sunt utile pentru căutare și filtrare.
+                    </div>
 
-                    <task-detail-item type="fullSizeInput" class="network-field text-field">
+                    <task-detail-item
+                      type="fullSizeInput"
+                      class="network-field text-field"
+                    >
                       <ng-container input-title>
                         <mat-icon>interests</mat-icon><span>Interese</span>
                       </ng-container>
                       <ng-container input-value>
-                        <textarea name="interests" rows="3" placeholder="Ce îl/o interesează?" [(ngModel)]="contactDraft.interests"></textarea>
+                        <textarea
+                          name="interests"
+                          rows="3"
+                          placeholder="Ce îl/o interesează?"
+                          [(ngModel)]="contactDraft.interests"
+                        ></textarea>
                       </ng-container>
                     </task-detail-item>
-                    <div class="field-help">💡 Subiecte bune pentru conversații viitoare.</div>
+                    <div class="field-help">
+                      💡 Subiecte bune pentru conversații viitoare.
+                    </div>
 
                     <div class="field-grid two">
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field text-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field text-field"
+                        >
                           <ng-container input-title>
-                            <mat-icon>volunteer_activism</mat-icon><span>Pot să ajut cu</span>
+                            <mat-icon>volunteer_activism</mat-icon
+                            ><span>Pot să ajut cu</span>
                           </ng-container>
                           <ng-container input-value>
-                            <textarea name="canHelpWith" rows="3" [(ngModel)]="contactDraft.canHelpWith"></textarea>
+                            <textarea
+                              name="canHelpWith"
+                              rows="3"
+                              [(ngModel)]="contactDraft.canHelpWith"
+                            ></textarea>
                           </ng-container>
                         </task-detail-item>
                         <div class="field-help">🎁 Cum poți aduce valoare relației.</div>
                       </div>
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field text-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field text-field"
+                        >
                           <ng-container input-title>
                             <mat-icon>handshake</mat-icon><span>Mă poate ajuta cu</span>
                           </ng-container>
                           <ng-container input-value>
-                            <textarea name="canHelpMeWith" rows="3" [(ngModel)]="contactDraft.canHelpMeWith"></textarea>
+                            <textarea
+                              name="canHelpMeWith"
+                              rows="3"
+                              [(ngModel)]="contactDraft.canHelpMeWith"
+                            ></textarea>
                           </ng-container>
                         </task-detail-item>
-                        <div class="field-help">🧩 Zone unde ar putea exista colaborare sau ajutor.</div>
+                        <div class="field-help">
+                          🧩 Zone unde ar putea exista colaborare sau ajutor.
+                        </div>
                       </div>
                     </div>
                   </section>
@@ -692,43 +908,67 @@ interface InteractionDraft {
                       <span>🗓️</span>
                       <div>
                         <h3>Ținem legătura</h3>
-                        <p>Setează ritmul relației. La termen, persoana apare automat în Today.</p>
+                        <p>
+                          Setează ritmul relației. La termen, persoana apare automat în
+                          Today.
+                        </p>
                       </div>
                     </div>
 
                     <div class="info-banner">
                       <mat-icon>lightbulb</mat-icon>
                       <div>
-                        <strong>Folosește frecvența pentru relații, nu pentru taskuri.</strong>
-                        <span>Un follow-up concret poate fi transformat separat într-un task LifeOS.</span>
+                        <strong
+                          >Folosește frecvența pentru relații, nu pentru taskuri.</strong
+                        >
+                        <span
+                          >Un follow-up concret poate fi transformat separat într-un task
+                          LifeOS.</span
+                        >
                       </div>
                     </div>
 
                     <div class="field-grid two">
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
                             <mat-icon>repeat</mat-icon><span>Frecvență</span>
                           </ng-container>
                           <ng-container input-value>
-                            <select name="cadence" [(ngModel)]="contactDraft.cadence">
+                            <select
+                              name="cadence"
+                              [(ngModel)]="contactDraft.cadence"
+                            >
                               @for (item of cadenceOptions; track item.value) {
                                 <option [value]="item.value">{{ item.label }}</option>
                               }
                             </select>
                           </ng-container>
                         </task-detail-item>
-                        <div class="field-help">🔁 Lunar, trimestrial, custom sau fără reminder.</div>
+                        <div class="field-help">
+                          🔁 Lunar, trimestrial, custom sau fără reminder.
+                        </div>
                       </div>
 
                       @if (contactDraft.cadence === 'CUSTOM') {
                         <div>
-                          <task-detail-item type="fullSizeInput" class="network-field">
+                          <task-detail-item
+                            type="fullSizeInput"
+                            class="network-field"
+                          >
                             <ng-container input-title>
                               <mat-icon>date_range</mat-icon><span>La câte zile</span>
                             </ng-container>
                             <ng-container input-value>
-                              <input name="cadenceDays" type="number" min="1" [(ngModel)]="contactDraft.cadenceDays" />
+                              <input
+                                name="cadenceDays"
+                                type="number"
+                                min="1"
+                                [(ngModel)]="contactDraft.cadenceDays"
+                              />
                             </ng-container>
                           </task-detail-item>
                           <div class="field-help">⚙️ Interval personalizat în zile.</div>
@@ -736,19 +976,32 @@ interface InteractionDraft {
                       }
 
                       <div>
-                        <task-detail-item type="fullSizeInput" class="network-field">
+                        <task-detail-item
+                          type="fullSizeInput"
+                          class="network-field"
+                        >
                           <ng-container input-title>
-                            <mat-icon>event_available</mat-icon><span>Următorul contact</span>
+                            <mat-icon>event_available</mat-icon
+                            ><span>Următorul contact</span>
                           </ng-container>
                           <ng-container input-value>
-                            <input name="nextContactDay" type="date" [(ngModel)]="contactDraft.nextContactDay" />
+                            <input
+                              name="nextContactDay"
+                              type="date"
+                              [(ngModel)]="contactDraft.nextContactDay"
+                            />
                           </ng-container>
                         </task-detail-item>
-                        <div class="field-help">☀️ În această zi persoana va apărea în Today.</div>
+                        <div class="field-help">
+                          ☀️ În această zi persoana va apărea în Today.
+                        </div>
                       </div>
                     </div>
 
-                    <task-detail-item type="fullSizeInput" class="network-field">
+                    <task-detail-item
+                      type="fullSizeInput"
+                      class="network-field"
+                    >
                       <ng-container input-title>
                         <mat-icon>forum</mat-icon><span>Subiect data viitoare</span>
                       </ng-container>
@@ -760,7 +1013,9 @@ interface InteractionDraft {
                         />
                       </ng-container>
                     </task-detail-item>
-                    <div class="field-help">💬 Îți apare în context ca să nu începi conversația „de la zero”.</div>
+                    <div class="field-help">
+                      💬 Îți apare în context ca să nu începi conversația „de la zero”.
+                    </div>
                   </section>
                 }
 
@@ -770,11 +1025,17 @@ interface InteractionDraft {
                       <span>📝</span>
                       <div>
                         <h3>Note permanente</h3>
-                        <p>Lucruri care rămân relevante în timp, separat de conversațiile individuale.</p>
+                        <p>
+                          Lucruri care rămân relevante în timp, separat de conversațiile
+                          individuale.
+                        </p>
                       </div>
                     </div>
 
-                    <task-detail-item type="fullSizeInput" class="network-field text-field notes-field">
+                    <task-detail-item
+                      type="fullSizeInput"
+                      class="network-field text-field notes-field"
+                    >
                       <ng-container input-title>
                         <mat-icon>notes</mat-icon><span>Note</span>
                       </ng-container>
@@ -787,7 +1048,10 @@ interface InteractionDraft {
                         ></textarea>
                       </ng-container>
                     </task-detail-item>
-                    <div class="field-help">🧠 Pentru conversații folosește istoricul; aici păstrează doar contextul permanent.</div>
+                    <div class="field-help">
+                      🧠 Pentru conversații folosește istoricul; aici păstrează doar
+                      contextul permanent.
+                    </div>
 
                     <div class="finish-card">
                       <span>✅</span>
@@ -845,7 +1109,9 @@ interface InteractionDraft {
                   <span class="eyebrow">👤 Contact</span>
                   <div class="profile-title-line">
                     <h2>{{ contact.name }}</h2>
-                    <span class="importance">{{ importanceLabel(contact.importance) }}</span>
+                    <span class="importance">{{
+                      importanceLabel(contact.importance)
+                    }}</span>
                   </div>
                   <p>
                     @if (contact.occupation) {
@@ -864,12 +1130,19 @@ interface InteractionDraft {
                 </div>
                 <div class="profile-actions">
                   @if (!contact.isArchived) {
-                    <button mat-flat-button color="primary" (click)="startInteraction()">
+                    <button
+                      mat-flat-button
+                      color="primary"
+                      (click)="startInteraction()"
+                    >
                       <mat-icon>forum</mat-icon>
                       Am vorbit
                     </button>
                   }
-                  <button mat-button (click)="startEditContact(contact)">
+                  <button
+                    mat-button
+                    (click)="startEditContact(contact)"
+                  >
                     <mat-icon>edit</mat-icon>
                     Editează
                   </button>
@@ -878,29 +1151,48 @@ interface InteractionDraft {
 
               <div class="contact-links">
                 @if (contact.phone) {
-                  <a [href]="'tel:' + contact.phone"><mat-icon>phone</mat-icon>{{ contact.phone }}</a>
+                  <a [href]="'tel:' + contact.phone"
+                    ><mat-icon>phone</mat-icon>{{ contact.phone }}</a
+                  >
                 }
                 @if (contact.email) {
-                  <a [href]="'mailto:' + contact.email"><mat-icon>mail</mat-icon>{{ contact.email }}</a>
+                  <a [href]="'mailto:' + contact.email"
+                    ><mat-icon>mail</mat-icon>{{ contact.email }}</a
+                  >
                 }
                 @if (contact.instagram) {
-                  <a [href]="socialUrl('instagram', contact.instagram)" target="_blank" rel="noreferrer">
+                  <a
+                    [href]="socialUrl('instagram', contact.instagram)"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     <mat-icon>photo_camera</mat-icon>Instagram
                   </a>
                 }
                 @if (contact.facebook) {
-                  <a [href]="socialUrl('facebook', contact.facebook)" target="_blank" rel="noreferrer">
+                  <a
+                    [href]="socialUrl('facebook', contact.facebook)"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     <mat-icon>public</mat-icon>Facebook
                   </a>
                 }
                 @if (contact.linkedin) {
-                  <a [href]="socialUrl('linkedin', contact.linkedin)" target="_blank" rel="noreferrer">
+                  <a
+                    [href]="socialUrl('linkedin', contact.linkedin)"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     <mat-icon>business_center</mat-icon>LinkedIn
                   </a>
                 }
               </div>
 
-              <nav class="profile-carousel" aria-label="Detalii persoană">
+              <nav
+                class="profile-carousel"
+                aria-label="Detalii persoană"
+              >
                 @for (section of profileSections; track section.id) {
                   <button
                     type="button"
@@ -933,11 +1225,19 @@ interface InteractionDraft {
                         <dl>
                           <div>
                             <dt>Ultimul contact</dt>
-                            <dd>{{ contact.lastContactAt ? dateLabel(contact.lastContactAt) : '—' }}</dd>
+                            <dd>
+                              {{
+                                contact.lastContactAt
+                                  ? dateLabel(contact.lastContactAt)
+                                  : '—'
+                              }}
+                            </dd>
                           </div>
                           <div>
                             <dt>Frecvență</dt>
-                            <dd>{{ cadenceLabel(contact.cadence, contact.cadenceDays) }}</dd>
+                            <dd>
+                              {{ cadenceLabel(contact.cadence, contact.cadenceDays) }}
+                            </dd>
                           </div>
                           <div>
                             <dt>Data viitoare</dt>
@@ -962,18 +1262,27 @@ interface InteractionDraft {
                         @if (latestInteraction(); as last) {
                           <p class="last-summary">{{ last.summary }}</p>
                           @if (last.learned) {
-                            <div class="context-line"><b>💡 Am aflat:</b> {{ last.learned }}</div>
+                            <div class="context-line">
+                              <b>💡 Am aflat:</b> {{ last.learned }}
+                            </div>
                           }
                           @if (last.iPromised) {
-                            <div class="context-line"><b>✅ Am promis:</b> {{ last.iPromised }}</div>
+                            <div class="context-line">
+                              <b>✅ Am promis:</b> {{ last.iPromised }}
+                            </div>
                           }
                           @if (last.theyPromised) {
-                            <div class="context-line"><b>🤝 A promis:</b> {{ last.theyPromised }}</div>
+                            <div class="context-line">
+                              <b>🤝 A promis:</b> {{ last.theyPromised }}
+                            </div>
                           }
                         } @else {
                           <div class="empty-inline">
                             <mat-icon>forum</mat-icon>
-                            <span>Nicio conversație încă. Apasă „Am vorbit” după următoarea discuție.</span>
+                            <span
+                              >Nicio conversație încă. Apasă „Am vorbit” după următoarea
+                              discuție.</span
+                            >
                           </div>
                         }
                       </mat-card-content>
@@ -991,12 +1300,22 @@ interface InteractionDraft {
                       </div>
 
                       <div class="followup-add">
-                        <input #followUpTitle placeholder="ex. Trimite CV-ul..." />
-                        <input #followUpDue type="date" />
+                        <input
+                          #followUpTitle
+                          placeholder="ex. Trimite CV-ul..."
+                        />
+                        <input
+                          #followUpDue
+                          type="date"
+                        />
                         <button
                           mat-button
                           (click)="
-                            addFollowUp(contact.id, followUpTitle.value, followUpDue.value);
+                            addFollowUp(
+                              contact.id,
+                              followUpTitle.value,
+                              followUpDue.value
+                            );
                             followUpTitle.value = ''
                           "
                         >
@@ -1006,15 +1325,22 @@ interface InteractionDraft {
                       </div>
 
                       @for (item of followUps(); track item.id) {
-                        <div class="followup-row" [class.done]="item.status === 'DONE'">
+                        <div
+                          class="followup-row"
+                          [class.done]="item.status === 'DONE'"
+                        >
                           <button
                             class="check"
                             type="button"
                             (click)="toggleFollowUp(item.id, item.status)"
-                            [attr.aria-label]="item.status === 'DONE' ? 'Redeschide' : 'Finalizat'"
+                            [attr.aria-label]="
+                              item.status === 'DONE' ? 'Redeschide' : 'Finalizat'
+                            "
                           >
                             <mat-icon>{{
-                              item.status === 'DONE' ? 'check_circle' : 'radio_button_unchecked'
+                              item.status === 'DONE'
+                                ? 'check_circle'
+                                : 'radio_button_unchecked'
                             }}</mat-icon>
                           </button>
                           <span class="grow">{{ item.title }}</span>
@@ -1024,7 +1350,10 @@ interface InteractionDraft {
                           @if (item.taskId) {
                             <span class="chip linked">Task creat</span>
                           } @else if (item.status === 'OPEN') {
-                            <button mat-button (click)="createTask(item.id)">
+                            <button
+                              mat-button
+                              (click)="createTask(item.id)"
+                            >
                               <mat-icon>add_task</mat-icon>
                               Task
                             </button>
@@ -1035,7 +1364,9 @@ interface InteractionDraft {
                       @if (!followUps().length) {
                         <div class="empty-inline">
                           <mat-icon>task_alt</mat-icon>
-                          <span>Nu ai follow-up-uri deschise pentru această persoană.</span>
+                          <span
+                            >Nu ai follow-up-uri deschise pentru această persoană.</span
+                          >
                         </div>
                       }
                     </mat-card-content>
@@ -1048,29 +1379,57 @@ interface InteractionDraft {
                   <mat-card class="soft-card">
                     <mat-card-content>
                       <div class="section-head compact">
-                        <div><h3>👤 Despre persoană</h3><p>Date de context și relație.</p></div>
+                        <div>
+                          <h3>👤 Despre persoană</h3>
+                          <p>Date de context și relație.</p>
+                        </div>
                       </div>
                       <div class="detail-rows">
                         @if (locationLabel(contact)) {
-                          <div><span>📍 Locație</span><strong>{{ locationLabel(contact) }}</strong></div>
+                          <div>
+                            <span>📍 Locație</span
+                            ><strong>{{ locationLabel(contact) }}</strong>
+                          </div>
                         }
                         @if (contact.industry) {
-                          <div><span>🧩 Domeniu</span><strong>{{ contact.industry }}</strong></div>
+                          <div>
+                            <span>🧩 Domeniu</span><strong>{{ contact.industry }}</strong>
+                          </div>
                         }
                         @if (contact.metThrough) {
-                          <div><span>🤝 De unde îl/o cunosc</span><strong>{{ contact.metThrough }}</strong></div>
+                          <div>
+                            <span>🤝 De unde îl/o cunosc</span
+                            ><strong>{{ contact.metThrough }}</strong>
+                          </div>
                         }
                         @if (contact.metAt) {
-                          <div><span>📌 Unde ne-am cunoscut</span><strong>{{ contact.metAt }}</strong></div>
+                          <div>
+                            <span>📌 Unde ne-am cunoscut</span
+                            ><strong>{{ contact.metAt }}</strong>
+                          </div>
                         }
                         @if (contact.metOn) {
-                          <div><span>🗓️ Când ne-am cunoscut</span><strong>{{ contact.metOn }}</strong></div>
+                          <div>
+                            <span>🗓️ Când ne-am cunoscut</span
+                            ><strong>{{ contact.metOn }}</strong>
+                          </div>
                         }
                         @if (introducedByName(contact)) {
-                          <div><span>🔗 Ne-a făcut cunoștință</span><strong>{{ introducedByName(contact) }}</strong></div>
+                          <div>
+                            <span>🔗 Ne-a făcut cunoștință</span
+                            ><strong>{{ introducedByName(contact) }}</strong>
+                          </div>
                         }
-                        <div><span>👥 Relație</span><strong>{{ relationshipLabel(contact.relationshipType) }}</strong></div>
-                        <div><span>⭐ Importanță</span><strong>{{ importanceLabel(contact.importance) }}</strong></div>
+                        <div>
+                          <span>👥 Relație</span
+                          ><strong>{{
+                            relationshipLabel(contact.relationshipType)
+                          }}</strong>
+                        </div>
+                        <div>
+                          <span>⭐ Importanță</span
+                          ><strong>{{ importanceLabel(contact.importance) }}</strong>
+                        </div>
                       </div>
                     </mat-card-content>
                   </mat-card>
@@ -1078,7 +1437,12 @@ interface InteractionDraft {
                   @if (contact.tags.length) {
                     <mat-card class="soft-card">
                       <mat-card-content>
-                        <div class="section-head compact"><div><h3>🏷️ Tags</h3><p>Repere rapide pentru căutare.</p></div></div>
+                        <div class="section-head compact">
+                          <div>
+                            <h3>🏷️ Tags</h3>
+                            <p>Repere rapide pentru căutare.</p>
+                          </div>
+                        </div>
                         <div class="chips large">
                           @for (tag of contact.tags; track tag) {
                             <span class="chip">{{ tag }}</span>
@@ -1088,7 +1452,9 @@ interface InteractionDraft {
                     </mat-card>
                   }
 
-                  @if (contact.interests || contact.canHelpWith || contact.canHelpMeWith) {
+                  @if (
+                    contact.interests || contact.canHelpWith || contact.canHelpMeWith
+                  ) {
                     <div class="context-grid">
                       @if (contact.interests) {
                         <mat-card class="soft-card">
@@ -1101,7 +1467,9 @@ interface InteractionDraft {
                       @if (contact.canHelpWith) {
                         <mat-card class="soft-card">
                           <mat-card-content>
-                            <div class="mini-head"><strong>🎁 Pot să ajut cu</strong></div>
+                            <div class="mini-head">
+                              <strong>🎁 Pot să ajut cu</strong>
+                            </div>
                             <p class="body-copy">{{ contact.canHelpWith }}</p>
                           </mat-card-content>
                         </mat-card>
@@ -1109,7 +1477,9 @@ interface InteractionDraft {
                       @if (contact.canHelpMeWith) {
                         <mat-card class="soft-card">
                           <mat-card-content>
-                            <div class="mini-head"><strong>🤝 Mă poate ajuta cu</strong></div>
+                            <div class="mini-head">
+                              <strong>🤝 Mă poate ajuta cu</strong>
+                            </div>
                             <p class="body-copy">{{ contact.canHelpMeWith }}</p>
                           </mat-card-content>
                         </mat-card>
@@ -1136,7 +1506,10 @@ interface InteractionDraft {
                         <div class="section-head">
                           <div>
                             <h3>💬 Înregistrează conversația</h3>
-                            <p>Scrie doar esențialul; data viitoare vei avea tot contextul la îndemână.</p>
+                            <p>
+                              Scrie doar esențialul; data viitoare vei avea tot contextul
+                              la îndemână.
+                            </p>
                           </div>
                           <button
                             mat-icon-button
@@ -1164,16 +1537,26 @@ interface InteractionDraft {
                           </button>
                         </nav>
 
-                        <form class="interaction-form" (ngSubmit)="saveInteraction(contact.id)">
+                        <form
+                          class="interaction-form"
+                          (ngSubmit)="saveInteraction(contact.id)"
+                        >
                           @if (interactionSection() === 'CONVERSATION') {
                             <div class="field-grid two">
                               <label class="native-input">
                                 <span>🗓️ Data și ora</span>
-                                <input name="interactionAt" type="datetime-local" [(ngModel)]="interactionDraft.at" />
+                                <input
+                                  name="interactionAt"
+                                  type="datetime-local"
+                                  [(ngModel)]="interactionDraft.at"
+                                />
                               </label>
                               <label class="native-input">
                                 <span>📞 Cum am vorbit</span>
-                                <select name="channel" [(ngModel)]="interactionDraft.channel">
+                                <select
+                                  name="channel"
+                                  [(ngModel)]="interactionDraft.channel"
+                                >
                                   @for (item of channelOptions; track item.value) {
                                     <option [value]="item.value">{{ item.label }}</option>
                                   }
@@ -1183,7 +1566,11 @@ interface InteractionDraft {
 
                             <label class="native-input">
                               <span>📍 Unde / context</span>
-                              <input name="interactionLocation" placeholder="telefon, cafea, conferință..." [(ngModel)]="interactionDraft.location" />
+                              <input
+                                name="interactionLocation"
+                                placeholder="telefon, cafea, conferință..."
+                                [(ngModel)]="interactionDraft.location"
+                              />
                               <small>Opțional — locul sau contextul discuției.</small>
                             </label>
 
@@ -1196,13 +1583,23 @@ interface InteractionDraft {
                                 placeholder="Rezumatul conversației și ideile importante..."
                                 [(ngModel)]="interactionDraft.summary"
                               ></textarea>
-                              <small>Scrie suficient cât să recapeți contextul peste câteva luni.</small>
+                              <small
+                                >Scrie suficient cât să recapeți contextul peste câteva
+                                luni.</small
+                              >
                             </label>
 
                             <label class="native-input text">
                               <span>💡 Ce am aflat nou?</span>
-                              <textarea name="learned" rows="3" [(ngModel)]="interactionDraft.learned"></textarea>
-                              <small>Lucruri noi despre persoană, proiecte, planuri sau interese.</small>
+                              <textarea
+                                name="learned"
+                                rows="3"
+                                [(ngModel)]="interactionDraft.learned"
+                              ></textarea>
+                              <small
+                                >Lucruri noi despre persoană, proiecte, planuri sau
+                                interese.</small
+                              >
                             </label>
                           }
 
@@ -1210,42 +1607,79 @@ interface InteractionDraft {
                             <div class="field-grid two">
                               <label class="native-input text">
                                 <span>✅ Ce am promis eu?</span>
-                                <textarea name="iPromised" rows="3" [(ngModel)]="interactionDraft.iPromised"></textarea>
+                                <textarea
+                                  name="iPromised"
+                                  rows="3"
+                                  [(ngModel)]="interactionDraft.iPromised"
+                                ></textarea>
                               </label>
                               <label class="native-input text">
                                 <span>🤝 Ce a promis persoana?</span>
-                                <textarea name="theyPromised" rows="3" [(ngModel)]="interactionDraft.theyPromised"></textarea>
+                                <textarea
+                                  name="theyPromised"
+                                  rows="3"
+                                  [(ngModel)]="interactionDraft.theyPromised"
+                                ></textarea>
                               </label>
                             </div>
 
                             <label class="native-input text">
                               <span>➡️ Ce fac în continuare?</span>
-                              <textarea name="nextStep" rows="3" [(ngModel)]="interactionDraft.nextStep"></textarea>
-                              <small>Un next step clar te ajută să nu pierzi continuitatea relației.</small>
+                              <textarea
+                                name="nextStep"
+                                rows="3"
+                                [(ngModel)]="interactionDraft.nextStep"
+                              ></textarea>
+                              <small
+                                >Un next step clar te ajută să nu pierzi continuitatea
+                                relației.</small
+                              >
                             </label>
 
                             <label class="native-input">
                               <span>💬 Subiect data viitoare</span>
-                              <input name="nextTopic" placeholder="Ce vreau să întreb data viitoare..." [(ngModel)]="interactionDraft.nextTopic" />
+                              <input
+                                name="nextTopic"
+                                placeholder="Ce vreau să întreb data viitoare..."
+                                [(ngModel)]="interactionDraft.nextTopic"
+                              />
                             </label>
 
                             <div class="field-grid two">
                               <label class="native-input">
                                 <span>🗓️ Reiau legătura la</span>
-                                <input name="interactionNextContactDay" type="date" [(ngModel)]="interactionDraft.nextContactDay" />
-                                <small>Dacă rămâne gol, se calculează din frecvența persoanei.</small>
+                                <input
+                                  name="interactionNextContactDay"
+                                  type="date"
+                                  [(ngModel)]="interactionDraft.nextContactDay"
+                                />
+                                <small
+                                  >Dacă rămâne gol, se calculează din frecvența
+                                  persoanei.</small
+                                >
                               </label>
                               <label class="native-input">
                                 <span>✅ Follow-up de făcut</span>
-                                <input name="followUpTitle" placeholder="ex. Trimite CV-ul" [(ngModel)]="interactionDraft.followUpTitle" />
-                                <small>Poate fi transformat ulterior într-un task LifeOS.</small>
+                                <input
+                                  name="followUpTitle"
+                                  placeholder="ex. Trimite CV-ul"
+                                  [(ngModel)]="interactionDraft.followUpTitle"
+                                />
+                                <small
+                                  >Poate fi transformat ulterior într-un task
+                                  LifeOS.</small
+                                >
                               </label>
                             </div>
 
                             @if (interactionDraft.followUpTitle.trim()) {
                               <label class="native-input">
                                 <span>🚩 Termen follow-up</span>
-                                <input name="followUpDueDay" type="date" [(ngModel)]="interactionDraft.followUpDueDay" />
+                                <input
+                                  name="followUpDueDay"
+                                  type="date"
+                                  [(ngModel)]="interactionDraft.followUpDueDay"
+                                />
                               </label>
                             }
                           }
@@ -1253,12 +1687,21 @@ interface InteractionDraft {
                           <div class="interaction-actions">
                             @if (interactionSection() === 'CONVERSATION') {
                               <span></span>
-                              <button type="button" mat-flat-button color="primary" (click)="interactionSection.set('NEXT')">
+                              <button
+                                type="button"
+                                mat-flat-button
+                                color="primary"
+                                (click)="interactionSection.set('NEXT')"
+                              >
                                 Continuă
                                 <mat-icon>arrow_forward</mat-icon>
                               </button>
                             } @else {
-                              <button type="button" mat-button (click)="interactionSection.set('CONVERSATION')">
+                              <button
+                                type="button"
+                                mat-button
+                                (click)="interactionSection.set('CONVERSATION')"
+                              >
                                 <mat-icon>arrow_back</mat-icon>
                                 Înapoi
                               </button>
@@ -1283,7 +1726,11 @@ interface InteractionDraft {
                         <p>Adaugă conversația cât contextul este încă proaspăt.</p>
                       </div>
                       @if (!contact.isArchived) {
-                        <button mat-flat-button color="primary" (click)="startInteraction()">
+                        <button
+                          mat-flat-button
+                          color="primary"
+                          (click)="startInteraction()"
+                        >
                           <mat-icon>add_comment</mat-icon>
                           Adaugă conversație
                         </button>
@@ -1296,7 +1743,10 @@ interface InteractionDraft {
                       <div class="section-head">
                         <div>
                           <h3>🕘 Istoric conversații</h3>
-                          <p>Fiecare conversație rămâne în cronologie; nimic nu se suprascrie.</p>
+                          <p>
+                            Fiecare conversație rămâne în cronologie; nimic nu se
+                            suprascrie.
+                          </p>
                         </div>
                         <span>{{ interactions().length }}</span>
                       </div>
@@ -1309,7 +1759,9 @@ interface InteractionDraft {
                               <header>
                                 <div>
                                   <strong>{{ dateTimeLabel(item.at) }}</strong>
-                                  <span class="channel">{{ channelLabel(item.channel) }}</span>
+                                  <span class="channel">{{
+                                    channelLabel(item.channel)
+                                  }}</span>
                                 </div>
                                 @if (item.location) {
                                   <span class="muted">📍 {{ item.location }}</span>
@@ -1319,19 +1771,34 @@ interface InteractionDraft {
 
                               <div class="interaction-details">
                                 @if (item.learned) {
-                                  <div><small>💡 Ce am aflat</small><p>{{ item.learned }}</p></div>
+                                  <div>
+                                    <small>💡 Ce am aflat</small>
+                                    <p>{{ item.learned }}</p>
+                                  </div>
                                 }
                                 @if (item.iPromised) {
-                                  <div><small>✅ Am promis</small><p>{{ item.iPromised }}</p></div>
+                                  <div>
+                                    <small>✅ Am promis</small>
+                                    <p>{{ item.iPromised }}</p>
+                                  </div>
                                 }
                                 @if (item.theyPromised) {
-                                  <div><small>🤝 A promis</small><p>{{ item.theyPromised }}</p></div>
+                                  <div>
+                                    <small>🤝 A promis</small>
+                                    <p>{{ item.theyPromised }}</p>
+                                  </div>
                                 }
                                 @if (item.nextStep) {
-                                  <div><small>➡️ Următorul pas</small><p>{{ item.nextStep }}</p></div>
+                                  <div>
+                                    <small>➡️ Următorul pas</small>
+                                    <p>{{ item.nextStep }}</p>
+                                  </div>
                                 }
                                 @if (item.nextTopic) {
-                                  <div><small>💬 Data viitoare</small><p>{{ item.nextTopic }}</p></div>
+                                  <div>
+                                    <small>💬 Data viitoare</small>
+                                    <p>{{ item.nextTopic }}</p>
+                                  </div>
                                 }
                               </div>
                             </div>
@@ -1353,12 +1820,18 @@ interface InteractionDraft {
 
               <footer class="danger-zone">
                 @if (contact.isArchived) {
-                  <button mat-button (click)="networking.archiveContact(contact.id, false)">
+                  <button
+                    mat-button
+                    (click)="networking.archiveContact(contact.id, false)"
+                  >
                     <mat-icon>unarchive</mat-icon>
                     Reactivează persoana
                   </button>
                 } @else {
-                  <button mat-button (click)="archiveSelected(contact.id)">
+                  <button
+                    mat-button
+                    (click)="archiveSelected(contact.id)"
+                  >
                     <mat-icon>archive</mat-icon>
                     Arhivează persoana
                   </button>
@@ -1373,7 +1846,11 @@ interface InteractionDraft {
                 Adaugă o persoană, notează conversațiile și LifeOS îți va aminti când să
                 reiei legătura.
               </p>
-              <button mat-flat-button color="primary" (click)="startNewContact()">
+              <button
+                mat-flat-button
+                color="primary"
+                (click)="startNewContact()"
+              >
                 <mat-icon>person_add</mat-icon>
                 Adaugă prima persoană
               </button>
