@@ -293,7 +293,9 @@ interface InteractionDraft {
                 <div class="editor-title">
                   <span class="editor-title-icon">👤</span>
                   <div>
-                    <h2>{{ editingContactId() ? 'Editează persoana' : 'Persoană nouă' }}</h2>
+                    <h2>
+                      {{ editingContactId() ? 'Editează persoana' : 'Persoană nouă' }}
+                    </h2>
                     <p>
                       Completează doar ce îți este util. Poți reveni oricând la restul
                       informațiilor.
@@ -388,7 +390,9 @@ interface InteractionDraft {
                           <mat-icon>mail_outline</mat-icon>
                           <span>
                             <b>Email</b>
-                            <small>Adresa pe care o folosești cel mai des cu persoana.</small>
+                            <small
+                              >Adresa pe care o folosești cel mai des cu persoana.</small
+                            >
                           </span>
                         </span>
                         <span class="detail-field-control">
@@ -461,8 +465,8 @@ interface InteractionDraft {
                         <div>
                           <h3>Profesie și organizație</h3>
                           <p>
-                            Context profesional suficient cât să-ți amintești imediat
-                            cine este și cu ce se ocupă.
+                            Context profesional suficient cât să-ți amintești imediat cine
+                            este și cu ce se ocupă.
                           </p>
                         </div>
                       </div>
@@ -472,7 +476,9 @@ interface InteractionDraft {
                           <mat-icon>work_outline</mat-icon>
                           <span>
                             <b>Ocupație</b>
-                            <small>Rolul general: AI Engineer, avocat, contabil etc.</small>
+                            <small
+                              >Rolul general: AI Engineer, avocat, contabil etc.</small
+                            >
                           </span>
                         </span>
                         <span class="detail-field-control">
@@ -489,7 +495,9 @@ interface InteractionDraft {
                           <mat-icon>military_tech</mat-icon>
                           <span>
                             <b>Funcție</b>
-                            <small>Titlul concret din organizație, dacă este relevant.</small>
+                            <small
+                              >Titlul concret din organizație, dacă este relevant.</small
+                            >
                           </span>
                         </span>
                         <span class="detail-field-control">
@@ -523,7 +531,9 @@ interface InteractionDraft {
                           <mat-icon>category</mat-icon>
                           <span>
                             <b>Domeniu</b>
-                            <small>AI, juridic, contabilitate, business, cercetare...</small>
+                            <small
+                              >AI, juridic, contabilitate, business, cercetare...</small
+                            >
                           </span>
                         </span>
                         <span class="detail-field-control">
@@ -543,9 +553,7 @@ interface InteractionDraft {
                         <span>📍</span>
                         <div>
                           <h3>Loc și context</h3>
-                          <p>
-                            Unde este persoana și cum a intrat în rețeaua ta.
-                          </p>
+                          <p>Unde este persoana și cum a intrat în rețeaua ta.</p>
                         </div>
                       </div>
 
@@ -603,7 +611,9 @@ interface InteractionDraft {
                           <mat-icon>hub</mat-icon>
                           <span>
                             <b>De unde îl/o cunosc</b>
-                            <small>Facultate, master, conferință, LinkedIn, client etc.</small>
+                            <small
+                              >Facultate, master, conferință, LinkedIn, client etc.</small
+                            >
                           </span>
                         </span>
                         <span class="detail-field-control">
@@ -710,7 +720,10 @@ interface InteractionDraft {
                           <mat-icon>stars</mat-icon>
                           <span>
                             <b>Importanță relație</b>
-                            <small>Cât de activ vrei să investești în relația respectivă.</small>
+                            <small
+                              >Cât de activ vrei să investești în relația
+                              respectivă.</small
+                            >
                           </span>
                         </span>
                         <span class="detail-field-control">
@@ -730,7 +743,10 @@ interface InteractionDraft {
                           <mat-icon>label_outline</mat-icon>
                           <span>
                             <b>Tags</b>
-                            <small>Ex: AI, Timișoara, recruiter, facultate. Separate prin virgulă.</small>
+                            <small
+                              >Ex: AI, Timișoara, recruiter, facultate. Separate prin
+                              virgulă.</small
+                            >
                           </span>
                         </span>
                         <span class="detail-field-control">
@@ -747,7 +763,10 @@ interface InteractionDraft {
                           <mat-icon>interests</mat-icon>
                           <span>
                             <b>Interese</b>
-                            <small>Subiecte despre care îi place să vorbească sau lucrează.</small>
+                            <small
+                              >Subiecte despre care îi place să vorbească sau
+                              lucrează.</small
+                            >
                           </span>
                         </span>
                         <span class="detail-field-control">
@@ -765,7 +784,10 @@ interface InteractionDraft {
                           <mat-icon>volunteer_activism</mat-icon>
                           <span>
                             <b>Pot să îl/o ajut cu</b>
-                            <small>Idei, introduceri sau competențe pe care le poți oferi.</small>
+                            <small
+                              >Idei, introduceri sau competențe pe care le poți
+                              oferi.</small
+                            >
                           </span>
                         </span>
                         <span class="detail-field-control">
@@ -782,7 +804,10 @@ interface InteractionDraft {
                           <mat-icon>handshake</mat-icon>
                           <span>
                             <b>Mă poate ajuta cu</b>
-                            <small>Context util pentru oportunități și colaborări viitoare.</small>
+                            <small
+                              >Context util pentru oportunități și colaborări
+                              viitoare.</small
+                            >
                           </span>
                         </span>
                         <span class="detail-field-control">
@@ -814,7 +839,9 @@ interface InteractionDraft {
                           <mat-icon>repeat</mat-icon>
                           <span>
                             <b>Frecvență</b>
-                            <small>Cât de des vrei, în mod normal, să reluați legătura.</small>
+                            <small
+                              >Cât de des vrei, în mod normal, să reluați legătura.</small
+                            >
                           </span>
                         </span>
                         <span class="detail-field-control">
@@ -854,7 +881,9 @@ interface InteractionDraft {
                           <mat-icon>event_available</mat-icon>
                           <span>
                             <b>Următorul contact</b>
-                            <small>Poți suprascrie manual data calculată din frecvență.</small>
+                            <small
+                              >Poți suprascrie manual data calculată din frecvență.</small
+                            >
                           </span>
                         </span>
                         <span class="detail-field-control">
@@ -871,7 +900,10 @@ interface InteractionDraft {
                           <mat-icon>chat_bubble_outline</mat-icon>
                           <span>
                             <b>Subiect data viitoare</b>
-                            <small>Un reminder scurt ca să reintri natural în conversație.</small>
+                            <small
+                              >Un reminder scurt ca să reintri natural în
+                              conversație.</small
+                            >
                           </span>
                         </span>
                         <span class="detail-field-control">
@@ -1333,7 +1365,9 @@ interface InteractionDraft {
                           <mat-icon>arrow_forward</mat-icon>
                           <span>
                             <b>Următorul pas</b>
-                            <small>Acțiunea simplă care trebuie făcută după discuție.</small>
+                            <small
+                              >Acțiunea simplă care trebuie făcută după discuție.</small
+                            >
                           </span>
                         </span>
                         <span class="detail-field-control">
@@ -1434,7 +1468,9 @@ interface InteractionDraft {
                     </section>
 
                     <footer class="editor-footer conversation-footer">
-                      <span class="conversation-hint">💾 Conversația rămâne în istoric.</span>
+                      <span class="conversation-hint"
+                        >💾 Conversația rămâne în istoric.</span
+                      >
                       <div class="form-actions">
                         <button
                           type="button"
@@ -2323,7 +2359,6 @@ interface InteractionDraft {
         font-size: 40px;
       }
 
-
       /* Networking UX refresh — intentionally scoped to this page only. */
       .people-panel-head,
       .editor-head,
@@ -2765,7 +2800,6 @@ interface InteractionDraft {
         transition: width 180ms ease;
       }
 
-
       .conversation-editor {
         margin-bottom: 10px;
       }
@@ -2956,7 +2990,6 @@ interface InteractionDraft {
         }
       }
 
-
       @media (max-width: 700px) {
         .conversation-pair {
           grid-template-columns: 1fr;
@@ -2966,7 +2999,6 @@ interface InteractionDraft {
           display: none;
         }
       }
-
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
