@@ -34,6 +34,7 @@ import {
 import { addCalendarDays } from '../../features/networking/networking.util';
 
 type NetworkingFilter = 'ALL' | 'DUE' | 'UPCOMING' | 'NO_REMINDER' | 'ARCHIVED';
+type ProfileSection = 'OVERVIEW' | 'FOLLOW_UPS' | 'HISTORY';
 type ContactEditorSection =
   | 'BASIC'
   | 'WORK'
@@ -1105,6 +1106,32 @@ interface InteractionDraft {
                 }
               </div>
 
+              <nav
+                class="profile-carousel"
+                aria-label="Detalii persoană"
+              >
+                @for (section of profileSections; track section.id) {
+                  <button
+                    type="button"
+                    [class.active]="profileSection() === section.id"
+                    [attr.aria-current]="
+                      profileSection() === section.id ? 'page' : null
+                    "
+                    (click)="profileSection.set(section.id)"
+                  >
+                    <span>{{ section.emoji }}</span>
+                    <span>{{ section.label }}</span>
+                    @if (section.id === 'FOLLOW_UPS' && openFollowUps().length) {
+                      <small>{{ openFollowUps().length }}</small>
+                    }
+                    @if (section.id === 'HISTORY' && interactions().length) {
+                      <small>{{ interactions().length }}</small>
+                    }
+                  </button>
+                }
+              </nav>
+
+              @if (profileSection() === 'OVERVIEW') {
               <section class="context-grid">
                 <mat-card>
                   <mat-card-content>
@@ -1177,7 +1204,9 @@ interface InteractionDraft {
                 </mat-card>
               </section>
 
-              @if (interactionEditorOpen()) {
+              }
+
+              @if (profileSection() === 'HISTORY' && interactionEditorOpen()) {
                 <section class="editor-shell conversation-editor">
                   <header class="editor-head">
                     <div class="editor-title">
@@ -1494,6 +1523,7 @@ interface InteractionDraft {
                 </section>
               }
 
+              @if (profileSection() === 'OVERVIEW') {
               <section class="profile-grid">
                 <mat-card>
                   <mat-card-content>
@@ -1579,6 +1609,9 @@ interface InteractionDraft {
                 </mat-card>
               </section>
 
+              }
+
+              @if (profileSection() === 'FOLLOW_UPS') {
               <mat-card class="followup-card">
                 <mat-card-content>
                   <div class="section-head">
@@ -1656,6 +1689,9 @@ interface InteractionDraft {
                 </mat-card-content>
               </mat-card>
 
+              }
+
+              @if (profileSection() === 'HISTORY') {
               <mat-card class="timeline-card">
                 <mat-card-content>
                   <div class="section-head">
@@ -1734,6 +1770,8 @@ interface InteractionDraft {
                   </div>
                 </mat-card-content>
               </mat-card>
+
+              }
 
               <footer class="danger-zone">
                 @if (contact.isArchived) {
@@ -2863,6 +2901,59 @@ interface InteractionDraft {
         background: var(--task-detail-bg-hover, var(--state-hover));
       }
 
+
+      .profile-carousel {
+        display: flex;
+        gap: 4px;
+        overflow-x: auto;
+        margin-bottom: 10px;
+        padding: 5px;
+        border: 1px solid var(--divider-color);
+        border-radius: var(--card-border-radius);
+        background: var(--task-detail-bg, var(--bg-lighter));
+      }
+
+      .profile-carousel button {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 36px;
+        padding: 5px 10px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--text-color-muted);
+        font: inherit;
+        font-size: 0.73rem;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: var(--transition-standard);
+      }
+
+      .profile-carousel button:hover {
+        background: var(--task-detail-bg-hover, var(--state-hover));
+        color: var(--text-color);
+      }
+
+      .profile-carousel button.active {
+        border-color: var(--divider-color);
+        background: var(--state-selected);
+        color: var(--text-color);
+        font-weight: 700;
+      }
+
+      .profile-carousel small {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        padding-inline: 4px;
+        border-radius: 999px;
+        background: var(--state-hover);
+        font-size: 0.62rem;
+      }
+
       @media (max-width: 900px) {
         .summary-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3019,6 +3110,7 @@ export class NetworkingPageComponent {
   readonly editingContactId = signal<string | null>(null);
   readonly interactionEditorOpen = signal(false);
   readonly contactEditorSection = signal<ContactEditorSection>('BASIC');
+  readonly profileSection = signal<ProfileSection>('OVERVIEW');
 
   readonly cadenceOptions = NETWORK_CADENCE_OPTIONS;
   readonly relationshipOptions = NETWORK_RELATIONSHIP_OPTIONS;
@@ -3036,6 +3128,16 @@ export class NetworkingPageComponent {
     { id: 'RELATIONSHIP', label: 'Relație', emoji: '🤝' },
     { id: 'FOLLOW_UP', label: 'Follow-up', emoji: '🗓️' },
     { id: 'NOTES', label: 'Note', emoji: '📝' },
+  ];
+
+  readonly profileSections: ReadonlyArray<{
+    id: ProfileSection;
+    label: string;
+    emoji: string;
+  }> = [
+    { id: 'OVERVIEW', label: 'Overview', emoji: '✨' },
+    { id: 'FOLLOW_UPS', label: 'Follow-up', emoji: '✅' },
+    { id: 'HISTORY', label: 'Conversații', emoji: '💬' },
   ];
 
   readonly filters: ReadonlyArray<{ id: NetworkingFilter; label: string }> = [
@@ -3206,6 +3308,7 @@ export class NetworkingPageComponent {
   }
 
   selectContact(id: string): void {
+    this.profileSection.set('OVERVIEW');
     this.selectedId.set(id);
     this.contactEditorOpen.set(false);
     this.interactionEditorOpen.set(false);
@@ -3333,6 +3436,7 @@ export class NetworkingPageComponent {
   }
 
   startInteraction(): void {
+    this.profileSection.set('HISTORY');
     this.interactionDraft = this._emptyInteractionDraft();
     this.interactionEditorOpen.set(true);
   }
