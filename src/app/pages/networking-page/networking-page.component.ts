@@ -338,7 +338,9 @@ interface InteractionDraft {
                     <mat-icon>person</mat-icon>
                     <div>
                       <strong>Date de contact</strong>
-                      <small>Completează doar informațiile pe care chiar le folosești.</small>
+                      <small
+                        >Completează doar informațiile pe care chiar le folosești.</small
+                      >
                     </div>
                   </div>
 
@@ -396,7 +398,9 @@ interface InteractionDraft {
                     <mat-icon>work</mat-icon>
                     <div>
                       <strong>Profesie și locație</strong>
-                      <small>Contextul profesional și locul în care se află persoana.</small>
+                      <small
+                        >Contextul profesional și locul în care se află persoana.</small
+                      >
                     </div>
                   </div>
 
@@ -457,7 +461,9 @@ interface InteractionDraft {
                     <mat-icon>handshake</mat-icon>
                     <div>
                       <strong>Context și relație</strong>
-                      <small>Cum v-ați cunoscut și ce fel de relație vrei să menții.</small>
+                      <small
+                        >Cum v-ați cunoscut și ce fel de relație vrei să menții.</small
+                      >
                     </div>
                   </div>
 
@@ -534,7 +540,10 @@ interface InteractionDraft {
                     <mat-icon>notes</mat-icon>
                     <div>
                       <strong>Note utile</strong>
-                      <small>Păstrează lucrurile stabile; conversațiile rămân separat în istoric.</small>
+                      <small>
+                        Păstrează lucrurile stabile; conversațiile rămân separat în
+                        istoric.
+                      </small>
                     </div>
                   </div>
 
@@ -602,7 +611,9 @@ interface InteractionDraft {
                   }
                   <label>
                     <span>Următorul contact</span>
-                    <small>Poți seta manual data sau o poți lăsa să urmeze frecvența.</small>
+                    <small
+                      >Poți seta manual data sau o poți lăsa să urmeze frecvența.</small
+                    >
                     <input
                       name="nextContactDay"
                       type="date"
@@ -611,7 +622,10 @@ interface InteractionDraft {
                   </label>
                   <label class="wide">
                     <span>Subiect data viitoare</span>
-                    <small>O propoziție scurtă ca să știi imediat de unde reiei conversația.</small>
+                    <small>
+                      O propoziție scurtă ca să știi imediat de unde reiei
+                      conversația.
+                    </small>
                     <input
                       name="nextTopic"
                       placeholder="Ce vreau să întreb / discut data viitoare"
@@ -2294,7 +2308,6 @@ export class NetworkingPageComponent {
     { id: 'NO_REMINDER', label: 'Fără reminder' },
     { id: 'ARCHIVED', label: 'Arhivate' },
   ];
-
 
   contactDraft: ContactDraft = this._emptyContactDraft();
   interactionDraft: InteractionDraft = this._emptyInteractionDraft();
