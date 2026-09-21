@@ -623,8 +623,7 @@ interface InteractionDraft {
                   <label class="wide">
                     <span>Subiect data viitoare</span>
                     <small>
-                      O propoziție scurtă ca să știi imediat de unde reiei
-                      conversația.
+                      O propoziție scurtă ca să știi imediat de unde reiei conversația.
                     </small>
                     <input
                       name="nextTopic"
