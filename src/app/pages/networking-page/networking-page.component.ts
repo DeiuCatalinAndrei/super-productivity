@@ -1114,9 +1114,7 @@ interface InteractionDraft {
                   <button
                     type="button"
                     [class.active]="profileSection() === section.id"
-                    [attr.aria-current]="
-                      profileSection() === section.id ? 'page' : null
-                    "
+                    [attr.aria-current]="profileSection() === section.id ? 'page' : null"
                     (click)="profileSection.set(section.id)"
                   >
                     <span>{{ section.emoji }}</span>
