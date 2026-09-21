@@ -29,17 +29,34 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           update_file() {
             local file="$1"
             local sha
-            local content
             sha=$(gh api "repos/$GITHUB_REPOSITORY/contents/$file?ref=$BRANCH" --jq .sha)
-            content=$(base64 -w0 "$file")
+
+            FILE="$file" SHA="$sha" BRANCH="$BRANCH" python - <<'PY'
+import base64
+import json
+import os
+
+path = os.environ["FILE"]
+with open(path, "rb") as fh:
+    content = base64.b64encode(fh.read()).decode("ascii")
+
+body = {
+    "message": "style(networking): apply project formatting",
+    "branch": os.environ["BRANCH"],
+    "sha": os.environ["SHA"],
+    "content": content,
+}
+
+with open("/tmp/networking-update.json", "w", encoding="utf-8") as fh:
+    json.dump(body, fh)
+PY
+
             gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$file" \
-              -f message="style(networking): apply project formatting" \
-              -f branch="$BRANCH" \
-              -f sha="$sha" \
-              -f content="$content" >/dev/null
+              --input /tmp/networking-update.json >/dev/null
           }
 
           update_file "src/app/pages/networking-page/networking-page.component.ts"
