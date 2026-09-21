@@ -1077,7 +1077,7 @@ interface InteractionDraft {
                 <mat-card>
                   <mat-card-content>
                     <div class="mini-head">
-                      <strong>Ținem legătura</strong>
+                      <strong>🗓️ Ținem legătura</strong>
                       @if (contact.nextContactDay) {
                         <span
                           class="status-pill"
@@ -1118,7 +1118,7 @@ interface InteractionDraft {
                 <mat-card>
                   <mat-card-content>
                     <div class="mini-head">
-                      <strong>Context rapid</strong>
+                      <strong>🧠 Context rapid</strong>
                       <mat-icon>psychology_alt</mat-icon>
                     </div>
                     @if (latestInteraction(); as last) {
@@ -1146,133 +1146,296 @@ interface InteractionDraft {
               </section>
 
               @if (interactionEditorOpen()) {
-                <mat-card class="interaction-editor">
-                  <mat-card-content>
-                    <div class="section-head">
+                <section class="editor-shell conversation-editor">
+                  <header class="editor-head">
+                    <div class="editor-title">
+                      <span class="editor-title-icon">💬</span>
                       <div>
                         <h3>Înregistrează conversația</h3>
                         <p>
-                          Scrie esențialul, ca data viitoare să ai imediat tot contextul.
+                          Notează doar esențialul. Data viitoare vei avea contextul gata
+                          înainte să scrii sau să vă vedeți.
                         </p>
                       </div>
-                      <button
-                        mat-icon-button
-                        (click)="interactionEditorOpen.set(false)"
-                        aria-label="Închide"
-                      >
-                        <mat-icon>close</mat-icon>
-                      </button>
                     </div>
-
-                    <form
-                      class="interaction-form"
-                      (ngSubmit)="saveInteraction(contact.id)"
+                    <button
+                      mat-icon-button
+                      type="button"
+                      (click)="interactionEditorOpen.set(false)"
+                      aria-label="Închide"
                     >
-                      <label>
-                        <span>Data și ora</span>
-                        <input
-                          name="interactionAt"
-                          type="datetime-local"
-                          [(ngModel)]="interactionDraft.at"
-                        />
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </header>
+
+                  <form
+                    class="interaction-form native-detail-form"
+                    (ngSubmit)="saveInteraction(contact.id)"
+                  >
+                    <section class="editor-section conversation-section">
+                      <div class="editor-section-intro">
+                        <span>🧠</span>
+                        <div>
+                          <h3>Memoria conversației</h3>
+                          <p>
+                            Un rezumat bun îți permite să reiei relația natural chiar și
+                            după câteva luni.
+                          </p>
+                        </div>
+                      </div>
+
+                      <label class="detail-field tall conversation-summary">
+                        <span class="detail-field-title">
+                          <mat-icon>forum</mat-icon>
+                          <span>
+                            <b>Ce am vorbit? *</b>
+                            <small>
+                              Rezumatul principal: subiecte, idei importante și context.
+                            </small>
+                          </span>
+                        </span>
+                        <span class="detail-field-control">
+                          <textarea
+                            name="summary"
+                            rows="5"
+                            required
+                            placeholder="Ex: am discutat despre joburi AI în Timișoara și proiectul lui RAG..."
+                            [(ngModel)]="interactionDraft.summary"
+                          ></textarea>
+                        </span>
                       </label>
-                      <label>
-                        <span>Cum am vorbit</span>
-                        <select
-                          name="channel"
-                          [(ngModel)]="interactionDraft.channel"
-                        >
-                          @for (item of channelOptions; track item.value) {
-                            <option [value]="item.value">{{ item.label }}</option>
-                          }
-                        </select>
-                      </label>
-                      <label class="wide">
-                        <span>Unde / context</span>
-                        <input
-                          name="interactionLocation"
-                          [(ngModel)]="interactionDraft.location"
-                        />
-                      </label>
-                      <label class="wide">
-                        <span>Ce am vorbit? *</span>
-                        <textarea
-                          name="summary"
-                          rows="5"
-                          required
-                          placeholder="Rezumatul conversației și ideile importante..."
-                          [(ngModel)]="interactionDraft.summary"
-                        ></textarea>
-                      </label>
-                      <label class="wide">
-                        <span>Ce am aflat nou?</span>
-                        <textarea
-                          name="learned"
-                          rows="3"
-                          [(ngModel)]="interactionDraft.learned"
-                        ></textarea>
-                      </label>
-                      <label>
-                        <span>Ce am promis eu?</span>
-                        <textarea
-                          name="iPromised"
-                          rows="3"
-                          [(ngModel)]="interactionDraft.iPromised"
-                        ></textarea>
-                      </label>
-                      <label>
-                        <span>Ce a promis persoana?</span>
-                        <textarea
-                          name="theyPromised"
-                          rows="3"
-                          [(ngModel)]="interactionDraft.theyPromised"
-                        ></textarea>
-                      </label>
-                      <label class="wide">
-                        <span>Următorul pas</span>
-                        <input
-                          name="nextStep"
-                          [(ngModel)]="interactionDraft.nextStep"
-                        />
-                      </label>
-                      <label class="wide">
-                        <span>Despre ce să vorbesc data viitoare?</span>
-                        <input
-                          name="interactionNextTopic"
-                          [(ngModel)]="interactionDraft.nextTopic"
-                        />
-                      </label>
-                      <label>
-                        <span>Următorul contact</span>
-                        <input
-                          name="interactionNextContactDay"
-                          type="date"
-                          [(ngModel)]="interactionDraft.nextContactDay"
-                        />
-                        <small
-                          >Dacă rămâne gol, se calculează din frecvența persoanei.</small
-                        >
-                      </label>
-                      <label>
-                        <span>Follow-up de făcut</span>
-                        <input
-                          name="followUpTitle"
-                          placeholder="ex. Trimite CV-ul"
-                          [(ngModel)]="interactionDraft.followUpTitle"
-                        />
-                      </label>
-                      @if (interactionDraft.followUpTitle.trim()) {
-                        <label>
-                          <span>Termen follow-up</span>
+
+                      <label class="detail-field">
+                        <span class="detail-field-title">
+                          <mat-icon>schedule</mat-icon>
+                          <span>
+                            <b>Data și ora</b>
+                            <small>Când a avut loc conversația.</small>
+                          </span>
+                        </span>
+                        <span class="detail-field-control">
                           <input
-                            name="followUpDueDay"
-                            type="date"
-                            [(ngModel)]="interactionDraft.followUpDueDay"
+                            name="interactionAt"
+                            type="datetime-local"
+                            [(ngModel)]="interactionDraft.at"
                           />
+                        </span>
+                      </label>
+
+                      <label class="detail-field">
+                        <span class="detail-field-title">
+                          <mat-icon>connect_without_contact</mat-icon>
+                          <span>
+                            <b>Cum am vorbit</b>
+                            <small>Întâlnire, telefon, WhatsApp, LinkedIn etc.</small>
+                          </span>
+                        </span>
+                        <span class="detail-field-control">
+                          <select
+                            name="channel"
+                            [(ngModel)]="interactionDraft.channel"
+                          >
+                            @for (item of channelOptions; track item.value) {
+                              <option [value]="item.value">{{ item.label }}</option>
+                            }
+                          </select>
+                        </span>
+                      </label>
+
+                      <label class="detail-field">
+                        <span class="detail-field-title">
+                          <mat-icon>place</mat-icon>
+                          <span>
+                            <b>Unde / context</b>
+                            <small>Locul, evenimentul sau motivul conversației.</small>
+                          </span>
+                        </span>
+                        <span class="detail-field-control">
+                          <input
+                            name="interactionLocation"
+                            placeholder="ex. cafea în Timișoara / LinkedIn"
+                            [(ngModel)]="interactionDraft.location"
+                          />
+                        </span>
+                      </label>
+
+                      <label class="detail-field tall">
+                        <span class="detail-field-title">
+                          <mat-icon>lightbulb</mat-icon>
+                          <span>
+                            <b>Ce am aflat nou?</b>
+                            <small>
+                              Informații despre persoană, proiecte, planuri sau interese.
+                            </small>
+                          </span>
+                        </span>
+                        <span class="detail-field-control">
+                          <textarea
+                            name="learned"
+                            rows="3"
+                            placeholder="Ex: echipa lui caută backend developer..."
+                            [(ngModel)]="interactionDraft.learned"
+                          ></textarea>
+                        </span>
+                      </label>
+
+                      <div class="conversation-pair">
+                        <label class="detail-field tall">
+                          <span class="detail-field-title">
+                            <mat-icon>assignment_turned_in</mat-icon>
+                            <span>
+                              <b>Ce am promis eu?</b>
+                              <small>Lucrurile pentru care trebuie să revii tu.</small>
+                            </span>
+                          </span>
+                          <span class="detail-field-control">
+                            <textarea
+                              name="iPromised"
+                              rows="3"
+                              placeholder="Ex: îi trimit GitHub-ul"
+                              [(ngModel)]="interactionDraft.iPromised"
+                            ></textarea>
+                          </span>
+                        </label>
+
+                        <label class="detail-field tall">
+                          <span class="detail-field-title">
+                            <mat-icon>assignment_ind</mat-icon>
+                            <span>
+                              <b>Ce a promis persoana?</b>
+                              <small>Ce ai putea urmări la următoarea discuție.</small>
+                            </span>
+                          </span>
+                          <span class="detail-field-control">
+                            <textarea
+                              name="theyPromised"
+                              rows="3"
+                              placeholder="Ex: îmi trimite contactul recruiterului"
+                              [(ngModel)]="interactionDraft.theyPromised"
+                            ></textarea>
+                          </span>
+                        </label>
+                      </div>
+
+                      <div class="editor-section-intro next-step-intro">
+                        <span>🔁</span>
+                        <div>
+                          <h3>Ce urmează</h3>
+                          <p>
+                            Transformă conversația în următorul pas concret și păstrează
+                            relația vie.
+                          </p>
+                        </div>
+                      </div>
+
+                      <label class="detail-field">
+                        <span class="detail-field-title">
+                          <mat-icon>arrow_forward</mat-icon>
+                          <span>
+                            <b>Următorul pas</b>
+                            <small>Acțiunea simplă care trebuie făcută după discuție.</small>
+                          </span>
+                        </span>
+                        <span class="detail-field-control">
+                          <input
+                            name="nextStep"
+                            placeholder="ex. Trimite portofoliul"
+                            [(ngModel)]="interactionDraft.nextStep"
+                          />
+                        </span>
+                      </label>
+
+                      <label class="detail-field tall">
+                        <span class="detail-field-title">
+                          <mat-icon>question_answer</mat-icon>
+                          <span>
+                            <b>Despre ce vorbesc data viitoare?</b>
+                            <small>
+                              Întrebarea sau tema care te ajută să reiei conversația
+                              natural.
+                            </small>
+                          </span>
+                        </span>
+                        <span class="detail-field-control">
+                          <textarea
+                            name="interactionNextTopic"
+                            rows="3"
+                            placeholder="Ex: întreabă-l cum a mers lansarea proiectului"
+                            [(ngModel)]="interactionDraft.nextTopic"
+                          ></textarea>
+                        </span>
+                      </label>
+
+                      <label class="detail-field">
+                        <span class="detail-field-title">
+                          <mat-icon>event_available</mat-icon>
+                          <span>
+                            <b>Următorul contact</b>
+                            <small>
+                              Lasă gol pentru calcul automat din frecvența persoanei.
+                            </small>
+                          </span>
+                        </span>
+                        <span class="detail-field-control">
+                          <input
+                            name="interactionNextContactDay"
+                            type="date"
+                            [(ngModel)]="interactionDraft.nextContactDay"
+                          />
+                        </span>
+                      </label>
+
+                      <label class="detail-field">
+                        <span class="detail-field-title">
+                          <mat-icon>add_task</mat-icon>
+                          <span>
+                            <b>Follow-up de făcut</b>
+                            <small>
+                              Poate rămâne în Networking sau îl poți transforma ulterior
+                              într-un task LifeOS.
+                            </small>
+                          </span>
+                        </span>
+                        <span class="detail-field-control">
+                          <input
+                            name="followUpTitle"
+                            placeholder="ex. Trimite CV-ul"
+                            [(ngModel)]="interactionDraft.followUpTitle"
+                          />
+                        </span>
+                      </label>
+
+                      @if (interactionDraft.followUpTitle.trim()) {
+                        <label class="detail-field">
+                          <span class="detail-field-title">
+                            <mat-icon>flag</mat-icon>
+                            <span>
+                              <b>Termen follow-up</b>
+                              <small>Data până la care vrei să închizi acțiunea.</small>
+                            </span>
+                          </span>
+                          <span class="detail-field-control">
+                            <input
+                              name="followUpDueDay"
+                              type="date"
+                              [(ngModel)]="interactionDraft.followUpDueDay"
+                            />
+                          </span>
                         </label>
                       }
 
-                      <div class="form-actions wide">
+                      <div class="editor-tip">
+                        <span>✨</span>
+                        <p>
+                          Nu trebuie să scrii mult. 3–5 idei clare sunt suficiente ca să
+                          ai tot contextul data viitoare.
+                        </p>
+                      </div>
+                    </section>
+
+                    <footer class="editor-footer conversation-footer">
+                      <span class="conversation-hint">💾 Conversația rămâne în istoric.</span>
+                      <div class="form-actions">
                         <button
                           type="button"
                           mat-button
@@ -1290,16 +1453,16 @@ interface InteractionDraft {
                           Salvează conversația
                         </button>
                       </div>
-                    </form>
-                  </mat-card-content>
-                </mat-card>
+                    </footer>
+                  </form>
+                </section>
               }
 
               <section class="profile-grid">
                 <mat-card>
                   <mat-card-content>
                     <div class="mini-head">
-                      <strong>Despre persoană</strong>
+                      <strong>👤 Despre persoană</strong>
                       <span>{{ relationshipLabel(contact.relationshipType) }}</span>
                     </div>
                     <dl>
@@ -1461,7 +1624,7 @@ interface InteractionDraft {
                 <mat-card-content>
                   <div class="section-head">
                     <div>
-                      <h3>Istoric conversații</h3>
+                      <h3>💬 Istoric conversații</h3>
                       <p>
                         Fiecare conversație rămâne în cronologie; nimic nu se suprascrie.
                       </p>
@@ -2602,6 +2765,70 @@ interface InteractionDraft {
         transition: width 180ms ease;
       }
 
+
+      .conversation-editor {
+        margin-bottom: 10px;
+      }
+
+      .conversation-section {
+        max-width: 900px;
+      }
+
+      .conversation-summary .detail-field-control textarea {
+        min-height: 130px;
+      }
+
+      .conversation-pair {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .conversation-pair .detail-field {
+        grid-template-columns: 1fr;
+        align-content: start;
+        margin: 0;
+      }
+
+      .conversation-pair .detail-field-title {
+        padding-top: 0;
+      }
+
+      .next-step-intro {
+        margin-top: 10px;
+        padding-top: 11px;
+        border-top: 1px solid var(--divider-color);
+      }
+
+      .conversation-footer {
+        min-height: 58px;
+      }
+
+      .conversation-hint {
+        color: var(--text-color-muted);
+        font-size: 0.68rem;
+      }
+
+      .profile .context-grid mat-card,
+      .profile .profile-grid mat-card,
+      .profile .followup-card,
+      .profile .timeline-card {
+        box-shadow: none;
+        border: 1px solid var(--divider-color);
+        border-radius: var(--card-border-radius);
+        background: var(--task-detail-bg, var(--bg-lighter));
+      }
+
+      .profile .mini-head strong,
+      .profile .section-head h3 {
+        font-size: 0.86rem;
+      }
+
+      .profile .timeline-card .interaction-details > div {
+        border: 1px solid color-mix(in srgb, var(--divider-color) 72%, transparent);
+        background: var(--task-detail-bg-hover, var(--state-hover));
+      }
+
       @media (max-width: 900px) {
         .summary-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2726,6 +2953,17 @@ interface InteractionDraft {
 
         .editor-footer .form-actions {
           flex-wrap: wrap;
+        }
+      }
+
+
+      @media (max-width: 700px) {
+        .conversation-pair {
+          grid-template-columns: 1fr;
+        }
+
+        .conversation-hint {
+          display: none;
         }
       }
 
