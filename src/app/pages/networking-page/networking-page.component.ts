@@ -2678,6 +2678,367 @@ interface InteractionDraft {
           box-shadow: none;
         }
       }
+
+      /* Native Super Productivity right-panel treatment */
+      .workspace.panel-open {
+        grid-template-columns: minmax(0, 1fr) 340px;
+        gap: 0;
+        align-items: stretch;
+      }
+
+      .detail-panel {
+        position: sticky;
+        top: 0;
+        align-self: start;
+        min-height: 620px;
+        max-height: calc(100vh - 72px);
+        overflow: auto;
+        padding: 0;
+        border: 0;
+        border-left: 1px solid var(--separator-color);
+        border-radius: 0;
+        background: var(--right-panel-bg);
+        box-shadow: none;
+      }
+
+      .panel-edge-close {
+        position: absolute;
+        z-index: 5;
+        top: 50%;
+        left: -8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 48px;
+        padding: 0;
+        transform: translateY(-50%);
+        border: 0;
+        border-radius: 3px 8px 8px 3px;
+        background: var(--bg-lightest);
+        box-shadow: var(--whiteframe-shadow-2dp);
+        color: var(--text-color);
+        cursor: pointer;
+      }
+
+      .panel-edge-close mat-icon {
+        width: 16px;
+        height: 16px;
+        font-size: 16px;
+      }
+
+      .panel-title-wrapper {
+        display: flex;
+        align-items: center;
+        min-height: var(--bar-height);
+        margin: calc(var(--s2) + var(--s-half)) var(--s) var(--s);
+        border-bottom: 2px solid var(--c-primary);
+      }
+
+      .panel-title-copy {
+        min-width: 0;
+        flex: 1;
+        padding: var(--s) var(--s-half);
+      }
+
+      .panel-title-copy h2 {
+        margin: 0;
+        overflow: hidden;
+        font-size: 17px;
+        font-weight: 600;
+        line-height: 1.35;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .panel-title-copy small {
+        display: block;
+        margin-top: 2px;
+        overflow: hidden;
+        color: var(--text-color-muted);
+        font-size: 11px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .quick-interaction-panel,
+      .editor-card {
+        margin: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none !important;
+      }
+
+      :host ::ng-deep .quick-interaction-panel > .mat-mdc-card-content,
+      :host ::ng-deep .editor-card > .mat-mdc-card-content {
+        padding: 0 !important;
+      }
+
+      .quick-interaction-form {
+        gap: 0;
+      }
+
+      .networking-detail-item {
+        display: block;
+      }
+
+      :host ::ng-deep .networking-detail-item > .input-item,
+      :host ::ng-deep .networking-detail-item > .mat-expansion-panel {
+        margin-block: calc(var(--s-half) + var(--s-quarter));
+      }
+
+      .panel-inline-control {
+        min-height: 34px;
+        padding: 4px 6px;
+        border: 0;
+        border-bottom: 1px solid var(--divider-color);
+        border-radius: 0;
+        background: transparent;
+      }
+
+      .quick-channel-section,
+      .reconnect-section,
+      .panel-textarea-wrap,
+      .interaction-more {
+        margin: var(--s);
+      }
+
+      .quick-channel-section,
+      .reconnect-section {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-half);
+      }
+
+      .quick-label,
+      .reconnect-head small {
+        color: var(--text-color-muted);
+        font-size: 11px;
+      }
+
+      .reconnect-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--s-half);
+      }
+
+      .channel-picker {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--s-half);
+      }
+
+      .channel-choice {
+        min-height: 40px;
+        padding: var(--s-half) var(--s);
+        border-radius: var(--card-border-radius);
+        background: var(--task-detail-bg);
+      }
+
+      .channel-choice.active,
+      .reconnect-presets button.active {
+        border-color: var(--palette-primary-400);
+        background: var(--task-detail-bg-hover);
+        color: var(--text-color);
+      }
+
+      .other-channel-field {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-quarter);
+        margin-top: var(--s-quarter);
+      }
+
+      .other-channel-field input {
+        min-height: 38px;
+      }
+
+      .panel-textarea-wrap label {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-quarter);
+      }
+
+      .panel-textarea-wrap textarea {
+        min-height: 74px;
+      }
+
+      .reconnect-presets {
+        gap: var(--s-half);
+      }
+
+      .reconnect-presets button {
+        min-height: 32px;
+        padding: 4px 8px;
+        border-radius: var(--card-border-radius);
+        background: var(--task-detail-bg);
+        font-size: 12px;
+      }
+
+      .reconnect-date-item {
+        margin: 0 calc(-1 * var(--s));
+      }
+
+      .interaction-more {
+        padding: 0;
+        border: 0;
+        border-top: 1px solid var(--divider-color);
+        border-radius: 0;
+      }
+
+      .interaction-more summary {
+        padding: var(--s) 0 var(--s-half);
+      }
+
+      .interaction-more-grid {
+        gap: var(--s-half);
+        margin-top: 0;
+      }
+
+      .panel-form-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 3;
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--s-half);
+        margin-top: var(--s);
+        padding: var(--s);
+        border-top: 1px solid var(--divider-color);
+        background: var(--right-panel-bg);
+      }
+
+      .native-profile-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--s-half);
+        margin: 0 var(--s) var(--s-half);
+      }
+
+      .native-contact-links {
+        gap: var(--s-half);
+        margin: var(--s);
+      }
+
+      .native-contact-links a {
+        min-height: 30px;
+        padding: 2px 7px;
+        border-radius: var(--card-border-radius);
+        background: var(--task-detail-bg);
+        font-size: 12px;
+      }
+
+      .panel-context-note {
+        display: flex;
+        gap: var(--s);
+        margin: var(--s-half) var(--s);
+        padding: var(--s-half) var(--s);
+        color: var(--text-color-less-intense);
+      }
+
+      .panel-context-note mat-icon {
+        flex: 0 0 auto;
+        color: var(--text-color-muted);
+      }
+
+      .panel-context-note small {
+        color: var(--text-color-muted);
+        font-size: 11px;
+      }
+
+      .panel-context-note p {
+        margin: 2px 0 0;
+        white-space: pre-wrap;
+      }
+
+      .compact-profile-list > div {
+        grid-template-columns: minmax(90px, 0.45fr) 1fr;
+        padding: var(--s-half) 0;
+      }
+
+      .compact-text-block {
+        margin-top: var(--s);
+      }
+
+      .compact-text-block small,
+      .compact-two-col small {
+        color: var(--text-color-muted);
+        font-size: 11px;
+      }
+
+      .compact-text-block p,
+      .compact-two-col p {
+        margin: 3px 0 0;
+        white-space: pre-wrap;
+      }
+
+      .compact-two-col {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--s);
+        margin-top: var(--s);
+      }
+
+      .native-quick-followup {
+        margin: 0 0 var(--s-half);
+      }
+
+      .native-quick-followup input {
+        min-height: 34px;
+      }
+
+      .compact-timeline .interaction {
+        padding-bottom: var(--s);
+      }
+
+      .compact-timeline .interaction-details {
+        grid-template-columns: 1fr;
+      }
+
+      .compact-timeline .interaction-details > div {
+        padding: var(--s-half);
+      }
+
+      .compact-empty {
+        margin: var(--s-half) 0;
+      }
+
+      .native-danger-zone {
+        margin: var(--s-half) var(--s) var(--s2);
+      }
+
+      @media (max-width: 1100px) {
+        .workspace.panel-open {
+          grid-template-columns: minmax(0, 1fr) 320px;
+        }
+      }
+
+      @media (max-width: 800px) {
+        .workspace.panel-open {
+          display: block;
+        }
+
+        .workspace.panel-open .people-panel {
+          display: none;
+        }
+
+        .detail-panel {
+          position: static;
+          min-height: 0;
+          max-height: none;
+          overflow: visible;
+          border-left: 0;
+        }
+
+        .panel-edge-close {
+          display: none;
+        }
+
+        .compact-two-col {
+          grid-template-columns: 1fr;
+        }
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
