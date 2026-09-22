@@ -465,13 +465,13 @@ interface InteractionDraft {
                     </ng-container>
                   </task-detail-item>
 
-                  <div class="panel-textarea-wrap">
+                  <div class="panel-textarea-wrap important-summary-field">
                     <label>
                       <span>Ce a fost important? <small>opțional</small></span>
                       <textarea
                         name="quickInteractionSummary"
-                        rows="3"
-                        placeholder="O notă scurtă ca să îți amintești contextul..."
+                        rows="7"
+                        placeholder="Scrie contextul important, ce s-a discutat, ideile principale sau orice vrei să îți amintești data viitoare..."
                         [(ngModel)]="interactionDraft.summary"
                       ></textarea>
                     </label>
@@ -3362,6 +3362,96 @@ interface InteractionDraft {
 
         .contact-editor-row {
           grid-template-columns: 1fr;
+        }
+      }
+
+      /* Match the Today work-view behavior for the left Networking column */
+      .workspace,
+      .workspace.panel-open {
+        height: calc(100dvh - 236px);
+        min-height: 440px;
+        max-height: none;
+        gap: 0;
+      }
+
+      .workspace:not(.panel-open) {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .people-panel {
+        position: relative;
+        min-height: 0;
+        height: 100%;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+      }
+
+      .search-row {
+        padding: var(--s-half) var(--s);
+        border-bottom: 0;
+      }
+
+      .filters {
+        padding: 0 var(--s) var(--s-half);
+        border-bottom: 1px solid var(--divider-color);
+      }
+
+      .people-list {
+        min-height: 0;
+        padding: var(--s-half) var(--s) var(--s8);
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: auto;
+      }
+
+      .people-group {
+        align-content: start;
+      }
+
+      .people-group-head {
+        min-height: var(--bar-height);
+        padding: 0 var(--s);
+        border-bottom: 1px solid var(--divider-color);
+      }
+
+      .person-row {
+        border-radius: var(--card-border-radius);
+      }
+
+      .workspace.panel-open .people-panel {
+        border-right: 1px solid var(--separator-color);
+      }
+
+      .important-summary-field {
+        margin-top: var(--s2);
+        margin-bottom: var(--s2);
+      }
+
+      .important-summary-field textarea {
+        min-height: 168px;
+        line-height: 1.5;
+        resize: vertical;
+      }
+
+      @media (max-width: 800px) {
+        .workspace,
+        .workspace.panel-open {
+          height: auto;
+          min-height: 0;
+        }
+
+        .workspace.panel-open .people-panel {
+          border-right: 0;
+        }
+
+        .people-list {
+          padding-bottom: var(--s2);
+        }
+
+        .important-summary-field textarea {
+          min-height: 150px;
         }
       }
     `,
