@@ -219,6 +219,62 @@ export class NetworkingService {
     });
   }
 
+  updateInteraction(id: string, input: NetworkInteractionInput): void {
+    const current = this.data().interactions.find((item) => item.id === id);
+    if (!current) return;
+
+    const contact = this.contact(current.contactId);
+    if (!contact) return;
+
+    const data = this.data();
+    const nextContactDay =
+      input.nextContactDay !== undefined && input.nextContactDay !== null
+        ? input.nextContactDay || null
+        : (current.nextContactDay ?? null);
+
+    const updatedInteraction: NetworkInteraction = {
+      ...current,
+      at: input.at,
+      channel: input.channel,
+      channelCustom: input.channelCustom?.trim() || undefined,
+      location: input.location?.trim() || undefined,
+      summary: input.summary.trim(),
+      learned: input.learned?.trim() || undefined,
+      iPromised: input.iPromised?.trim() || undefined,
+      theyPromised: input.theyPromised?.trim() || undefined,
+      nextStep: input.nextStep?.trim() || undefined,
+      nextTopic: input.nextTopic?.trim() || undefined,
+      nextContactDay,
+    };
+
+    const interactions = data.interactions.map((item) =>
+      item.id === id ? updatedInteraction : item,
+    );
+    const latest = interactions
+      .filter((item) => item.contactId === current.contactId)
+      .slice()
+      .sort((a, b) => b.at - a.at)[0];
+
+    const updatedContact: NetworkContact = {
+      ...contact,
+      lastContactAt: latest?.at ?? null,
+      nextContactDay:
+        latest?.nextContactDay !== undefined
+          ? latest.nextContactDay
+          : contact.nextContactDay,
+      nextTopic: latest ? latest.nextTopic : contact.nextTopic,
+      modifiedAt: Date.now(),
+    };
+
+    this._setData({
+      ...data,
+      contacts: data.contacts.map((item) =>
+        item.id === current.contactId ? updatedContact : item,
+      ),
+      interactions,
+    });
+  }
+
   logInteraction(contactId: string, input: NetworkInteractionInput): string {
     const contact = this.contact(contactId);
     if (!contact) {
