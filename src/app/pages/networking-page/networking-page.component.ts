@@ -13,6 +13,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDialog } from '@angular/material/dialog';
 import { DateTimeFormatService } from '../../core/date-time-format/date-time-format.service';
 import { getDbDateStr } from '../../util/get-db-date-str';
 import {
@@ -32,9 +33,16 @@ import {
   NetworkInteractionInput,
   NetworkingService,
 } from '../../features/networking/networking.service';
-import { addCalendarDays } from '../../features/networking/networking.util';
+import {
+  addCalendarDays,
+  getNextContactDay,
+  timestampToLocalDay,
+} from '../../features/networking/networking.util';
+import { TaskDetailItemComponent } from '../../features/tasks/task-detail-panel/task-additional-info-item/task-detail-item.component';
+import { DialogDeadlineComponent } from '../../features/tasks/dialog-deadline/dialog-deadline.component';
 
 type NetworkingFilter = 'ALL' | 'DUE' | 'UPCOMING' | 'NO_REMINDER' | 'ARCHIVED';
+type ReconnectChoice = 'DEFAULT' | '3D' | '7D' | '14D' | '1M' | 'CUSTOM';
 interface ContactDraft {
   name: string;
   phone: string;
@@ -69,6 +77,7 @@ interface ContactDraft {
 interface InteractionDraft {
   at: string;
   channel: NetworkInteractionChannel;
+  channelCustom: string;
   location: string;
   summary: string;
   learned: string;
@@ -91,6 +100,7 @@ interface InteractionDraft {
     MatButtonModule,
     MatCardModule,
     MatIconModule,
+    TaskDetailItemComponent,
   ],
   template: `
     <main class="networking-page">
@@ -238,7 +248,7 @@ interface InteractionDraft {
                               <span class="channel-emoji">{{
                                 channelIcon(last.channel)
                               }}</span>
-                              {{ channelLabel(last.channel) }} ·
+                              {{ channelDisplayLabel(last) }} ·
                               {{ relativeTimeLabel(last.at) }}
                             </span>
                           } @else {
@@ -313,7 +323,7 @@ interface InteractionDraft {
                     @if (latestInteractionFor(contact.id); as last) {
                       <span class="person-last">
                         <span class="channel-emoji">{{ channelIcon(last.channel) }}</span>
-                        {{ channelLabel(last.channel) }} ·
+                        {{ channelDisplayLabel(last) }} ·
                         {{ relativeTimeLabel(last.at) }}
                       </span>
                     } @else {
@@ -358,43 +368,60 @@ interface InteractionDraft {
         </aside>
 
         <section class="detail-panel">
+          <button
+            class="panel-edge-close"
+            type="button"
+            aria-label="Închide panelul"
+            (click)="closePanel()"
+          >
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+
           @if (interactionEditorOpen()) {
             <mat-card class="quick-interaction-panel">
               <mat-card-content>
-                <div class="section-head quick-panel-head">
-                  <div>
+                <header class="panel-title-wrapper">
+                  <div class="panel-title-copy">
                     <h2>Am vorbit</h2>
-                    <p>Înregistrează conversația în câteva secunde.</p>
+                    @if (interactionContact(); as person) {
+                      <small>
+                        {{ person.name }} · Default:
+                        {{ cadenceExactLabel(person.cadence, person.cadenceDays) }}
+                      </small>
+                    } @else {
+                      <small>Înregistrează conversația în câteva secunde.</small>
+                    }
                   </div>
-                  <button
-                    mat-icon-button
-                    type="button"
-                    aria-label="Închide"
-                    (click)="closePanel()"
-                  >
-                    <mat-icon>close</mat-icon>
-                  </button>
-                </div>
+                </header>
 
                 <form
                   class="quick-interaction-form"
                   (ngSubmit)="saveInteraction()"
                 >
-                  <label class="quick-contact-select">
-                    <span>Persoană</span>
-                    <select
-                      name="quickInteractionContact"
-                      [ngModel]="interactionContactId()"
-                      (ngModelChange)="interactionContactId.set($event)"
-                    >
-                      <option value="">Alege persoana...</option>
-                      @for (person of networking.contacts(); track person.id) {
-                        <option [value]="person.id">{{ person.name }}</option>
-                      }
-                    </select>
-                  </label>
+                  <task-detail-item
+                    type="fullSizeInput"
+                    class="networking-detail-item"
+                  >
+                    <ng-container input-title>
+                      <mat-icon>person</mat-icon>
+                      <span>Persoană</span>
+                    </ng-container>
+                    <ng-container input-value>
+                      <select
+                        class="panel-inline-control"
+                        name="quickInteractionContact"
+                        [ngModel]="interactionContactId()"
+                        (ngModelChange)="onInteractionContactChange($event)"
+                      >
+                        <option value="">Alege persoana...</option>
+                        @for (person of networking.contacts(); track person.id) {
+                          <option [value]="person.id">{{ person.name }}</option>
+                        }
+                      </select>
+                    </ng-container>
+                  </task-detail-item>
 
-                  <div class="quick-field">
+                  <div class="quick-channel-section">
                     <span class="quick-label">Cum ați vorbit?</span>
                     <div class="channel-picker">
                       @for (item of quickChannelOptions; track item.value) {
@@ -402,67 +429,116 @@ interface InteractionDraft {
                           type="button"
                           class="channel-choice"
                           [class.active]="interactionDraft.channel === item.value"
-                          (click)="interactionDraft.channel = item.value"
+                          (click)="selectInteractionChannel(item.value)"
                         >
                           <span>{{ channelIcon(item.value) }}</span>
                           <strong>{{ item.label }}</strong>
                         </button>
                       }
                     </div>
+                    @if (interactionDraft.channel === 'OTHER') {
+                      <label class="other-channel-field">
+                        <span>Care?</span>
+                        <input
+                          name="quickCustomChannel"
+                          placeholder="ex. Discord, Telegram, eveniment..."
+                          [(ngModel)]="interactionDraft.channelCustom"
+                        />
+                      </label>
+                    }
                   </div>
 
-                  <label>
-                    <span>Când?</span>
-                    <input
-                      name="quickInteractionAt"
-                      type="datetime-local"
-                      [(ngModel)]="interactionDraft.at"
-                    />
-                  </label>
+                  <task-detail-item
+                    (editActionTriggered)="openInteractionDateDialog()"
+                    [inputIcon]="'edit'"
+                    class="networking-detail-item"
+                  >
+                    <ng-container input-title>
+                      <mat-icon>schedule</mat-icon>
+                      <span>Când?</span>
+                    </ng-container>
+                    <ng-container input-value>
+                      <span>{{ interactionAtLabel() }}</span>
+                    </ng-container>
+                  </task-detail-item>
 
-                  <label>
-                    <span>Ce a fost important? <small>opțional</small></span>
-                    <textarea
-                      name="quickInteractionSummary"
-                      rows="3"
-                      placeholder="O notă scurtă ca să îți amintești contextul..."
-                      [(ngModel)]="interactionDraft.summary"
-                    ></textarea>
-                  </label>
+                  <div class="panel-textarea-wrap">
+                    <label>
+                      <span>Ce a fost important? <small>opțional</small></span>
+                      <textarea
+                        name="quickInteractionSummary"
+                        rows="3"
+                        placeholder="O notă scurtă ca să îți amintești contextul..."
+                        [(ngModel)]="interactionDraft.summary"
+                      ></textarea>
+                    </label>
+                  </div>
 
-                  <div class="quick-field">
-                    <span class="quick-label">Când vrei să vorbiți din nou?</span>
+                  <div class="reconnect-section">
+                    <div class="reconnect-head">
+                      <span class="quick-label">Când vrei să vorbiți din nou?</span>
+                      @if (interactionContact(); as person) {
+                        <small>
+                          Default ·
+                          {{ cadenceExactLabel(person.cadence, person.cadenceDays) }}
+                        </small>
+                      }
+                    </div>
+
                     <div class="reconnect-presets">
+                      @if (interactionContact(); as person) {
+                        <button
+                          type="button"
+                          [class.active]="reconnectChoice() === 'DEFAULT'"
+                          (click)="setInteractionDefaultNextContact()"
+                        >
+                          Default ·
+                          {{ cadenceExactLabel(person.cadence, person.cadenceDays) }}
+                        </button>
+                      }
                       <button
                         type="button"
-                        (click)="setInteractionNextContact(3)"
+                        [class.active]="reconnectChoice() === '3D'"
+                        (click)="setInteractionNextContact(3, '3D')"
                       >
                         3 zile
                       </button>
                       <button
                         type="button"
-                        (click)="setInteractionNextContact(7)"
+                        [class.active]="reconnectChoice() === '7D'"
+                        (click)="setInteractionNextContact(7, '7D')"
                       >
                         1 săpt
                       </button>
                       <button
                         type="button"
-                        (click)="setInteractionNextContact(14)"
+                        [class.active]="reconnectChoice() === '14D'"
+                        (click)="setInteractionNextContact(14, '14D')"
                       >
                         2 săpt
                       </button>
                       <button
                         type="button"
-                        (click)="setInteractionNextContact(30)"
+                        [class.active]="reconnectChoice() === '1M'"
+                        (click)="setInteractionNextMonth()"
                       >
                         1 lună
                       </button>
                     </div>
-                    <input
-                      name="quickNextContactDay"
-                      type="date"
-                      [(ngModel)]="interactionDraft.nextContactDay"
-                    />
+
+                    <task-detail-item
+                      (editActionTriggered)="openNextContactDateDialog()"
+                      [inputIcon]="interactionDraft.nextContactDay ? 'edit' : 'add'"
+                      class="networking-detail-item reconnect-date-item"
+                    >
+                      <ng-container input-title>
+                        <mat-icon>event</mat-icon>
+                        <span>Data exactă</span>
+                      </ng-container>
+                      <ng-container input-value>
+                        <span>{{ reconnectSelectionLabel() }}</span>
+                      </ng-container>
+                    </task-detail-item>
                   </div>
 
                   <details class="interaction-more">
@@ -519,7 +595,7 @@ interface InteractionDraft {
                     </div>
                   </details>
 
-                  <div class="form-actions">
+                  <div class="panel-form-actions">
                     <button
                       type="button"
                       mat-button
@@ -531,7 +607,11 @@ interface InteractionDraft {
                       type="submit"
                       mat-flat-button
                       color="primary"
-                      [disabled]="!interactionContactId()"
+                      [disabled]="
+                        !interactionContactId() ||
+                        (interactionDraft.channel === 'OTHER' &&
+                          !interactionDraft.channelCustom.trim())
+                      "
                     >
                       <mat-icon>check</mat-icon>
                       Salvează
@@ -543,21 +623,16 @@ interface InteractionDraft {
           } @else if (contactEditorOpen()) {
             <mat-card class="editor-card">
               <mat-card-content>
-                <div class="section-head">
-                  <div>
+                <header class="panel-title-wrapper editor-panel-title">
+                  <div class="panel-title-copy">
                     <h2>
                       {{ editingContactId() ? 'Editează persoana' : 'Persoană nouă' }}
                     </h2>
-                    <p>Un singur formular simplu. Completează doar ce îți este util.</p>
+                    <small
+                      >Completează doar informațiile pe care chiar le folosești.</small
+                    >
                   </div>
-                  <button
-                    mat-icon-button
-                    aria-label="Închide"
-                    (click)="cancelContactEdit()"
-                  >
-                    <mat-icon>close</mat-icon>
-                  </button>
-                </div>
+                </header>
 
                 <form
                   class="contact-form"
@@ -838,17 +913,28 @@ interface InteractionDraft {
                       />
                     </label>
                   }
-                  <label>
-                    <span>Următorul contact</span>
-                    <small
-                      >Poți seta manual data sau o poți lăsa să urmeze frecvența.</small
-                    >
-                    <input
-                      name="nextContactDay"
-                      type="date"
-                      [(ngModel)]="contactDraft.nextContactDay"
-                    />
-                  </label>
+                  <task-detail-item
+                    type="fullSizeInput"
+                    class="wide networking-detail-item contact-editor-date"
+                  >
+                    <ng-container input-title>
+                      <mat-icon>event_repeat</mat-icon>
+                      <span>Următorul contact</span>
+                    </ng-container>
+                    <ng-container input-value>
+                      <button
+                        type="button"
+                        mat-button
+                        (click)="openContactDraftNextDateDialog()"
+                      >
+                        {{
+                          contactDraft.nextContactDay
+                            ? dayLabel(contactDraft.nextContactDay)
+                            : 'Alege data'
+                        }}
+                      </button>
+                    </ng-container>
+                  </task-detail-item>
                   <label class="wide">
                     <span>Subiect data viitoare</span>
                     <small>
@@ -883,60 +969,111 @@ interface InteractionDraft {
               </mat-card-content>
             </mat-card>
           } @else if (selectedContact(); as contact) {
-            <section class="profile">
-              <header class="profile-head">
-                <div>
-                  <div class="profile-title-line">
-                    <h2>{{ contact.name }}</h2>
-                    <span class="importance">
-                      {{ importanceLabel(contact.importance) }}
-                    </span>
-                  </div>
-                  <p>
+            <section class="profile native-profile">
+              <header class="panel-title-wrapper profile-native-title">
+                <div class="panel-title-copy">
+                  <h2>{{ contact.name }}</h2>
+                  <small>
+                    {{ relationshipLabel(contact.relationshipType) }}
                     @if (contact.occupation) {
-                      {{ contact.occupation }}
-                    }
-                    @if (contact.role) {
-                      · {{ contact.role }}
+                      · {{ contact.occupation }}
                     }
                     @if (contact.company) {
                       · {{ contact.company }}
                     }
-                    @if (contact.city) {
-                      · {{ contact.city }}
-                    }
-                  </p>
-                </div>
-                <div class="profile-actions">
-                  @if (!contact.isArchived) {
-                    <button
-                      mat-flat-button
-                      color="primary"
-                      (click)="startInteraction()"
-                    >
-                      <mat-icon>forum</mat-icon>
-                      Am vorbit
-                    </button>
-                  }
-                  <button
-                    mat-button
-                    (click)="startEditContact(contact)"
-                  >
-                    <mat-icon>edit</mat-icon>
-                    Editează
-                  </button>
-                  <button
-                    mat-icon-button
-                    type="button"
-                    aria-label="Închide detaliile"
-                    (click)="closePanel()"
-                  >
-                    <mat-icon>close</mat-icon>
-                  </button>
+                  </small>
                 </div>
               </header>
 
-              <div class="contact-links">
+              <div class="profile-actions native-profile-actions">
+                @if (!contact.isArchived) {
+                  <button
+                    mat-flat-button
+                    color="primary"
+                    (click)="startInteraction(contact.id)"
+                  >
+                    <mat-icon>forum</mat-icon>
+                    Am vorbit
+                  </button>
+                }
+                <button
+                  mat-button
+                  (click)="startEditContact(contact)"
+                >
+                  <mat-icon>edit</mat-icon>
+                  Editează
+                </button>
+              </div>
+
+              <task-detail-item
+                (editActionTriggered)="openContactNextDateDialog(contact)"
+                [inputIcon]="contact.nextContactDay ? 'edit' : 'add'"
+                [class.color-warn]="
+                  !!contact.nextContactDay && contact.nextContactDay < today
+                "
+                class="networking-detail-item"
+              >
+                <ng-container input-title>
+                  <mat-icon>event_repeat</mat-icon>
+                  <span>Următorul contact</span>
+                </ng-container>
+                <ng-container input-value>
+                  <span>
+                    @if (contact.nextContactDay) {
+                      {{ dayLabel(contact.nextContactDay) }}
+                    } @else {
+                      Fără reminder
+                    }
+                  </span>
+                </ng-container>
+              </task-detail-item>
+
+              <task-detail-item
+                type="fullSizeInput"
+                class="networking-detail-item"
+              >
+                <ng-container input-title>
+                  <mat-icon>repeat</mat-icon>
+                  <span>Default</span>
+                </ng-container>
+                <ng-container input-value>
+                  <span>
+                    {{ cadenceExactLabel(contact.cadence, contact.cadenceDays) }}
+                  </span>
+                </ng-container>
+              </task-detail-item>
+
+              <task-detail-item
+                type="fullSizeInput"
+                class="networking-detail-item"
+              >
+                <ng-container input-title>
+                  <mat-icon>forum</mat-icon>
+                  <span>Ultima conversație</span>
+                </ng-container>
+                <ng-container input-value>
+                  @if (latestInteraction(); as last) {
+                    <span>
+                      {{ channelIcon(last.channel) }}
+                      {{ channelDisplayLabel(last) }} · {{ relativeTimeLabel(last.at) }}
+                    </span>
+                  } @else {
+                    <span>—</span>
+                  }
+                </ng-container>
+              </task-detail-item>
+
+              @if (contact.nextTopic) {
+                <div class="panel-context-note">
+                  <mat-icon>chat_bubble_outline</mat-icon>
+                  <div>
+                    <small>Data viitoare</small>
+                    <p>{{ contact.nextTopic }}</p>
+                  </div>
+                </div>
+              }
+
+              <div class="contact-links native-contact-links">
                 @if (contact.phone) {
                   <a [href]="'tel:' + contact.phone">
                     <mat-icon>phone</mat-icon>{{ contact.phone }}
@@ -976,324 +1113,93 @@ interface InteractionDraft {
                 }
               </div>
 
-              <section class="context-grid">
-                <mat-card>
-                  <mat-card-content>
-                    <div class="mini-head">
-                      <strong>Ținem legătura</strong>
-                      @if (contact.nextContactDay) {
-                        <span
-                          class="status-pill"
-                          [class.overdue]="contact.nextContactDay < today"
-                          [class.due-now]="contact.nextContactDay === today"
-                        >
-                          {{ contact.nextContactDay }}
-                        </span>
-                      }
-                    </div>
-                    <dl>
+              <task-detail-item
+                type="panel"
+                [expanded]="false"
+                class="networking-detail-item"
+              >
+                <ng-container panel-header>
+                  <mat-icon>person</mat-icon>
+                  <span>Detalii persoană</span>
+                </ng-container>
+                <ng-container panel-content>
+                  <dl class="compact-profile-list">
+                    @if (contact.city || contact.region || contact.country) {
                       <div>
-                        <dt>Ultimul contact</dt>
-                        <dd>
-                          {{
-                            contact.lastContactAt ? dateLabel(contact.lastContactAt) : '—'
-                          }}
-                        </dd>
+                        <dt>Locație</dt>
+                        <dd>{{ locationLabel(contact) }}</dd>
+                      </div>
+                    }
+                    @if (contact.industry) {
+                      <div>
+                        <dt>Domeniu</dt>
+                        <dd>{{ contact.industry }}</dd>
+                      </div>
+                    }
+                    @if (contact.metThrough) {
+                      <div>
+                        <dt>De unde o cunosc</dt>
+                        <dd>{{ contact.metThrough }}</dd>
+                      </div>
+                    }
+                    @if (contact.metAt) {
+                      <div>
+                        <dt>Ne-am cunoscut la</dt>
+                        <dd>{{ contact.metAt }}</dd>
+                      </div>
+                    }
+                    @if (introducedByName(contact)) {
+                      <div>
+                        <dt>Introducere prin</dt>
+                        <dd>{{ introducedByName(contact) }}</dd>
+                      </div>
+                    }
+                  </dl>
+                  @if (contact.tags.length) {
+                    <div class="chips roomy">
+                      @for (tag of contact.tags; track tag) {
+                        <span class="chip">{{ tag }}</span>
+                      }
+                    </div>
+                  }
+                  @if (contact.interests) {
+                    <div class="compact-text-block">
+                      <small>Interese</small>
+                      <p>{{ contact.interests }}</p>
+                    </div>
+                  }
+                  @if (contact.notes) {
+                    <div class="compact-text-block">
+                      <small>Note</small>
+                      <p>{{ contact.notes }}</p>
+                    </div>
+                  }
+                  @if (contact.canHelpWith || contact.canHelpMeWith) {
+                    <div class="compact-two-col">
+                      <div>
+                        <small>Pot să îl/o ajut cu</small>
+                        <p>{{ contact.canHelpWith || '—' }}</p>
                       </div>
                       <div>
-                        <dt>Frecvență</dt>
-                        <dd>{{ cadenceLabel(contact.cadence, contact.cadenceDays) }}</dd>
+                        <small>Mă poate ajuta cu</small>
+                        <p>{{ contact.canHelpMeWith || '—' }}</p>
                       </div>
-                      <div>
-                        <dt>Data viitoare</dt>
-                        <dd>{{ contact.nextContactDay || '—' }}</dd>
-                      </div>
-                    </dl>
-                    @if (contact.nextTopic) {
-                      <div class="next-topic">
-                        <small>Data viitoare</small>
-                        <p>{{ contact.nextTopic }}</p>
-                      </div>
-                    }
-                  </mat-card-content>
-                </mat-card>
-
-                <mat-card>
-                  <mat-card-content>
-                    <div class="mini-head">
-                      <strong>Context rapid</strong>
-                      <mat-icon>psychology_alt</mat-icon>
                     </div>
-                    @if (latestInteraction(); as last) {
-                      <p class="last-summary">{{ last.summary }}</p>
-                      @if (last.learned) {
-                        <div class="context-line">
-                          <b>Am aflat:</b> {{ last.learned }}
-                        </div>
-                      }
-                      @if (last.iPromised) {
-                        <div class="context-line">
-                          <b>Am promis:</b> {{ last.iPromised }}
-                        </div>
-                      }
-                      @if (last.theyPromised) {
-                        <div class="context-line">
-                          <b>A promis:</b> {{ last.theyPromised }}
-                        </div>
-                      }
-                    } @else {
-                      <p class="muted">Nu există încă nicio conversație înregistrată.</p>
-                    }
-                  </mat-card-content>
-                </mat-card>
-              </section>
+                  }
+                </ng-container>
+              </task-detail-item>
 
-              @if (interactionEditorOpen()) {
-                <mat-card class="interaction-editor">
-                  <mat-card-content>
-                    <div class="section-head">
-                      <div>
-                        <h3>Înregistrează conversația</h3>
-                        <p>
-                          Scrie esențialul, ca data viitoare să ai imediat tot contextul.
-                        </p>
-                      </div>
-                      <button
-                        mat-icon-button
-                        (click)="interactionEditorOpen.set(false)"
-                        aria-label="Închide"
-                      >
-                        <mat-icon>close</mat-icon>
-                      </button>
-                    </div>
-
-                    <form
-                      class="interaction-form"
-                      (ngSubmit)="saveInteraction(contact.id)"
-                    >
-                      <label>
-                        <span>Data și ora</span>
-                        <input
-                          name="interactionAt"
-                          type="datetime-local"
-                          [(ngModel)]="interactionDraft.at"
-                        />
-                      </label>
-                      <label>
-                        <span>Cum am vorbit</span>
-                        <select
-                          name="channel"
-                          [(ngModel)]="interactionDraft.channel"
-                        >
-                          @for (item of channelOptions; track item.value) {
-                            <option [value]="item.value">{{ item.label }}</option>
-                          }
-                        </select>
-                      </label>
-                      <label class="wide">
-                        <span>Unde / context</span>
-                        <input
-                          name="interactionLocation"
-                          [(ngModel)]="interactionDraft.location"
-                        />
-                      </label>
-                      <label class="wide">
-                        <span>Ce am vorbit? *</span>
-                        <textarea
-                          name="summary"
-                          rows="5"
-                          required
-                          placeholder="Rezumatul conversației și ideile importante..."
-                          [(ngModel)]="interactionDraft.summary"
-                        ></textarea>
-                      </label>
-                      <label class="wide">
-                        <span>Ce am aflat nou?</span>
-                        <textarea
-                          name="learned"
-                          rows="3"
-                          [(ngModel)]="interactionDraft.learned"
-                        ></textarea>
-                      </label>
-                      <label>
-                        <span>Ce am promis eu?</span>
-                        <textarea
-                          name="iPromised"
-                          rows="3"
-                          [(ngModel)]="interactionDraft.iPromised"
-                        ></textarea>
-                      </label>
-                      <label>
-                        <span>Ce a promis persoana?</span>
-                        <textarea
-                          name="theyPromised"
-                          rows="3"
-                          [(ngModel)]="interactionDraft.theyPromised"
-                        ></textarea>
-                      </label>
-                      <label class="wide">
-                        <span>Următorul pas</span>
-                        <input
-                          name="nextStep"
-                          [(ngModel)]="interactionDraft.nextStep"
-                        />
-                      </label>
-                      <label class="wide">
-                        <span>Despre ce să vorbesc data viitoare?</span>
-                        <input
-                          name="interactionNextTopic"
-                          [(ngModel)]="interactionDraft.nextTopic"
-                        />
-                      </label>
-                      <label>
-                        <span>Următorul contact</span>
-                        <input
-                          name="interactionNextContactDay"
-                          type="date"
-                          [(ngModel)]="interactionDraft.nextContactDay"
-                        />
-                        <small
-                          >Dacă rămâne gol, se calculează din frecvența persoanei.</small
-                        >
-                      </label>
-                      <label>
-                        <span>Follow-up de făcut</span>
-                        <input
-                          name="followUpTitle"
-                          placeholder="ex. Trimite CV-ul"
-                          [(ngModel)]="interactionDraft.followUpTitle"
-                        />
-                      </label>
-                      @if (interactionDraft.followUpTitle.trim()) {
-                        <label>
-                          <span>Termen follow-up</span>
-                          <input
-                            name="followUpDueDay"
-                            type="date"
-                            [(ngModel)]="interactionDraft.followUpDueDay"
-                          />
-                        </label>
-                      }
-
-                      <div class="form-actions wide">
-                        <button
-                          type="button"
-                          mat-button
-                          (click)="interactionEditorOpen.set(false)"
-                        >
-                          Anulează
-                        </button>
-                        <button
-                          type="submit"
-                          mat-flat-button
-                          color="primary"
-                          [disabled]="!interactionDraft.summary.trim()"
-                        >
-                          <mat-icon>save</mat-icon>
-                          Salvează conversația
-                        </button>
-                      </div>
-                    </form>
-                  </mat-card-content>
-                </mat-card>
-              }
-
-              <section class="profile-grid">
-                <mat-card>
-                  <mat-card-content>
-                    <div class="mini-head">
-                      <strong>Despre persoană</strong>
-                      <span>{{ relationshipLabel(contact.relationshipType) }}</span>
-                    </div>
-                    <dl>
-                      @if (contact.city || contact.region || contact.country) {
-                        <div>
-                          <dt>Locație</dt>
-                          <dd>{{ locationLabel(contact) }}</dd>
-                        </div>
-                      }
-                      @if (contact.industry) {
-                        <div>
-                          <dt>Domeniu</dt>
-                          <dd>{{ contact.industry }}</dd>
-                        </div>
-                      }
-                      @if (contact.metThrough) {
-                        <div>
-                          <dt>De unde o cunosc</dt>
-                          <dd>{{ contact.metThrough }}</dd>
-                        </div>
-                      }
-                      @if (contact.metAt) {
-                        <div>
-                          <dt>Ne-am cunoscut la</dt>
-                          <dd>{{ contact.metAt }}</dd>
-                        </div>
-                      }
-                      @if (contact.metOn) {
-                        <div>
-                          <dt>Din</dt>
-                          <dd>{{ contact.metOn }}</dd>
-                        </div>
-                      }
-                      @if (introducedByName(contact)) {
-                        <div>
-                          <dt>Introducere prin</dt>
-                          <dd>{{ introducedByName(contact) }}</dd>
-                        </div>
-                      }
-                    </dl>
-                    @if (contact.tags.length) {
-                      <div class="chips roomy">
-                        @for (tag of contact.tags; track tag) {
-                          <span class="chip">{{ tag }}</span>
-                        }
-                      </div>
-                    }
-                    @if (contact.interests) {
-                      <div class="text-block">
-                        <small>Interese</small>
-                        <p>{{ contact.interests }}</p>
-                      </div>
-                    }
-                    @if (contact.notes) {
-                      <div class="text-block">
-                        <small>Note</small>
-                        <p>{{ contact.notes }}</p>
-                      </div>
-                    }
-                  </mat-card-content>
-                </mat-card>
-
-                <mat-card>
-                  <mat-card-content>
-                    <div class="mini-head">
-                      <strong>Relație reciprocă</strong>
-                      <mat-icon>handshake</mat-icon>
-                    </div>
-                    <div class="text-block">
-                      <small>Pot să îl/o ajut cu</small>
-                      <p>{{ contact.canHelpWith || '—' }}</p>
-                    </div>
-                    <div class="text-block">
-                      <small>Mă poate ajuta cu</small>
-                      <p>{{ contact.canHelpMeWith || '—' }}</p>
-                    </div>
-                  </mat-card-content>
-                </mat-card>
-              </section>
-
-              <mat-card class="followup-card">
-                <mat-card-content>
-                  <div class="section-head">
-                    <div>
-                      <h3>Follow-ups & promisiuni</h3>
-                      <p>Acțiuni concrete separate de simplul reminder de networking.</p>
-                    </div>
-                    <span>{{ openFollowUps().length }} deschise</span>
-                  </div>
-
-                  <div class="quick-followup">
+              <task-detail-item
+                type="panel"
+                [expanded]="false"
+                class="networking-detail-item"
+              >
+                <ng-container panel-header>
+                  <mat-icon>checklist</mat-icon>
+                  <span>Follow-ups ({{ openFollowUps().length }})</span>
+                </ng-container>
+                <ng-container panel-content>
+                  <div class="quick-followup native-quick-followup">
                     <input
                       #followUpTitle
                       placeholder="Adaugă follow-up..."
@@ -1314,7 +1220,6 @@ interface InteractionDraft {
                       "
                     >
                       <mat-icon>add</mat-icon>
-                      Adaugă
                     </button>
                   </div>
 
@@ -1327,9 +1232,6 @@ interface InteractionDraft {
                         class="check"
                         type="button"
                         (click)="toggleFollowUp(item.id, item.status)"
-                        [attr.aria-label]="
-                          item.status === 'DONE' ? 'Redeschide' : 'Finalizat'
-                        "
                       >
                         <mat-icon>{{
                           item.status === 'DONE'
@@ -1339,40 +1241,37 @@ interface InteractionDraft {
                       </button>
                       <span class="grow">{{ item.title }}</span>
                       @if (item.dueDay) {
-                        <span class="chip">{{ item.dueDay }}</span>
+                        <span class="chip">{{ dayLabel(item.dueDay) }}</span>
                       }
-                      @if (item.taskId) {
-                        <span class="chip linked">Task creat</span>
-                      } @else if (item.status === 'OPEN') {
+                      @if (!item.taskId && item.status === 'OPEN') {
                         <button
-                          mat-button
+                          mat-icon-button
+                          type="button"
+                          aria-label="Creează task"
                           (click)="createTask(item.id)"
                         >
                           <mat-icon>add_task</mat-icon>
-                          Task
                         </button>
                       }
                     </div>
                   }
                   @if (!followUps().length) {
-                    <p class="muted">Nu există follow-up-uri pentru această persoană.</p>
+                    <p class="muted compact-empty">Niciun follow-up.</p>
                   }
-                </mat-card-content>
-              </mat-card>
+                </ng-container>
+              </task-detail-item>
 
-              <mat-card class="timeline-card">
-                <mat-card-content>
-                  <div class="section-head">
-                    <div>
-                      <h3>Istoric conversații</h3>
-                      <p>
-                        Fiecare conversație rămâne în cronologie; nimic nu se suprascrie.
-                      </p>
-                    </div>
-                    <span>{{ interactions().length }}</span>
-                  </div>
-
-                  <div class="timeline">
+              <task-detail-item
+                type="panel"
+                [expanded]="true"
+                class="networking-detail-item"
+              >
+                <ng-container panel-header>
+                  <mat-icon>history</mat-icon>
+                  <span>Istoric ({{ interactions().length }})</span>
+                </ng-container>
+                <ng-container panel-content>
+                  <div class="timeline compact-timeline">
                     @for (item of interactions(); track item.id) {
                       <article class="interaction">
                         <div class="timeline-marker"></div>
@@ -1381,32 +1280,22 @@ interface InteractionDraft {
                             <div>
                               <strong>{{ dateTimeLabel(item.at) }}</strong>
                               <span class="channel">
-                                {{ channelLabel(item.channel) }}
+                                {{ channelIcon(item.channel) }}
+                                {{ channelDisplayLabel(item) }}
                               </span>
                             </div>
                             @if (item.location) {
                               <span class="muted">{{ item.location }}</span>
                             }
                           </header>
-                          <p class="summary">{{ item.summary }}</p>
-
+                          @if (item.summary) {
+                            <p class="summary">{{ item.summary }}</p>
+                          }
                           <div class="interaction-details">
                             @if (item.learned) {
                               <div>
                                 <small>Ce am aflat</small>
                                 <p>{{ item.learned }}</p>
-                              </div>
-                            }
-                            @if (item.iPromised) {
-                              <div>
-                                <small>Am promis</small>
-                                <p>{{ item.iPromised }}</p>
-                              </div>
-                            }
-                            @if (item.theyPromised) {
-                              <div>
-                                <small>A promis</small>
-                                <p>{{ item.theyPromised }}</p>
                               </div>
                             }
                             @if (item.nextStep) {
@@ -1425,28 +1314,21 @@ interface InteractionDraft {
                         </div>
                       </article>
                     }
-
                     @if (!interactions().length) {
-                      <div class="timeline-empty">
-                        <mat-icon>forum</mat-icon>
-                        <p>
-                          Nu ai înregistrat încă o conversație. După următoarea discuție
-                          apasă „Am vorbit”.
-                        </p>
-                      </div>
+                      <p class="muted compact-empty">Nicio conversație înregistrată.</p>
                     }
                   </div>
-                </mat-card-content>
-              </mat-card>
+                </ng-container>
+              </task-detail-item>
 
-              <footer class="danger-zone">
+              <footer class="danger-zone native-danger-zone">
                 @if (contact.isArchived) {
                   <button
                     mat-button
                     (click)="networking.archiveContact(contact.id, false)"
                   >
                     <mat-icon>unarchive</mat-icon>
-                    Reactivează persoana
+                    Reactivează
                   </button>
                 } @else {
                   <button
@@ -1454,7 +1336,7 @@ interface InteractionDraft {
                     (click)="archiveSelected(contact.id)"
                   >
                     <mat-icon>archive</mat-icon>
-                    Arhivează persoana
+                    Arhivează
                   </button>
                 }
               </footer>
@@ -2805,6 +2687,394 @@ interface InteractionDraft {
           box-shadow: none;
         }
       }
+
+      /* Native Super Productivity right-panel treatment */
+      .workspace.panel-open {
+        grid-template-columns: minmax(0, 1fr) 340px;
+        gap: 0;
+        align-items: stretch;
+      }
+
+      .detail-panel {
+        position: sticky;
+        top: 0;
+        align-self: start;
+        min-height: 620px;
+        max-height: calc(100vh - 72px);
+        overflow: auto;
+        padding: 0;
+        border: 0;
+        border-left: 1px solid var(--separator-color);
+        border-radius: 0;
+        background: var(--right-panel-bg);
+        box-shadow: none;
+      }
+
+      .panel-edge-close {
+        position: absolute;
+        z-index: 5;
+        top: 50%;
+        left: -8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 48px;
+        padding: 0;
+        transform: translateY(-50%);
+        border: 0;
+        border-radius: 3px 8px 8px 3px;
+        background: var(--bg-lightest);
+        box-shadow: var(--whiteframe-shadow-2dp);
+        color: var(--text-color);
+        cursor: pointer;
+      }
+
+      .panel-edge-close mat-icon {
+        width: 16px;
+        height: 16px;
+        font-size: 16px;
+      }
+
+      .panel-title-wrapper {
+        display: flex;
+        align-items: center;
+        min-height: var(--bar-height);
+        margin: calc(var(--s2) + var(--s-half)) var(--s) var(--s);
+        border-bottom: 2px solid var(--c-primary);
+      }
+
+      .panel-title-copy {
+        min-width: 0;
+        flex: 1;
+        padding: var(--s) var(--s-half);
+      }
+
+      .panel-title-copy h2 {
+        margin: 0;
+        overflow: hidden;
+        font-size: 17px;
+        font-weight: 600;
+        line-height: 1.35;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .panel-title-copy small {
+        display: block;
+        margin-top: 2px;
+        overflow: hidden;
+        color: var(--text-color-muted);
+        font-size: 11px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .quick-interaction-panel,
+      .editor-card {
+        margin: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none !important;
+      }
+
+      :host ::ng-deep .quick-interaction-panel > .mat-mdc-card-content,
+      :host ::ng-deep .editor-card > .mat-mdc-card-content {
+        padding: 0 !important;
+      }
+
+      .quick-interaction-form {
+        gap: 0;
+      }
+
+      .networking-detail-item {
+        display: block;
+      }
+
+      :host ::ng-deep .networking-detail-item > .input-item,
+      :host ::ng-deep .networking-detail-item > .mat-expansion-panel {
+        margin-block: calc(var(--s-half) + var(--s-quarter));
+      }
+
+      .panel-inline-control {
+        min-height: 34px;
+        padding: 4px 6px;
+        border: 0;
+        border-bottom: 1px solid var(--divider-color);
+        border-radius: 0;
+        background: transparent;
+      }
+
+      .quick-channel-section,
+      .reconnect-section,
+      .panel-textarea-wrap,
+      .interaction-more {
+        margin: var(--s);
+      }
+
+      .quick-channel-section,
+      .reconnect-section {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-half);
+      }
+
+      .quick-label,
+      .reconnect-head small {
+        color: var(--text-color-muted);
+        font-size: 11px;
+      }
+
+      .reconnect-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--s-half);
+      }
+
+      .channel-picker {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--s-half);
+      }
+
+      .channel-choice {
+        min-height: 40px;
+        padding: var(--s-half) var(--s);
+        border-radius: var(--card-border-radius);
+        background: var(--task-detail-bg);
+      }
+
+      .channel-choice.active,
+      .reconnect-presets button.active {
+        border-color: var(--palette-primary-400);
+        background: var(--task-detail-bg-hover);
+        color: var(--text-color);
+      }
+
+      .other-channel-field {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-quarter);
+        margin-top: var(--s-quarter);
+      }
+
+      .other-channel-field input {
+        min-height: 38px;
+      }
+
+      .panel-textarea-wrap label {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-quarter);
+      }
+
+      .panel-textarea-wrap textarea {
+        min-height: 74px;
+      }
+
+      .reconnect-presets {
+        gap: var(--s-half);
+      }
+
+      .reconnect-presets button {
+        min-height: 32px;
+        padding: 4px 8px;
+        border-radius: var(--card-border-radius);
+        background: var(--task-detail-bg);
+        font-size: 12px;
+      }
+
+      .reconnect-date-item {
+        margin: 0 calc(-1 * var(--s));
+      }
+
+      .interaction-more {
+        padding: 0;
+        border: 0;
+        border-top: 1px solid var(--divider-color);
+        border-radius: 0;
+      }
+
+      .interaction-more summary {
+        padding: var(--s) 0 var(--s-half);
+      }
+
+      .interaction-more-grid {
+        gap: var(--s-half);
+        margin-top: 0;
+      }
+
+      .panel-form-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 3;
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--s-half);
+        margin-top: var(--s);
+        padding: var(--s);
+        border-top: 1px solid var(--divider-color);
+        background: var(--right-panel-bg);
+      }
+
+      .native-profile-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--s-half);
+        margin: 0 var(--s) var(--s-half);
+      }
+
+      .native-contact-links {
+        gap: var(--s-half);
+        margin: var(--s);
+      }
+
+      .native-contact-links a {
+        min-height: 30px;
+        padding: 2px 7px;
+        border-radius: var(--card-border-radius);
+        background: var(--task-detail-bg);
+        font-size: 12px;
+      }
+
+      .panel-context-note {
+        display: flex;
+        gap: var(--s);
+        margin: var(--s-half) var(--s);
+        padding: var(--s-half) var(--s);
+        color: var(--text-color-less-intense);
+      }
+
+      .panel-context-note mat-icon {
+        flex: 0 0 auto;
+        color: var(--text-color-muted);
+      }
+
+      .panel-context-note small {
+        color: var(--text-color-muted);
+        font-size: 11px;
+      }
+
+      .panel-context-note p {
+        margin: 2px 0 0;
+        white-space: pre-wrap;
+      }
+
+      .compact-profile-list > div {
+        grid-template-columns: minmax(90px, 0.45fr) 1fr;
+        padding: var(--s-half) 0;
+      }
+
+      .compact-text-block {
+        margin-top: var(--s);
+      }
+
+      .compact-text-block small,
+      .compact-two-col small {
+        color: var(--text-color-muted);
+        font-size: 11px;
+      }
+
+      .compact-text-block p,
+      .compact-two-col p {
+        margin: 3px 0 0;
+        white-space: pre-wrap;
+      }
+
+      .compact-two-col {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--s);
+        margin-top: var(--s);
+      }
+
+      .native-quick-followup {
+        margin: 0 0 var(--s-half);
+      }
+
+      .native-quick-followup input {
+        min-height: 34px;
+      }
+
+      .compact-timeline .interaction {
+        padding-bottom: var(--s);
+      }
+
+      .compact-timeline .interaction-details {
+        grid-template-columns: 1fr;
+      }
+
+      .compact-timeline .interaction-details > div {
+        padding: var(--s-half);
+      }
+
+      .compact-empty {
+        margin: var(--s-half) 0;
+      }
+
+      .native-danger-zone {
+        margin: var(--s-half) var(--s) var(--s2);
+      }
+
+      @media (max-width: 1100px) {
+        .workspace.panel-open {
+          grid-template-columns: minmax(0, 1fr) 320px;
+        }
+      }
+
+      @media (max-width: 800px) {
+        .workspace.panel-open {
+          display: block;
+        }
+
+        .workspace.panel-open .people-panel {
+          display: none;
+        }
+
+        .detail-panel {
+          position: static;
+          min-height: 0;
+          max-height: none;
+          overflow: visible;
+          border-left: 0;
+        }
+
+        .panel-edge-close {
+          display: none;
+        }
+
+        .compact-two-col {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .detail-panel .contact-form {
+        grid-template-columns: 1fr;
+        gap: var(--s-half);
+        padding: 0 var(--s);
+      }
+
+      .detail-panel .contact-form .wide {
+        grid-column: auto;
+      }
+
+      .detail-panel .contact-form .form-section {
+        margin-top: var(--s-half);
+        padding: var(--s) 0 var(--s-half);
+      }
+
+      .detail-panel .contact-form label {
+        gap: var(--s-quarter);
+      }
+
+      .contact-editor-date {
+        margin-inline: calc(-1 * var(--s));
+      }
+
+      .editor-panel-title {
+        margin-bottom: var(--s-half);
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -2813,6 +3083,7 @@ export class NetworkingPageComponent {
   readonly networking = inject(NetworkingService);
   private readonly _route = inject(ActivatedRoute);
   private readonly _dateTimeFormat = inject(DateTimeFormatService);
+  private readonly _matDialog = inject(MatDialog);
   private readonly _queryParams = toSignal(this._route.queryParamMap, {
     initialValue: this._route.snapshot.queryParamMap,
   });
@@ -2825,6 +3096,7 @@ export class NetworkingPageComponent {
   readonly editingContactId = signal<string | null>(null);
   readonly interactionEditorOpen = signal(false);
   readonly interactionContactId = signal<string>('');
+  readonly reconnectChoice = signal<ReconnectChoice>('DEFAULT');
 
   readonly cadenceOptions = NETWORK_CADENCE_OPTIONS;
   readonly relationshipOptions = NETWORK_RELATIONSHIP_OPTIONS;
@@ -2918,6 +3190,9 @@ export class NetworkingPageComponent {
   });
 
   readonly selectedContact = computed(() => this.networking.contact(this.selectedId()));
+  readonly interactionContact = computed(() =>
+    this.networking.contact(this.interactionContactId()),
+  );
 
   readonly interactions = computed(() => {
     const id = this.selectedId();
@@ -3088,6 +3363,19 @@ export class NetworkingPageComponent {
     this.interactionContactId.set(contactId || this.selectedId() || '');
     this.contactEditorOpen.set(false);
     this.interactionEditorOpen.set(true);
+    this.setInteractionDefaultNextContact();
+  }
+
+  onInteractionContactChange(contactId: string): void {
+    this.interactionContactId.set(contactId);
+    this.setInteractionDefaultNextContact();
+  }
+
+  selectInteractionChannel(channel: NetworkInteractionChannel): void {
+    this.interactionDraft.channel = channel;
+    if (channel !== 'OTHER') {
+      this.interactionDraft.channelCustom = '';
+    }
   }
 
   saveInteraction(contactId?: string): void {
@@ -3099,6 +3387,10 @@ export class NetworkingPageComponent {
     const input: NetworkInteractionInput = {
       at: safeAt,
       channel: this.interactionDraft.channel,
+      channelCustom:
+        this.interactionDraft.channel === 'OTHER'
+          ? this._clean(this.interactionDraft.channelCustom)
+          : undefined,
       location: this._clean(this.interactionDraft.location),
       summary: this.interactionDraft.summary.trim(),
       learned: this._clean(this.interactionDraft.learned),
@@ -3115,6 +3407,7 @@ export class NetworkingPageComponent {
     this.selectedId.set(targetId);
     this.interactionEditorOpen.set(false);
     this.interactionContactId.set('');
+    this.reconnectChoice.set('DEFAULT');
     this.interactionDraft = this._emptyInteractionDraft();
   }
 
@@ -3142,11 +3435,173 @@ export class NetworkingPageComponent {
     this.interactionEditorOpen.set(false);
     this.editingContactId.set(null);
     this.interactionContactId.set('');
+    this.reconnectChoice.set('DEFAULT');
     this.selectedId.set(null);
   }
 
-  setInteractionNextContact(days: number): void {
-    this.interactionDraft.nextContactDay = addCalendarDays(this.today, days);
+  setInteractionDefaultNextContact(): void {
+    const contact = this.interactionContact();
+    this.reconnectChoice.set('DEFAULT');
+    if (!contact) {
+      this.interactionDraft.nextContactDay = '';
+      return;
+    }
+
+    const at = new Date(this.interactionDraft.at).getTime();
+    const fromDay = timestampToLocalDay(Number.isFinite(at) ? at : Date.now());
+    this.interactionDraft.nextContactDay =
+      getNextContactDay(contact.cadence, fromDay, contact.cadenceDays) || '';
+  }
+
+  setInteractionNextContact(days: number, choice: ReconnectChoice): void {
+    const at = new Date(this.interactionDraft.at).getTime();
+    const fromDay = timestampToLocalDay(Number.isFinite(at) ? at : Date.now());
+    this.interactionDraft.nextContactDay = addCalendarDays(fromDay, days);
+    this.reconnectChoice.set(choice);
+  }
+
+  setInteractionNextMonth(): void {
+    const at = new Date(this.interactionDraft.at).getTime();
+    const fromDay = timestampToLocalDay(Number.isFinite(at) ? at : Date.now());
+    this.interactionDraft.nextContactDay =
+      getNextContactDay('MONTHLY', fromDay) || addCalendarDays(fromDay, 30);
+    this.reconnectChoice.set('1M');
+  }
+
+  openInteractionDateDialog(): void {
+    const current = new Date(this.interactionDraft.at);
+    const day = Number.isFinite(current.getTime()) ? getDbDateStr(current) : this.today;
+    const time = Number.isFinite(current.getTime())
+      ? `${String(current.getHours()).padStart(2, '0')}:${String(
+          current.getMinutes(),
+        ).padStart(2, '0')}`
+      : undefined;
+
+    this._matDialog
+      .open(DialogDeadlineComponent, {
+        data: {
+          isSelectDeadlineOnly: true,
+          isDateOnly: false,
+          selectDateLabel: 'Alege data',
+          targetDeadlineDay: day,
+          targetDeadlineTime: time,
+          minDate: new Date(2000, 0, 1),
+        },
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (!result?.date) return;
+        const selected = new Date(result.date);
+        if (result.time) {
+          const [hours, minutes] = result.time.split(':').map(Number);
+          selected.setHours(hours || 0, minutes || 0, 0, 0);
+        } else {
+          selected.setHours(12, 0, 0, 0);
+        }
+        this.interactionDraft.at = this._toLocalDateTimeInput(selected);
+        this._recalculateReconnectFromInteractionDate();
+      });
+  }
+
+  openNextContactDateDialog(): void {
+    this._openNetworkingDateDialog(
+      this.interactionDraft.nextContactDay || undefined,
+      'Alege data următorului contact',
+      (day) => {
+        this.interactionDraft.nextContactDay = day;
+        this.reconnectChoice.set('CUSTOM');
+      },
+    );
+  }
+
+  openContactDraftNextDateDialog(): void {
+    this._openNetworkingDateDialog(
+      this.contactDraft.nextContactDay || undefined,
+      'Alege următorul contact',
+      (day) => {
+        this.contactDraft.nextContactDay = day;
+      },
+    );
+  }
+
+  openContactNextDateDialog(contact: NetworkContact): void {
+    this._openNetworkingDateDialog(
+      contact.nextContactDay || undefined,
+      'Alege următorul contact',
+      (day) => this.networking.updateContact(contact.id, { nextContactDay: day }),
+    );
+  }
+
+  interactionAtLabel(): string {
+    const at = new Date(this.interactionDraft.at).getTime();
+    return Number.isFinite(at) ? this.dateTimeLabel(at) : 'Alege data';
+  }
+
+  reconnectSelectionLabel(): string {
+    const day = this.interactionDraft.nextContactDay;
+    const contact = this.interactionContact();
+    const choice = this.reconnectChoice();
+
+    if (!day) {
+      return choice === 'DEFAULT' && contact
+        ? `Default · ${this.cadenceExactLabel(contact.cadence, contact.cadenceDays)} · fără reminder`
+        : 'Alege data';
+    }
+
+    const prefix =
+      choice === 'DEFAULT' && contact
+        ? `Default · ${this.cadenceExactLabel(contact.cadence, contact.cadenceDays)}`
+        : choice === '3D'
+          ? '3 zile'
+          : choice === '7D'
+            ? '1 săptămână'
+            : choice === '14D'
+              ? '2 săptămâni'
+              : choice === '1M'
+                ? '1 lună'
+                : 'Dată aleasă';
+
+    return `${prefix} · ${this.dayLabel(day)}`;
+  }
+
+  cadenceExactLabel(value: NetworkContactCadence, cadenceDays?: number | null): string {
+    switch (value) {
+      case 'WEEKLY':
+        return '1 săptămână';
+      case 'BIWEEKLY':
+        return '2 săptămâni';
+      case 'MONTHLY':
+        return '1 lună';
+      case 'BIMONTHLY':
+        return '2 luni';
+      case 'QUARTERLY':
+        return '3 luni';
+      case 'HALF_YEAR':
+        return '6 luni';
+      case 'YEARLY':
+        return '1 an';
+      case 'CUSTOM':
+        return cadenceDays ? `${cadenceDays} zile` : 'Personalizat';
+      case 'NONE':
+      default:
+        return 'Fără reminder';
+    }
+  }
+
+  dayLabel(day: string): string {
+    const date = new Date(`${day}T12:00:00`);
+    return new Intl.DateTimeFormat(this._dateTimeFormat.textLocale(), {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }).format(date);
+  }
+
+  channelDisplayLabel(interaction: NetworkInteraction): string {
+    if (interaction.channel === 'OTHER' && interaction.channelCustom) {
+      return interaction.channelCustom;
+    }
+    return this.channelLabel(interaction.channel);
   }
 
   latestInteractionFor(contactId: string): NetworkInteraction | undefined {
@@ -3308,6 +3763,7 @@ export class NetworkingPageComponent {
     return {
       at: localIso,
       channel: 'WHATSAPP',
+      channelCustom: '',
       location: '',
       summary: '',
       learned: '',
@@ -3319,6 +3775,55 @@ export class NetworkingPageComponent {
       followUpTitle: '',
       followUpDueDay: '',
     };
+  }
+
+  private _recalculateReconnectFromInteractionDate(): void {
+    switch (this.reconnectChoice()) {
+      case '3D':
+        this.setInteractionNextContact(3, '3D');
+        break;
+      case '7D':
+        this.setInteractionNextContact(7, '7D');
+        break;
+      case '14D':
+        this.setInteractionNextContact(14, '14D');
+        break;
+      case '1M':
+        this.setInteractionNextMonth();
+        break;
+      case 'CUSTOM':
+        break;
+      case 'DEFAULT':
+      default:
+        this.setInteractionDefaultNextContact();
+    }
+  }
+
+  private _openNetworkingDateDialog(
+    currentDay: string | undefined,
+    label: string,
+    onSelect: (day: string) => void,
+  ): void {
+    this._matDialog
+      .open(DialogDeadlineComponent, {
+        data: {
+          isSelectDeadlineOnly: true,
+          isDateOnly: true,
+          selectDateLabel: label,
+          targetDeadlineDay: currentDay,
+          minDate: new Date(),
+        },
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (!result?.date) return;
+        onSelect(getDbDateStr(new Date(result.date)));
+      });
+  }
+
+  private _toLocalDateTimeInput(date: Date): string {
+    const offset = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - offset).toISOString().slice(0, 16);
   }
 
   private _dayDiff(day: string): number {
