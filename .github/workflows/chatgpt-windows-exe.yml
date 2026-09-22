@@ -27,9 +27,17 @@ jobs:
         shell: bash
         run: npm run env
 
-      - name: Build Windows executable
+      - name: Build frontend
         shell: bash
-        run: npm run dist:win
+        run: npm run buildFrontend:prod:es6
+
+      - name: Build Electron sources
+        shell: bash
+        run: npm run electron:build
+
+      - name: Package Windows executable
+        shell: bash
+        run: npx electron-builder --win --publish never
 
       - name: List executables
         shell: pwsh
