@@ -479,7 +479,8 @@ interface InteractionDraft {
                       <span class="quick-label">Când vrei să vorbiți din nou?</span>
                       @if (interactionContact(); as person) {
                         <small>
-                          Default · {{ cadenceExactLabel(person.cadence, person.cadenceDays) }}
+                          Default ·
+                          {{ cadenceExactLabel(person.cadence, person.cadenceDays) }}
                         </small>
                       }
                     </div>
@@ -1034,7 +1035,9 @@ interface InteractionDraft {
                   <span>Default</span>
                 </ng-container>
                 <ng-container input-value>
-                  <span>{{ cadenceExactLabel(contact.cadence, contact.cadenceDays) }}</span>
+                  <span>
+                    {{ cadenceExactLabel(contact.cadence, contact.cadenceDays) }}
+                  </span>
                 </ng-container>
               </task-detail-item>
 
@@ -3559,10 +3562,7 @@ export class NetworkingPageComponent {
     return `${prefix} · ${this.dayLabel(day)}`;
   }
 
-  cadenceExactLabel(
-    value: NetworkContactCadence,
-    cadenceDays?: number | null,
-  ): string {
+  cadenceExactLabel(value: NetworkContactCadence, cadenceDays?: number | null): string {
     switch (value) {
       case 'WEEKLY':
         return '1 săptămână';
