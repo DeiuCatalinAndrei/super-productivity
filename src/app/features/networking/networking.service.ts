@@ -239,6 +239,7 @@ export class NetworkingService {
       contactId,
       at: input.at,
       channel: input.channel,
+      channelCustom: input.channelCustom?.trim() || undefined,
       location: input.location?.trim() || undefined,
       summary: input.summary.trim(),
       learned: input.learned?.trim() || undefined,
