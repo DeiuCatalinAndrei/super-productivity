@@ -42,7 +42,7 @@ import { TaskDetailItemComponent } from '../../features/tasks/task-detail-panel/
 import { DialogDeadlineComponent } from '../../features/tasks/dialog-deadline/dialog-deadline.component';
 
 type NetworkingFilter = 'ALL' | 'DUE' | 'UPCOMING' | 'NO_REMINDER' | 'ARCHIVED';
-type ReconnectChoice = 'DEFAULT' | '3D' | '7D' | '14D' | '30D' | 'CUSTOM';
+type ReconnectChoice = 'DEFAULT' | '3D' | '7D' | '14D' | '1M' | 'CUSTOM';
 interface ContactDraft {
   name: string;
   phone: string;
@@ -518,10 +518,10 @@ interface InteractionDraft {
                       </button>
                       <button
                         type="button"
-                        [class.active]="reconnectChoice() === '30D'"
-                        (click)="setInteractionNextContact(30, '30D')"
+                        [class.active]="reconnectChoice() === '1M'"
+                        (click)="setInteractionNextMonth()"
                       >
-                        30 zile
+                        1 lună
                       </button>
                     </div>
 
@@ -622,21 +622,14 @@ interface InteractionDraft {
           } @else if (contactEditorOpen()) {
             <mat-card class="editor-card">
               <mat-card-content>
-                <div class="section-head">
-                  <div>
+                <header class="panel-title-wrapper editor-panel-title">
+                  <div class="panel-title-copy">
                     <h2>
                       {{ editingContactId() ? 'Editează persoana' : 'Persoană nouă' }}
                     </h2>
-                    <p>Un singur formular simplu. Completează doar ce îți este util.</p>
+                    <small>Completează doar informațiile pe care chiar le folosești.</small>
                   </div>
-                  <button
-                    mat-icon-button
-                    aria-label="Închide"
-                    (click)="cancelContactEdit()"
-                  >
-                    <mat-icon>close</mat-icon>
-                  </button>
-                </div>
+                </header>
 
                 <form
                   class="contact-form"
@@ -917,17 +910,28 @@ interface InteractionDraft {
                       />
                     </label>
                   }
-                  <label>
-                    <span>Următorul contact</span>
-                    <small
-                      >Poți seta manual data sau o poți lăsa să urmeze frecvența.</small
-                    >
-                    <input
-                      name="nextContactDay"
-                      type="date"
-                      [(ngModel)]="contactDraft.nextContactDay"
-                    />
-                  </label>
+                  <task-detail-item
+                    type="fullSizeInput"
+                    class="wide networking-detail-item contact-editor-date"
+                  >
+                    <ng-container input-title>
+                      <mat-icon>event_repeat</mat-icon>
+                      <span>Următorul contact</span>
+                    </ng-container>
+                    <ng-container input-value>
+                      <button
+                        type="button"
+                        mat-button
+                        (click)="openContactDraftNextDateDialog()"
+                      >
+                        {{
+                          contactDraft.nextContactDay
+                            ? dayLabel(contactDraft.nextContactDay)
+                            : 'Alege data'
+                        }}
+                      </button>
+                    </ng-container>
+                  </task-detail-item>
                   <label class="wide">
                     <span>Subiect data viitoare</span>
                     <small>
@@ -3039,6 +3043,33 @@ interface InteractionDraft {
           grid-template-columns: 1fr;
         }
       }
+
+      .detail-panel .contact-form {
+        grid-template-columns: 1fr;
+        gap: var(--s-half);
+        padding: 0 var(--s);
+      }
+
+      .detail-panel .contact-form .wide {
+        grid-column: auto;
+      }
+
+      .detail-panel .contact-form .form-section {
+        margin-top: var(--s-half);
+        padding: var(--s) 0 var(--s-half);
+      }
+
+      .detail-panel .contact-form label {
+        gap: var(--s-quarter);
+      }
+
+      .contact-editor-date {
+        margin-inline: calc(-1 * var(--s));
+      }
+
+      .editor-panel-title {
+        margin-bottom: var(--s-half);
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -3424,6 +3455,14 @@ export class NetworkingPageComponent {
     this.reconnectChoice.set(choice);
   }
 
+  setInteractionNextMonth(): void {
+    const at = new Date(this.interactionDraft.at).getTime();
+    const fromDay = timestampToLocalDay(Number.isFinite(at) ? at : Date.now());
+    this.interactionDraft.nextContactDay =
+      getNextContactDay('MONTHLY', fromDay) || addCalendarDays(fromDay, 30);
+    this.reconnectChoice.set('1M');
+  }
+
   openInteractionDateDialog(): void {
     const current = new Date(this.interactionDraft.at);
     const day = Number.isFinite(current.getTime()) ? getDbDateStr(current) : this.today;
@@ -3455,9 +3494,7 @@ export class NetworkingPageComponent {
           selected.setHours(12, 0, 0, 0);
         }
         this.interactionDraft.at = this._toLocalDateTimeInput(selected);
-        if (this.reconnectChoice() === 'DEFAULT') {
-          this.setInteractionDefaultNextContact();
-        }
+        this._recalculateReconnectFromInteractionDate();
       });
   }
 
@@ -3468,6 +3505,16 @@ export class NetworkingPageComponent {
       (day) => {
         this.interactionDraft.nextContactDay = day;
         this.reconnectChoice.set('CUSTOM');
+      },
+    );
+  }
+
+  openContactDraftNextDateDialog(): void {
+    this._openNetworkingDateDialog(
+      this.contactDraft.nextContactDay || undefined,
+      'Alege următorul contact',
+      (day) => {
+        this.contactDraft.nextContactDay = day;
       },
     );
   }
@@ -3505,8 +3552,8 @@ export class NetworkingPageComponent {
             ? '1 săptămână'
             : choice === '14D'
               ? '2 săptămâni'
-              : choice === '30D'
-                ? '30 zile'
+              : choice === '1M'
+                ? '1 lună'
                 : 'Dată aleasă';
 
     return `${prefix} · ${this.dayLabel(day)}`;
@@ -3726,6 +3773,28 @@ export class NetworkingPageComponent {
       followUpTitle: '',
       followUpDueDay: '',
     };
+  }
+
+  private _recalculateReconnectFromInteractionDate(): void {
+    switch (this.reconnectChoice()) {
+      case '3D':
+        this.setInteractionNextContact(3, '3D');
+        break;
+      case '7D':
+        this.setInteractionNextContact(7, '7D');
+        break;
+      case '14D':
+        this.setInteractionNextContact(14, '14D');
+        break;
+      case '1M':
+        this.setInteractionNextMonth();
+        break;
+      case 'CUSTOM':
+        break;
+      case 'DEFAULT':
+      default:
+        this.setInteractionDefaultNextContact();
+    }
   }
 
   private _openNetworkingDateDialog(
