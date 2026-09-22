@@ -628,7 +628,9 @@ interface InteractionDraft {
                     <h2>
                       {{ editingContactId() ? 'Editează persoana' : 'Persoană nouă' }}
                     </h2>
-                    <small>Completează doar informațiile pe care chiar le folosești.</small>
+                    <small
+                      >Completează doar informațiile pe care chiar le folosești.</small
+                    >
                   </div>
                 </header>
 
