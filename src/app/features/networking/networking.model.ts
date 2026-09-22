@@ -25,10 +25,13 @@ export type NetworkRelationshipType =
 export type NetworkImportance = 'CORE' | 'IMPORTANT' | 'NORMAL' | 'OCCASIONAL';
 
 export type NetworkInteractionChannel =
-  | 'MEETING'
-  | 'PHONE'
   | 'WHATSAPP'
   | 'INSTAGRAM'
+  | 'UNIVERSITY'
+  | 'IN_PERSON'
+  | 'MEETING'
+  | 'ONLINE_MEETING'
+  | 'PHONE'
   | 'FACEBOOK'
   | 'LINKEDIN'
   | 'EMAIL'
@@ -161,13 +164,16 @@ export const NETWORK_CHANNEL_OPTIONS: ReadonlyArray<{
   value: NetworkInteractionChannel;
   label: string;
 }> = [
-  { value: 'MEETING', label: 'Meeting' },
-  { value: 'PHONE', label: 'Phone' },
   { value: 'WHATSAPP', label: 'WhatsApp' },
   { value: 'INSTAGRAM', label: 'Instagram' },
+  { value: 'UNIVERSITY', label: 'La facultate' },
+  { value: 'IN_PERSON', label: 'În persoană' },
+  { value: 'MEETING', label: 'Meeting' },
+  { value: 'ONLINE_MEETING', label: 'Meet online' },
+  { value: 'PHONE', label: 'Telefon' },
   { value: 'FACEBOOK', label: 'Facebook' },
   { value: 'LINKEDIN', label: 'LinkedIn' },
   { value: 'EMAIL', label: 'Email' },
-  { value: 'EVENT', label: 'Event' },
-  { value: 'OTHER', label: 'Other' },
+  { value: 'EVENT', label: 'Eveniment' },
+  { value: 'OTHER', label: 'Altul' },
 ];

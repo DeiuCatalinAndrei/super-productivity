@@ -23,6 +23,7 @@ import {
   NetworkContact,
   NetworkContactCadence,
   NetworkImportance,
+  NetworkInteraction,
   NetworkInteractionChannel,
   NetworkRelationshipType,
 } from '../../features/networking/networking.model';
@@ -101,14 +102,23 @@ interface InteractionDraft {
             pentru a lua din nou legătura.
           </p>
         </div>
-        <button
-          mat-flat-button
-          color="primary"
-          (click)="startNewContact()"
-        >
-          <mat-icon>person_add</mat-icon>
-          Persoană nouă
-        </button>
+        <div class="page-actions">
+          <button
+            mat-button
+            (click)="startInteraction()"
+          >
+            <mat-icon>forum</mat-icon>
+            Am vorbit
+          </button>
+          <button
+            mat-flat-button
+            color="primary"
+            (click)="startNewContact()"
+          >
+            <mat-icon>person_add</mat-icon>
+            Adaugă persoană
+          </button>
+        </div>
       </header>
 
       <section class="summary-grid">
@@ -149,7 +159,10 @@ interface InteractionDraft {
         </button>
       </section>
 
-      <section class="workspace">
+      <section
+        class="workspace"
+        [class.panel-open]="panelOpen()"
+      >
         <aside class="people-panel">
           <div class="search-row">
             <label class="search-box">
@@ -212,15 +225,33 @@ interface InteractionDraft {
                             }
                           </span>
                           <span class="person-meta">
+                            <span>{{ relationshipLabel(contact.relationshipType) }}</span>
                             @if (contact.occupation) {
-                              <span>{{ contact.occupation }}</span>
+                              <span>· {{ contact.occupation }}</span>
                             }
                             @if (contact.company) {
                               <span>· {{ contact.company }}</span>
                             }
-                            @if (contact.city) {
-                              <span>· {{ contact.city }}</span>
-                            }
+                          </span>
+                          @if (latestInteractionFor(contact.id); as last) {
+                            <span class="person-last">
+                              <span class="channel-emoji">{{
+                                channelIcon(last.channel)
+                              }}</span>
+                              {{ channelLabel(last.channel) }} ·
+                              {{ relativeTimeLabel(last.at) }}
+                            </span>
+                          } @else {
+                            <span class="person-last muted">Nicio conversație încă</span>
+                          }
+                          <span
+                            class="person-next"
+                            [class.overdue]="
+                              contact.nextContactDay && contact.nextContactDay < today
+                            "
+                            [class.due-now]="contact.nextContactDay === today"
+                          >
+                            {{ nextContactLabel(contact) }}
                           </span>
                           @if (contact.nextTopic) {
                             <small class="person-topic">💬 {{ contact.nextTopic }}</small>
@@ -271,15 +302,31 @@ interface InteractionDraft {
                       }
                     </span>
                     <span class="person-meta">
+                      <span>{{ relationshipLabel(contact.relationshipType) }}</span>
                       @if (contact.occupation) {
-                        <span>{{ contact.occupation }}</span>
+                        <span>· {{ contact.occupation }}</span>
                       }
                       @if (contact.company) {
                         <span>· {{ contact.company }}</span>
                       }
-                      @if (contact.city) {
-                        <span>· {{ contact.city }}</span>
-                      }
+                    </span>
+                    @if (latestInteractionFor(contact.id); as last) {
+                      <span class="person-last">
+                        <span class="channel-emoji">{{ channelIcon(last.channel) }}</span>
+                        {{ channelLabel(last.channel) }} ·
+                        {{ relativeTimeLabel(last.at) }}
+                      </span>
+                    } @else {
+                      <span class="person-last muted">Nicio conversație încă</span>
+                    }
+                    <span
+                      class="person-next"
+                      [class.overdue]="
+                        contact.nextContactDay && contact.nextContactDay < today
+                      "
+                      [class.due-now]="contact.nextContactDay === today"
+                    >
+                      {{ nextContactLabel(contact) }}
                     </span>
                     @if (contact.nextTopic) {
                       <small class="person-topic">💬 {{ contact.nextTopic }}</small>
@@ -311,7 +358,189 @@ interface InteractionDraft {
         </aside>
 
         <section class="detail-panel">
-          @if (contactEditorOpen()) {
+          @if (interactionEditorOpen()) {
+            <mat-card class="quick-interaction-panel">
+              <mat-card-content>
+                <div class="section-head quick-panel-head">
+                  <div>
+                    <h2>Am vorbit</h2>
+                    <p>Înregistrează conversația în câteva secunde.</p>
+                  </div>
+                  <button
+                    mat-icon-button
+                    type="button"
+                    aria-label="Închide"
+                    (click)="closePanel()"
+                  >
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+
+                <form
+                  class="quick-interaction-form"
+                  (ngSubmit)="saveInteraction()"
+                >
+                  <label class="quick-contact-select">
+                    <span>Persoană</span>
+                    <select
+                      name="quickInteractionContact"
+                      [ngModel]="interactionContactId()"
+                      (ngModelChange)="interactionContactId.set($event)"
+                    >
+                      <option value="">Alege persoana...</option>
+                      @for (person of networking.contacts(); track person.id) {
+                        <option [value]="person.id">{{ person.name }}</option>
+                      }
+                    </select>
+                  </label>
+
+                  <div class="quick-field">
+                    <span class="quick-label">Cum ați vorbit?</span>
+                    <div class="channel-picker">
+                      @for (item of quickChannelOptions; track item.value) {
+                        <button
+                          type="button"
+                          class="channel-choice"
+                          [class.active]="interactionDraft.channel === item.value"
+                          (click)="interactionDraft.channel = item.value"
+                        >
+                          <span>{{ channelIcon(item.value) }}</span>
+                          <strong>{{ item.label }}</strong>
+                        </button>
+                      }
+                    </div>
+                  </div>
+
+                  <label>
+                    <span>Când?</span>
+                    <input
+                      name="quickInteractionAt"
+                      type="datetime-local"
+                      [(ngModel)]="interactionDraft.at"
+                    />
+                  </label>
+
+                  <label>
+                    <span>Ce a fost important? <small>opțional</small></span>
+                    <textarea
+                      name="quickInteractionSummary"
+                      rows="3"
+                      placeholder="O notă scurtă ca să îți amintești contextul..."
+                      [(ngModel)]="interactionDraft.summary"
+                    ></textarea>
+                  </label>
+
+                  <div class="quick-field">
+                    <span class="quick-label">Când vrei să vorbiți din nou?</span>
+                    <div class="reconnect-presets">
+                      <button
+                        type="button"
+                        (click)="setInteractionNextContact(3)"
+                      >
+                        3 zile
+                      </button>
+                      <button
+                        type="button"
+                        (click)="setInteractionNextContact(7)"
+                      >
+                        1 săpt
+                      </button>
+                      <button
+                        type="button"
+                        (click)="setInteractionNextContact(14)"
+                      >
+                        2 săpt
+                      </button>
+                      <button
+                        type="button"
+                        (click)="setInteractionNextContact(30)"
+                      >
+                        1 lună
+                      </button>
+                    </div>
+                    <input
+                      name="quickNextContactDay"
+                      type="date"
+                      [(ngModel)]="interactionDraft.nextContactDay"
+                    />
+                  </div>
+
+                  <details class="interaction-more">
+                    <summary>Mai multe detalii</summary>
+                    <div class="interaction-more-grid">
+                      <label>
+                        <span>Unde / context</span>
+                        <input
+                          name="quickInteractionLocation"
+                          placeholder="ex. curs, cafenea, conferință"
+                          [(ngModel)]="interactionDraft.location"
+                        />
+                      </label>
+                      <label>
+                        <span>Ce am aflat nou?</span>
+                        <textarea
+                          name="quickLearned"
+                          rows="2"
+                          [(ngModel)]="interactionDraft.learned"
+                        ></textarea>
+                      </label>
+                      <label>
+                        <span>Următorul pas</span>
+                        <input
+                          name="quickNextStep"
+                          [(ngModel)]="interactionDraft.nextStep"
+                        />
+                      </label>
+                      <label>
+                        <span>Subiect data viitoare</span>
+                        <input
+                          name="quickNextTopic"
+                          [(ngModel)]="interactionDraft.nextTopic"
+                        />
+                      </label>
+                      <label>
+                        <span>Follow-up</span>
+                        <input
+                          name="quickFollowUpTitle"
+                          placeholder="ex. Trimite materialele"
+                          [(ngModel)]="interactionDraft.followUpTitle"
+                        />
+                      </label>
+                      @if (interactionDraft.followUpTitle.trim()) {
+                        <label>
+                          <span>Termen follow-up</span>
+                          <input
+                            name="quickFollowUpDueDay"
+                            type="date"
+                            [(ngModel)]="interactionDraft.followUpDueDay"
+                          />
+                        </label>
+                      }
+                    </div>
+                  </details>
+
+                  <div class="form-actions">
+                    <button
+                      type="button"
+                      mat-button
+                      (click)="closePanel()"
+                    >
+                      Anulează
+                    </button>
+                    <button
+                      type="submit"
+                      mat-flat-button
+                      color="primary"
+                      [disabled]="!interactionContactId()"
+                    >
+                      <mat-icon>check</mat-icon>
+                      Salvează
+                    </button>
+                  </div>
+                </form>
+              </mat-card-content>
+            </mat-card>
+          } @else if (contactEditorOpen()) {
             <mat-card class="editor-card">
               <mat-card-content>
                 <div class="section-head">
@@ -695,6 +924,14 @@ interface InteractionDraft {
                   >
                     <mat-icon>edit</mat-icon>
                     Editează
+                  </button>
+                  <button
+                    mat-icon-button
+                    type="button"
+                    aria-label="Închide detaliile"
+                    (click)="closePanel()"
+                  >
+                    <mat-icon>close</mat-icon>
                   </button>
                 </div>
               </header>
@@ -2275,6 +2512,299 @@ interface InteractionDraft {
           min-height: 44px;
         }
       }
+
+      /* Fast daily Networking layout */
+      .page-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+        min-height: 620px;
+      }
+
+      .workspace.panel-open {
+        grid-template-columns: minmax(0, 1fr) minmax(390px, 470px);
+        align-items: start;
+      }
+
+      .workspace:not(.panel-open) .detail-panel {
+        display: none;
+      }
+
+      .people-panel {
+        overflow: visible;
+      }
+
+      .people-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+        max-height: none;
+        overflow: visible;
+        padding: 10px;
+      }
+
+      .people-group {
+        display: grid;
+        grid-column: 1 / -1;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+        margin: 0;
+      }
+
+      .people-group + .people-group {
+        margin-top: 6px;
+      }
+
+      .people-group-head {
+        grid-column: 1 / -1;
+        padding: 10px 2px 2px;
+      }
+
+      .person-row {
+        min-height: 124px;
+        padding: 12px;
+        border: 1px solid color-mix(in srgb, var(--divider-color) 82%, transparent);
+        border-radius: 11px;
+        background: color-mix(in srgb, var(--card-bg) 84%, transparent);
+        transition:
+          border-color 120ms ease,
+          background 120ms ease,
+          transform 120ms ease;
+      }
+
+      .person-row:hover {
+        border-color: color-mix(in srgb, var(--c-accent) 42%, var(--divider-color));
+        background: var(--state-hover);
+        transform: translateY(-1px);
+      }
+
+      .person-row.selected {
+        border-color: color-mix(in srgb, var(--c-accent) 58%, var(--divider-color));
+        background: color-mix(in srgb, var(--c-accent) 9%, var(--card-bg));
+      }
+
+      .person-row.due:not(.selected) {
+        box-shadow: inset 3px 0 0 var(--c-accent);
+      }
+
+      .person-main {
+        gap: 5px;
+      }
+
+      .person-top strong {
+        overflow: hidden;
+        font-size: 0.95rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .person-meta {
+        margin-top: 0;
+      }
+
+      .person-last,
+      .person-next {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        min-width: 0;
+        color: var(--text-color-muted);
+        font-size: 0.73rem;
+      }
+
+      .person-next {
+        margin-top: 1px;
+        font-weight: 600;
+      }
+
+      .person-next.overdue {
+        color: var(--c-warn);
+      }
+
+      .person-next.due-now {
+        color: var(--c-accent);
+      }
+
+      .channel-emoji {
+        flex: 0 0 auto;
+        font-size: 0.9rem;
+      }
+
+      .detail-panel {
+        position: sticky;
+        top: 12px;
+        align-self: start;
+        max-height: calc(100vh - 96px);
+        overflow: auto;
+        padding: 12px;
+        border: 1px solid var(--divider-color);
+        border-radius: 12px;
+        background: var(--bg);
+        box-shadow: 0 12px 34px rgba(0, 0, 0, 0.12);
+      }
+
+      .quick-interaction-panel {
+        margin: 0;
+        box-shadow: none !important;
+      }
+
+      .quick-panel-head {
+        margin-bottom: 14px;
+      }
+
+      .quick-interaction-form {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .quick-interaction-form label,
+      .interaction-more-grid label {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .quick-field {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+
+      .quick-label {
+        color: var(--text-color-muted);
+        font-size: 0.73rem;
+      }
+
+      .channel-picker {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+      }
+
+      .channel-choice {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 46px;
+        padding: 8px 10px;
+        border: 1px solid var(--divider-color);
+        border-radius: 9px;
+        background: transparent;
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .channel-choice:hover {
+        background: var(--state-hover);
+      }
+
+      .channel-choice.active {
+        border-color: color-mix(in srgb, var(--c-accent) 65%, var(--divider-color));
+        background: color-mix(in srgb, var(--c-accent) 12%, transparent);
+      }
+
+      .channel-choice > span {
+        font-size: 1.05rem;
+      }
+
+      .channel-choice strong {
+        font-size: 0.78rem;
+      }
+
+      .reconnect-presets {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .reconnect-presets button {
+        min-height: 34px;
+        padding: 5px 9px;
+        border: 1px solid var(--divider-color);
+        border-radius: 999px;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+      }
+
+      .reconnect-presets button:hover {
+        background: var(--state-hover);
+      }
+
+      .interaction-more {
+        padding: 9px 10px;
+        border: 1px solid var(--divider-color);
+        border-radius: 9px;
+      }
+
+      .interaction-more summary {
+        cursor: pointer;
+        color: var(--text-color-muted);
+        font-size: 0.78rem;
+        font-weight: 600;
+      }
+
+      .interaction-more-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 9px;
+        margin-top: 10px;
+      }
+
+      .quick-interaction-form .form-actions {
+        margin-top: 2px;
+      }
+
+      @media (max-width: 1100px) {
+        .workspace.panel-open {
+          grid-template-columns: minmax(0, 1fr) 410px;
+        }
+
+        .workspace.panel-open .people-list,
+        .workspace.panel-open .people-group {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 800px) {
+        .page-head {
+          align-items: stretch;
+        }
+
+        .page-actions {
+          justify-content: flex-end;
+        }
+
+        .people-list,
+        .people-group {
+          grid-template-columns: 1fr;
+        }
+
+        .workspace.panel-open {
+          display: block;
+        }
+
+        .workspace.panel-open .people-panel {
+          display: none;
+        }
+
+        .detail-panel {
+          position: static;
+          max-height: none;
+          overflow: visible;
+          padding: 8px;
+          box-shadow: none;
+        }
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -2294,11 +2824,24 @@ export class NetworkingPageComponent {
   readonly contactEditorOpen = signal(false);
   readonly editingContactId = signal<string | null>(null);
   readonly interactionEditorOpen = signal(false);
+  readonly interactionContactId = signal<string>('');
 
   readonly cadenceOptions = NETWORK_CADENCE_OPTIONS;
   readonly relationshipOptions = NETWORK_RELATIONSHIP_OPTIONS;
   readonly importanceOptions = NETWORK_IMPORTANCE_OPTIONS;
   readonly channelOptions = NETWORK_CHANNEL_OPTIONS;
+  readonly quickChannelOptions = NETWORK_CHANNEL_OPTIONS.filter((item) =>
+    [
+      'WHATSAPP',
+      'INSTAGRAM',
+      'UNIVERSITY',
+      'IN_PERSON',
+      'MEETING',
+      'ONLINE_MEETING',
+      'PHONE',
+      'OTHER',
+    ].includes(item.value),
+  );
 
   readonly filters: ReadonlyArray<{ id: NetworkingFilter; label: string }> = [
     { id: 'ALL', label: 'Toate' },
@@ -2383,6 +2926,13 @@ export class NetworkingPageComponent {
 
   readonly latestInteraction = computed(() => this.interactions()[0]);
 
+  readonly panelOpen = computed(
+    () =>
+      this.contactEditorOpen() ||
+      this.interactionEditorOpen() ||
+      !!this.selectedContact(),
+  );
+
   readonly followUps = computed(() => {
     const id = this.selectedId();
     return id ? this.networking.followUpsForContact(id) : [];
@@ -2402,10 +2952,9 @@ export class NetworkingPageComponent {
       }
 
       const selected = this.selectedId();
-      if (selected && this.networking.contact(selected)) return;
-
-      const first = this.filteredContacts()[0];
-      this.selectedId.set(first?.id ?? null);
+      if (selected && !this.networking.contact(selected)) {
+        this.selectedId.set(null);
+      }
     });
   }
 
@@ -2534,13 +3083,16 @@ export class NetworkingPageComponent {
     this.filter.set('ALL');
   }
 
-  startInteraction(): void {
+  startInteraction(contactId?: string): void {
     this.interactionDraft = this._emptyInteractionDraft();
+    this.interactionContactId.set(contactId || this.selectedId() || '');
+    this.contactEditorOpen.set(false);
     this.interactionEditorOpen.set(true);
   }
 
-  saveInteraction(contactId: string): void {
-    if (!this.interactionDraft.summary.trim()) return;
+  saveInteraction(contactId?: string): void {
+    const targetId = contactId || this.interactionContactId();
+    if (!targetId) return;
     const at = new Date(this.interactionDraft.at).getTime();
     const safeAt = Number.isFinite(at) ? at : Date.now();
 
@@ -2559,8 +3111,10 @@ export class NetworkingPageComponent {
       followUpDueDay: this.interactionDraft.followUpDueDay || null,
     };
 
-    this.networking.logInteraction(contactId, input);
+    this.networking.logInteraction(targetId, input);
+    this.selectedId.set(targetId);
     this.interactionEditorOpen.set(false);
+    this.interactionContactId.set('');
     this.interactionDraft = this._emptyInteractionDraft();
   }
 
@@ -2580,7 +3134,79 @@ export class NetworkingPageComponent {
   archiveSelected(id: string): void {
     this.networking.archiveContact(id, true);
     this.filter.set('ALL');
-    this.selectedId.set(this.networking.contacts()[0]?.id ?? null);
+    this.selectedId.set(null);
+  }
+
+  closePanel(): void {
+    this.contactEditorOpen.set(false);
+    this.interactionEditorOpen.set(false);
+    this.editingContactId.set(null);
+    this.interactionContactId.set('');
+    this.selectedId.set(null);
+  }
+
+  setInteractionNextContact(days: number): void {
+    this.interactionDraft.nextContactDay = addCalendarDays(this.today, days);
+  }
+
+  latestInteractionFor(contactId: string): NetworkInteraction | undefined {
+    return this.networking.interactionsForContact(contactId)[0];
+  }
+
+  nextContactLabel(contact: NetworkContact): string {
+    if (!contact.nextContactDay) return 'Fără reminder';
+    const diff = this._dayDiff(contact.nextContactDay);
+    if (diff < 0) {
+      const days = Math.abs(diff);
+      return `Întârziat ${days} ${days === 1 ? 'zi' : 'zile'}`;
+    }
+    if (diff === 0) return 'Contactează azi';
+    if (diff === 1) return 'Mâine';
+    return `Peste ${diff} zile`;
+  }
+
+  relativeTimeLabel(timestamp: number): string {
+    const day = new Date(timestamp);
+    const today = new Date();
+    day.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    const diff = Math.round((today.getTime() - day.getTime()) / 86400000);
+    if (diff <= 0) return 'azi';
+    if (diff === 1) return 'ieri';
+    if (diff < 7) return `acum ${diff} zile`;
+    const weeks = Math.floor(diff / 7);
+    if (weeks < 5) return `acum ${weeks} ${weeks === 1 ? 'săptămână' : 'săptămâni'}`;
+    const months = Math.floor(diff / 30);
+    return `acum ${Math.max(1, months)} ${months === 1 ? 'lună' : 'luni'}`;
+  }
+
+  channelIcon(value: NetworkInteractionChannel): string {
+    switch (value) {
+      case 'WHATSAPP':
+        return '💬';
+      case 'INSTAGRAM':
+        return '📸';
+      case 'UNIVERSITY':
+        return '🎓';
+      case 'IN_PERSON':
+        return '🤝';
+      case 'MEETING':
+        return '👥';
+      case 'ONLINE_MEETING':
+        return '💻';
+      case 'PHONE':
+        return '📞';
+      case 'EMAIL':
+        return '✉️';
+      case 'LINKEDIN':
+        return '💼';
+      case 'FACEBOOK':
+        return '🌐';
+      case 'EVENT':
+        return '🎟️';
+      default:
+        return '•••';
+    }
   }
 
   introductionOptions(): NetworkContact[] {
@@ -2681,7 +3307,7 @@ export class NetworkingPageComponent {
     const localIso = new Date(now.getTime() - offset).toISOString().slice(0, 16);
     return {
       at: localIso,
-      channel: 'MEETING',
+      channel: 'WHATSAPP',
       location: '',
       summary: '',
       learned: '',
@@ -2693,6 +3319,12 @@ export class NetworkingPageComponent {
       followUpTitle: '',
       followUpDueDay: '',
     };
+  }
+
+  private _dayDiff(day: string): number {
+    const target = new Date(`${day}T12:00:00`);
+    const base = new Date(`${this.today}T12:00:00`);
+    return Math.round((target.getTime() - base.getTime()) / 86400000);
   }
 
   private _clean(value: string): string | undefined {
