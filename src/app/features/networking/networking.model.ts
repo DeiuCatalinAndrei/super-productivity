@@ -81,6 +81,7 @@ export interface NetworkInteraction {
   contactId: string;
   at: number;
   channel: NetworkInteractionChannel;
+  channelCustom?: string;
   location?: string;
   summary: string;
   learned?: string;
