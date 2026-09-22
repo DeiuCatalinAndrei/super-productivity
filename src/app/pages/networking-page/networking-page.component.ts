@@ -312,11 +312,9 @@ interface InteractionDraft {
                     </span>
                     @if (latestInteractionFor(contact.id); as last) {
                       <span class="person-last">
-                        <span class="channel-emoji">{{
-                                channelIcon(last.channel)
-                              }}</span>
+                        <span class="channel-emoji">{{ channelIcon(last.channel) }}</span>
                         {{ channelLabel(last.channel) }} ·
-                              {{ relativeTimeLabel(last.at) }}
+                        {{ relativeTimeLabel(last.at) }}
                       </span>
                     } @else {
                       <span class="person-last muted">Nicio conversație încă</span>
@@ -324,8 +322,8 @@ interface InteractionDraft {
                     <span
                       class="person-next"
                       [class.overdue]="
-                              contact.nextContactDay && contact.nextContactDay < today
-                            "
+                        contact.nextContactDay && contact.nextContactDay < today
+                      "
                       [class.due-now]="contact.nextContactDay === today"
                     >
                       {{ nextContactLabel(contact) }}
