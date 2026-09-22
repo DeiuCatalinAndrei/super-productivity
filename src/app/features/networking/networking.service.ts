@@ -230,7 +230,7 @@ export class NetworkingService {
     const nextContactDay =
       input.nextContactDay !== undefined && input.nextContactDay !== null
         ? input.nextContactDay || null
-        : current.nextContactDay ?? null;
+        : (current.nextContactDay ?? null);
 
     const updatedInteraction: NetworkInteraction = {
       ...current,
