@@ -80,6 +80,7 @@ export const networkContactMatchesQuery = (
     .map((item) =>
       [
         item.summary,
+        item.channelCustom,
         item.learned,
         item.iPromised,
         item.theyPromised,
