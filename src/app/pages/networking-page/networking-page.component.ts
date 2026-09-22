@@ -382,7 +382,9 @@ interface InteractionDraft {
               <mat-card-content>
                 <header class="panel-title-wrapper">
                   <div class="panel-title-copy">
-                    <h2>Am vorbit</h2>
+                    <h2>
+                      {{ editingInteractionId() ? 'Editează conversația' : 'Am vorbit' }}
+                    </h2>
                     @if (interactionContact(); as person) {
                       <small>
                         {{ person.name }} · Default:
@@ -411,6 +413,7 @@ interface InteractionDraft {
                         class="panel-inline-control"
                         name="quickInteractionContact"
                         [ngModel]="interactionContactId()"
+                        [disabled]="!!editingInteractionId()"
                         (ngModelChange)="onInteractionContactChange($event)"
                       >
                         <option value="">Alege persoana...</option>
@@ -561,6 +564,22 @@ interface InteractionDraft {
                         ></textarea>
                       </label>
                       <label>
+                        <span>Ce am promis eu?</span>
+                        <textarea
+                          name="quickIPromised"
+                          rows="2"
+                          [(ngModel)]="interactionDraft.iPromised"
+                        ></textarea>
+                      </label>
+                      <label>
+                        <span>Ce a promis persoana?</span>
+                        <textarea
+                          name="quickTheyPromised"
+                          rows="2"
+                          [(ngModel)]="interactionDraft.theyPromised"
+                        ></textarea>
+                      </label>
+                      <label>
                         <span>Următorul pas</span>
                         <input
                           name="quickNextStep"
@@ -574,23 +593,25 @@ interface InteractionDraft {
                           [(ngModel)]="interactionDraft.nextTopic"
                         />
                       </label>
-                      <label>
-                        <span>Follow-up</span>
-                        <input
-                          name="quickFollowUpTitle"
-                          placeholder="ex. Trimite materialele"
-                          [(ngModel)]="interactionDraft.followUpTitle"
-                        />
-                      </label>
-                      @if (interactionDraft.followUpTitle.trim()) {
+                      @if (!editingInteractionId()) {
                         <label>
-                          <span>Termen follow-up</span>
+                          <span>Follow-up</span>
                           <input
-                            name="quickFollowUpDueDay"
-                            type="date"
-                            [(ngModel)]="interactionDraft.followUpDueDay"
+                            name="quickFollowUpTitle"
+                            placeholder="ex. Trimite materialele"
+                            [(ngModel)]="interactionDraft.followUpTitle"
                           />
                         </label>
+                        @if (interactionDraft.followUpTitle.trim()) {
+                          <label>
+                            <span>Termen follow-up</span>
+                            <input
+                              name="quickFollowUpDueDay"
+                              type="date"
+                              [(ngModel)]="interactionDraft.followUpDueDay"
+                            />
+                          </label>
+                        }
                       }
                     </div>
                   </details>
@@ -614,7 +635,7 @@ interface InteractionDraft {
                       "
                     >
                       <mat-icon>check</mat-icon>
-                      Salvează
+                      {{ editingInteractionId() ? 'Salvează modificările' : 'Salvează' }}
                     </button>
                   </div>
                 </form>
@@ -1277,16 +1298,28 @@ interface InteractionDraft {
                         <div class="timeline-marker"></div>
                         <div class="interaction-body">
                           <header>
-                            <div>
+                            <div class="interaction-heading">
                               <strong>{{ dateTimeLabel(item.at) }}</strong>
                               <span class="channel">
                                 {{ channelIcon(item.channel) }}
                                 {{ channelDisplayLabel(item) }}
                               </span>
                             </div>
-                            @if (item.location) {
-                              <span class="muted">{{ item.location }}</span>
-                            }
+                            <div class="interaction-header-actions">
+                              @if (item.location) {
+                                <span class="muted interaction-location">{{
+                                  item.location
+                                }}</span>
+                              }
+                              <button
+                                mat-icon-button
+                                type="button"
+                                aria-label="Editează conversația"
+                                (click)="startEditInteraction(item)"
+                              >
+                                <mat-icon>edit</mat-icon>
+                              </button>
+                            </div>
                           </header>
                           @if (item.summary) {
                             <p class="summary">{{ item.summary }}</p>
@@ -1296,6 +1329,18 @@ interface InteractionDraft {
                               <div>
                                 <small>Ce am aflat</small>
                                 <p>{{ item.learned }}</p>
+                              </div>
+                            }
+                            @if (item.iPromised) {
+                              <div>
+                                <small>Am promis</small>
+                                <p>{{ item.iPromised }}</p>
+                              </div>
+                            }
+                            @if (item.theyPromised) {
+                              <div>
+                                <small>A promis</small>
+                                <p>{{ item.theyPromised }}</p>
                               </div>
                             }
                             @if (item.nextStep) {
@@ -1308,6 +1353,12 @@ interface InteractionDraft {
                               <div>
                                 <small>Data viitoare</small>
                                 <p>{{ item.nextTopic }}</p>
+                              </div>
+                            }
+                            @if (item.nextContactDay) {
+                              <div>
+                                <small>Recontactare</small>
+                                <p>{{ dayLabel(item.nextContactDay) }}</p>
                               </div>
                             }
                           </div>
@@ -3096,6 +3147,7 @@ export class NetworkingPageComponent {
   readonly editingContactId = signal<string | null>(null);
   readonly interactionEditorOpen = signal(false);
   readonly interactionContactId = signal<string>('');
+  readonly editingInteractionId = signal<string | null>(null);
   readonly reconnectChoice = signal<ReconnectChoice>('DEFAULT');
 
   readonly cadenceOptions = NETWORK_CADENCE_OPTIONS;
@@ -3359,11 +3411,35 @@ export class NetworkingPageComponent {
   }
 
   startInteraction(contactId?: string): void {
+    this.editingInteractionId.set(null);
     this.interactionDraft = this._emptyInteractionDraft();
     this.interactionContactId.set(contactId || this.selectedId() || '');
     this.contactEditorOpen.set(false);
     this.interactionEditorOpen.set(true);
     this.setInteractionDefaultNextContact();
+  }
+
+  startEditInteraction(interaction: NetworkInteraction): void {
+    this.editingInteractionId.set(interaction.id);
+    this.interactionContactId.set(interaction.contactId);
+    this.interactionDraft = {
+      at: this._toLocalDateTimeInput(new Date(interaction.at)),
+      channel: interaction.channel,
+      channelCustom: interaction.channelCustom || '',
+      location: interaction.location || '',
+      summary: interaction.summary || '',
+      learned: interaction.learned || '',
+      iPromised: interaction.iPromised || '',
+      theyPromised: interaction.theyPromised || '',
+      nextStep: interaction.nextStep || '',
+      nextTopic: interaction.nextTopic || '',
+      nextContactDay: interaction.nextContactDay || '',
+      followUpTitle: '',
+      followUpDueDay: '',
+    };
+    this.reconnectChoice.set('CUSTOM');
+    this.contactEditorOpen.set(false);
+    this.interactionEditorOpen.set(true);
   }
 
   onInteractionContactChange(contactId: string): void {
@@ -3403,10 +3479,16 @@ export class NetworkingPageComponent {
       followUpDueDay: this.interactionDraft.followUpDueDay || null,
     };
 
-    this.networking.logInteraction(targetId, input);
+    const editingInteractionId = this.editingInteractionId();
+    if (editingInteractionId) {
+      this.networking.updateInteraction(editingInteractionId, input);
+    } else {
+      this.networking.logInteraction(targetId, input);
+    }
     this.selectedId.set(targetId);
     this.interactionEditorOpen.set(false);
     this.interactionContactId.set('');
+    this.editingInteractionId.set(null);
     this.reconnectChoice.set('DEFAULT');
     this.interactionDraft = this._emptyInteractionDraft();
   }
@@ -3435,6 +3517,7 @@ export class NetworkingPageComponent {
     this.interactionEditorOpen.set(false);
     this.editingContactId.set(null);
     this.interactionContactId.set('');
+    this.editingInteractionId.set(null);
     this.reconnectChoice.set('DEFAULT');
     this.selectedId.set(null);
   }
