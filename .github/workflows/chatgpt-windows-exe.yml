@@ -1,0 +1,44 @@
+name: ChatGPT Windows EXE Build
+
+on:
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  windows-exe:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: 22
+
+      - name: Install Windows build dependencies
+        shell: bash
+        run: npm install @nx/nx-win32-x64-msvc && npm i
+
+      - name: Generate environment
+        shell: bash
+        run: npm run env
+
+      - name: Build Windows executable
+        shell: bash
+        run: npm run dist:win
+
+      - name: List executables
+        shell: pwsh
+        run: Get-ChildItem -Path .tmp/app-builds -Filter *.exe | Format-Table -AutoSize
+
+      - name: Upload Windows executables
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: super-productivity-windows-exe
+          path: .tmp/app-builds/*.exe
+          if-no-files-found: error
+          retention-days: 7
