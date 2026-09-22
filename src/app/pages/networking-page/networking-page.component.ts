@@ -996,10 +996,11 @@ interface InteractionDraft {
                       [disabled]="!contactDraft.name.trim()"
                     >
                       <mat-icon>save</mat-icon>
-                      {{ editingContactId() ? 'Salvează modificările' : 'Adaugă persoana' }}
+                      {{
+                        editingContactId() ? 'Salvează modificările' : 'Adaugă persoana'
+                      }}
                     </button>
                   </div>
-                </form>
                 </form>
               </mat-card-content>
             </mat-card>
