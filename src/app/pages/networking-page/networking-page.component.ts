@@ -23,6 +23,7 @@ import {
   NetworkContact,
   NetworkContactCadence,
   NetworkImportance,
+  NetworkInteraction,
   NetworkInteractionChannel,
   NetworkRelationshipType,
 } from '../../features/networking/networking.model';
@@ -234,15 +235,20 @@ interface InteractionDraft {
                           </span>
                           @if (latestInteractionFor(contact.id); as last) {
                             <span class="person-last">
-                              <span class="channel-emoji">{{ channelIcon(last.channel) }}</span>
-                              {{ channelLabel(last.channel) }} · {{ relativeTimeLabel(last.at) }}
+                              <span class="channel-emoji">{{
+                                channelIcon(last.channel)
+                              }}</span>
+                              {{ channelLabel(last.channel) }} ·
+                              {{ relativeTimeLabel(last.at) }}
                             </span>
                           } @else {
                             <span class="person-last muted">Nicio conversație încă</span>
                           }
                           <span
                             class="person-next"
-                            [class.overdue]="contact.nextContactDay && contact.nextContactDay < today"
+                            [class.overdue]="
+                              contact.nextContactDay && contact.nextContactDay < today
+                            "
                             [class.due-now]="contact.nextContactDay === today"
                           >
                             {{ nextContactLabel(contact) }}
@@ -306,15 +312,20 @@ interface InteractionDraft {
                     </span>
                     @if (latestInteractionFor(contact.id); as last) {
                       <span class="person-last">
-                        <span class="channel-emoji">{{ channelIcon(last.channel) }}</span>
-                        {{ channelLabel(last.channel) }} · {{ relativeTimeLabel(last.at) }}
+                        <span class="channel-emoji">{{
+                                channelIcon(last.channel)
+                              }}</span>
+                        {{ channelLabel(last.channel) }} ·
+                              {{ relativeTimeLabel(last.at) }}
                       </span>
                     } @else {
                       <span class="person-last muted">Nicio conversație încă</span>
                     }
                     <span
                       class="person-next"
-                      [class.overdue]="contact.nextContactDay && contact.nextContactDay < today"
+                      [class.overdue]="
+                              contact.nextContactDay && contact.nextContactDay < today
+                            "
                       [class.due-now]="contact.nextContactDay === today"
                     >
                       {{ nextContactLabel(contact) }}
@@ -424,10 +435,30 @@ interface InteractionDraft {
                   <div class="quick-field">
                     <span class="quick-label">Când vrei să vorbiți din nou?</span>
                     <div class="reconnect-presets">
-                      <button type="button" (click)="setInteractionNextContact(3)">3 zile</button>
-                      <button type="button" (click)="setInteractionNextContact(7)">1 săpt</button>
-                      <button type="button" (click)="setInteractionNextContact(14)">2 săpt</button>
-                      <button type="button" (click)="setInteractionNextContact(30)">1 lună</button>
+                      <button
+                        type="button"
+                        (click)="setInteractionNextContact(3)"
+                      >
+                        3 zile
+                      </button>
+                      <button
+                        type="button"
+                        (click)="setInteractionNextContact(7)"
+                      >
+                        1 săpt
+                      </button>
+                      <button
+                        type="button"
+                        (click)="setInteractionNextContact(14)"
+                      >
+                        2 săpt
+                      </button>
+                      <button
+                        type="button"
+                        (click)="setInteractionNextContact(30)"
+                      >
+                        1 lună
+                      </button>
                     </div>
                     <input
                       name="quickNextContactDay"
@@ -3120,7 +3151,7 @@ export class NetworkingPageComponent {
     this.interactionDraft.nextContactDay = addCalendarDays(this.today, days);
   }
 
-  latestInteractionFor(contactId: string) {
+  latestInteractionFor(contactId: string): NetworkInteraction | undefined {
     return this.networking.interactionsForContact(contactId)[0];
   }
 
