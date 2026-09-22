@@ -3140,6 +3140,229 @@ interface InteractionDraft {
       .editor-panel-title {
         margin-bottom: var(--s-half);
       }
+
+      /* Networking panel polish: one scroll per column, no clipped labels */
+      .workspace,
+      .workspace.panel-open {
+        min-height: 0;
+        height: max(440px, calc(100dvh - 250px));
+        max-height: 760px;
+        overflow: hidden;
+      }
+
+      .workspace.panel-open {
+        grid-template-columns: minmax(0, 1fr) 360px;
+      }
+
+      .people-panel {
+        display: flex;
+        min-height: 0;
+        height: 100%;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .search-row,
+      .filters {
+        flex: 0 0 auto;
+      }
+
+      .people-list {
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: none;
+        overflow-x: hidden;
+        overflow-y: auto;
+        scrollbar-gutter: stable;
+      }
+
+      .detail-panel {
+        position: relative;
+        top: auto;
+        align-self: stretch;
+        min-height: 0;
+        height: 100%;
+        max-height: none;
+        overflow-x: hidden;
+        overflow-y: auto;
+        scrollbar-gutter: stable;
+      }
+
+      .panel-title-copy h2,
+      .panel-title-copy small {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+
+      .panel-title-copy small {
+        line-height: 1.35;
+      }
+
+      :host ::ng-deep .detail-panel .mdc-button__label,
+      .detail-panel button,
+      .channel-choice,
+      .reconnect-presets button {
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+
+      :host ::ng-deep .networking-detail-item .input-item__title,
+      :host ::ng-deep .networking-detail-item .input-item__value,
+      :host ::ng-deep .networking-detail-item .input-item__value span,
+      :host ::ng-deep .networking-detail-item .mat-expansion-panel-header-title {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+
+      :host ::ng-deep .networking-detail-item .input-item__value {
+        line-height: 1.3;
+      }
+
+      .contact-editor-native {
+        display: block;
+        padding: 0;
+      }
+
+      .contact-editor-essentials {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s);
+        margin: 0 var(--s) var(--s-half);
+        padding: var(--s);
+        border: 1px solid var(--divider-color);
+        border-radius: var(--card-border-radius);
+        background: var(--task-detail-bg);
+      }
+
+      .contact-editor-essentials .primary-field input {
+        min-height: 44px;
+        font-size: 15px;
+        font-weight: 600;
+      }
+
+      .contact-editor-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--s-half);
+      }
+
+      .contact-editor-essentials label,
+      .contact-editor-panel-grid label {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: var(--s-quarter);
+      }
+
+      .contact-editor-panel-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--s-half);
+        padding-top: var(--s-quarter);
+      }
+
+      .contact-editor-panel-grid textarea {
+        min-height: 70px;
+      }
+
+      .contact-editor-actions {
+        margin-top: var(--s-half);
+      }
+
+      .interaction-body {
+        min-width: 0;
+      }
+
+      .interaction-body header {
+        align-items: flex-start;
+      }
+
+      .interaction-heading,
+      .interaction-header-actions {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: var(--s-half);
+      }
+
+      .interaction-heading {
+        flex: 1 1 auto;
+        flex-wrap: wrap;
+      }
+
+      .interaction-header-actions {
+        flex: 0 1 auto;
+        justify-content: flex-end;
+      }
+
+      .interaction-location {
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .interaction-header-actions button {
+        flex: 0 0 auto;
+        width: 32px;
+        height: 32px;
+      }
+
+      .interaction-header-actions mat-icon {
+        width: 18px;
+        height: 18px;
+        font-size: 18px;
+      }
+
+      .interaction-body p,
+      .interaction-details p,
+      .compact-text-block p,
+      .panel-context-note p,
+      .followup-row .grow {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      @media (max-width: 1100px) {
+        .workspace.panel-open {
+          grid-template-columns: minmax(0, 1fr) 330px;
+        }
+
+        .contact-editor-row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 800px) {
+        .workspace,
+        .workspace.panel-open {
+          height: auto;
+          max-height: none;
+          overflow: visible;
+        }
+
+        .people-panel {
+          height: auto;
+        }
+
+        .people-list {
+          max-height: none;
+          overflow: visible;
+        }
+
+        .detail-panel {
+          height: auto;
+          overflow: visible;
+        }
+
+        .contact-editor-row {
+          grid-template-columns: 1fr;
+        }
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
