@@ -470,8 +470,8 @@ interface InteractionDraft {
                       <span>Ce a fost important? <small>opțional</small></span>
                       <textarea
                         name="quickInteractionSummary"
-                        rows="3"
-                        placeholder="O notă scurtă ca să îți amintești contextul..."
+                        rows="7"
+                        placeholder="Scrie aici ce a fost important în conversație..."
                         [(ngModel)]="interactionDraft.summary"
                       ></textarea>
                     </label>
@@ -3362,6 +3362,97 @@ interface InteractionDraft {
 
         .contact-editor-row {
           grid-template-columns: 1fr;
+        }
+      }
+
+      /* Match Today: page fills the available work area and the whole left pane owns one scroll */
+      :host {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      .networking-page {
+        display: flex;
+        height: 100%;
+        min-height: 0;
+        flex-direction: column;
+        padding-bottom: 0;
+        overflow: hidden;
+      }
+
+      .page-head,
+      .summary-grid {
+        flex: 0 0 auto;
+      }
+
+      .workspace,
+      .workspace.panel-open {
+        flex: 1 1 auto;
+        min-height: 0;
+        height: auto;
+        max-height: none;
+        overflow: hidden;
+      }
+
+      .people-panel {
+        display: block;
+        height: 100%;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        scrollbar-gutter: stable;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+      }
+
+      .people-list {
+        min-height: 50px;
+        max-height: none;
+        overflow: visible;
+        padding: var(--s-half) var(--s-half) var(--s8);
+      }
+
+      .search-row {
+        padding: var(--s-half);
+        border-bottom: 1px solid var(--divider-color);
+      }
+
+      .filters {
+        padding: var(--s-half);
+      }
+
+      .panel-textarea-wrap textarea {
+        min-height: 150px;
+        line-height: 1.45;
+      }
+
+      @media (max-width: 800px) {
+        :host {
+          height: auto;
+          overflow: visible;
+        }
+
+        .networking-page {
+          height: auto;
+          min-height: 100%;
+          overflow: visible;
+          padding-bottom: 96px;
+        }
+
+        .workspace,
+        .workspace.panel-open {
+          height: auto;
+          overflow: visible;
+        }
+
+        .people-panel {
+          height: auto;
+          overflow: visible;
+        }
+
+        .people-list {
+          padding-bottom: var(--s2);
         }
       }
     `,
