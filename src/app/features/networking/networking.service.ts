@@ -262,7 +262,7 @@ export class NetworkingService {
         latest?.nextContactDay !== undefined
           ? latest.nextContactDay
           : contact.nextContactDay,
-      nextTopic: latest?.nextTopic || contact.nextTopic,
+      nextTopic: latest ? latest.nextTopic : contact.nextTopic,
       modifiedAt: Date.now(),
     };
 
